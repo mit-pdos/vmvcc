@@ -178,7 +178,7 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 func MkTuple() *Tuple {
 	tuple := new(Tuple)
 	tuple.latch = new(sync.Mutex)
-	tuple.rcond = new(sync.Cond)
+	tuple.rcond = sync.NewCond(tuple.latch)
 	tuple.tidwr = 0
 	tuple.tidlast = 0
 	tuple.vers = make([]Version, 0)
