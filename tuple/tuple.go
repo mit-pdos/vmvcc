@@ -15,21 +15,29 @@ type Version struct {
 }
 
 /**
- * `tidwr`
+ * `tidown`
  *		An TID specifying which txn owns the permission to update this tuple.
- * `tidlast`
+ * `tidrd`
  *		An TID specifying the last txn (in the sense of the largest TID, not
- *		actual physical time) that reads or writes this tuple.
+ *		actual physical time) that reads this tuple.
+ * `tidwr`
+ *		An TID specifying the last txn (in the sense of the largest TID, not
+ *		actual physical time) that writes this tuple. `tidwr` should be the same
+ *		as the begin timestamp of the latest version. For tuples without any
+ *		version, this field is set to 0.
  *
  * Invariants:
- * 1. `tidwr != 0` -> this tuple is read-only
- * 2. `vers` not empty -> exists a version whose `end` is MAX_U64
+ *		1. `tidown != 0` -> this tuple is read-only
+ *		2. `vers` not empty -> exists a version whose `end` is MAX_U64
+ *		3. `len(vers) != 0` -> `tidwr == vers[len(vers) - 1].begin`
+ * 		4. `len(vers) == 0` -> `tidwr == 0`
  */
 type Tuple struct {
 	latch	*sync.Mutex
 	rcond	*sync.Cond
+	tidown	uint64
+	tidrd	uint64
 	tidwr	uint64
-	tidlast	uint64
 	vers	[]Version
 }
 
@@ -60,19 +68,19 @@ func (tuple *Tuple) Own(tid uint64) bool {
 	 * higher TID has already read from or written to, as it would fail to
 	 * satisfy serializability.
 	 */
-	if tid < tuple.tidlast {
+	if tid < tuple.tidrd || tid < tuple.tidwr {
 		tuple.latch.Unlock()
 		return false
 	}
 
-	/* Return an error if the latest version is already write-locked. */
-	if tuple.tidwr != 0 {
+	/* Return an error if the latest version is already onwed by another txn. */
+	if tuple.tidown != 0 {
 		tuple.latch.Unlock()
 		return false
 	}
 
 	/* Acquire the permission to update this tuple (will do on commit). */
-	tuple.tidwr = tid
+	tuple.tidown = tid
 
 	tuple.latch.Unlock()
 	return true
@@ -89,10 +97,10 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	 * Modify the lifetime of the previous latest version to end at `tid` unless
 	 * the tuple has never been written to (i.e., contains no versions).
 	 */
-	if len(tuple.vers) != 0 {
+	if len(tuple.vers) > 0 {
 		idx := len(tuple.vers) - 1
-		verPrev := tuple.vers[idx]
-		verPrev.end = tid
+		verPrevRef := &tuple.vers[idx]
+		verPrevRef.end = tid
 	}
 
 	/* Allocate a new version. */
@@ -104,10 +112,10 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	tuple.vers = append(tuple.vers, verNext)
 
 	/* Release the permission to update this tuple. */
-	tuple.tidwr = 0
+	tuple.tidown = 0
 
 	/* Record the TID of the last writer. */
-	tuple.tidlast = tid
+	tuple.tidwr = tid
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
@@ -122,7 +130,7 @@ func (tuple *Tuple) Free(tid uint64) {
 	tuple.latch.Lock()
 
 	/* Release the permission to update this tuple. */
-	tuple.tidwr = 0
+	tuple.tidown = 0
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
@@ -136,14 +144,33 @@ func (tuple *Tuple) Free(tid uint64) {
 func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	tuple.latch.Lock()
 
-	/* XXX: potential bug here */
+	/**
+	 * The only case where a writer can block a reader is when the reader is
+	 * trying to read the latest version (`tid >= tuple.tidwr`) AND the latest
+	 * version may change in the future (`tuple.tidown != 0`).
+	 */
+	for tid >= tuple.tidwr && tuple.tidown != 0 {
+		tuple.rcond.Wait()
+	}
+
+	/**
+	 * We'll be able to do a case analysis here:
+	 *		1. `tid < tuple.tidwr` means we can read previous versions.
+	 *		2. `tuple.tidown == 0` means that follow-up txns trying to append a
+	 *		new version will either fail (if the writer's `tid` is lower than
+	 *		this `tid`), or succeed (if the writer's `tid` is greater than this
+	 *		`tid`) but with the guarantee that the `end` timestamp of the new
+	 *		version is going to be greater than `tid`, so this txn can safely
+	 *		read the latest version at this point.
+	 */
+
 	/**
 	 * Record the TID of the last reader. This is done at the start so that if
-	 * there is no right version for txn `tid` to read, earlier txn (i.e., those
-	 * with smaller TID) won't be able to create one.
+	 * there is no right version for txn `tid` to read, earlier txns (i.e.,
+	 * those with smaller TID) won't be able to create one.
 	 */
-	if tuple.tidlast < tid {
-		tuple.tidlast = tid
+	if tuple.tidrd < tid {
+		tuple.tidrd = tid
 	}
 
 	var ver *Version
@@ -151,22 +178,8 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 
 	/* Return an error when there is no right version for txn `tid`. */
 	if ver == nil {
+		tuple.latch.Unlock()
 		return 0, false
-	}
-
-	/**
-	 * The only case where a writer can block a reader is when the reader is
-	 * trying to read the latest version (`ver.end == MAX_U64`) AND the latest
-	 * version may change in the future (`tuple.tidwr != 0`).
-	 */
-	for ver.end == MAX_U64 && tuple.tidwr != 0 {
-		tuple.rcond.Wait()
-
-		/**
-		 * Find the right version again as the writing txn can be either before
-		 * or after this txn.
-		 */
-		ver = findRightVer(tid, tuple.vers)
 	}
 
 	val := ver.val
@@ -179,9 +192,10 @@ func MkTuple() *Tuple {
 	tuple := new(Tuple)
 	tuple.latch = new(sync.Mutex)
 	tuple.rcond = sync.NewCond(tuple.latch)
+	tuple.tidown = 0
+	tuple.tidrd = 0
 	tuple.tidwr = 0
-	tuple.tidlast = 0
-	tuple.vers = make([]Version, 0)
+	tuple.vers = make([]Version, 0, 16)
 	return tuple
 }
 
