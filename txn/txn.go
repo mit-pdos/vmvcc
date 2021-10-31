@@ -18,9 +18,7 @@ type Txn struct {
 
 func (txn *Txn) Put(key, val uint64) bool {
 	idx := txn.idx
-
-	/* No need to check as we ask `GetTuple` to create one when not exists. */
-	tuple, _ := idx.GetTuple(key, true)
+	tuple := idx.GetTuple(key)
 
 	/* Try to get the permission to update this tuple. */
 	ok := tuple.Own(txn.tid)
@@ -36,10 +34,7 @@ func (txn *Txn) Put(key, val uint64) bool {
 
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	idx := txn.idx
-	tuple, ok := idx.GetTuple(key, false)
-	if !ok {
-		return 0, false
-	}
+	tuple := idx.GetTuple(key)
 	val, found := tuple.ReadVersion(txn.tid)
 	return val, found
 }
