@@ -4,28 +4,25 @@ import (
 	"testing"
 	"time"
 	"github.com/stretchr/testify/assert"
-	"go-mvcc/index"
 )
 
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
-	txn := txnMgr.New(idx)
+	txn := txnMgr.New()
 	assert.Equal(len(txn.wset), 0)
 }
 
 func TestPutCommitAndGet(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnPut := txnMgr.New(idx)
+	txnPut := txnMgr.New()
 	txnPut.Put(10, 20)
 	txnPut.Put(11, 22)
 	txnPut.Commit()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(20), v)
@@ -41,14 +38,13 @@ func TestPutCommitAndGet(t *testing.T) {
 
 func TestPutAbortAndGet(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnPut := txnMgr.New(idx)
+	txnPut := txnMgr.New()
 	txnPut.Put(10, 20)
 	txnPut.Abort()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	_, found := txnGet.Get(10)
 	assert.Equal(false, found)
 	txnGet.Commit()
@@ -59,11 +55,10 @@ func TestPutAbortAndGet(t *testing.T) {
  */
 func TestInterleavedPutAndGet1(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnPut := txnMgr.New(idx)
-	txnGet := txnMgr.New(idx)
+	txnPut := txnMgr.New()
+	txnGet := txnMgr.New()
 
 	txnPut.Put(10, 20)
 
@@ -84,11 +79,10 @@ func TestInterleavedPutAndGet1(t *testing.T) {
  */
 func TestInterleavedPutAndGet2(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnGet := txnMgr.New(idx)
-	txnPut := txnMgr.New(idx)
+	txnGet := txnMgr.New()
+	txnPut := txnMgr.New()
 
 	txnPut.Put(10, 20)
 
@@ -105,11 +99,10 @@ func TestInterleavedPutAndGet2(t *testing.T) {
 
 func TestInOrderPuts(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnA.Put(10, 20)
 	txnA.Commit()
@@ -118,7 +111,7 @@ func TestInOrderPuts(t *testing.T) {
 	assert.Equal(true, ok)
 	txnB.Commit()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(200), v)
@@ -130,11 +123,10 @@ func TestInOrderPuts(t *testing.T) {
  */
 func TestFailedReversedPuts(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnB.Put(10, 20)
 	txnB.Commit()
@@ -143,7 +135,7 @@ func TestFailedReversedPuts(t *testing.T) {
 	assert.Equal(false, ok)
 	txnA.Abort()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(20), v)
@@ -152,11 +144,10 @@ func TestFailedReversedPuts(t *testing.T) {
 
 func TestInOrderGetAndPut(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnA.Get(10)
 	txnA.Commit()
@@ -165,7 +156,7 @@ func TestInOrderGetAndPut(t *testing.T) {
 	assert.Equal(true, ok)
 	txnB.Commit()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(20), v)
@@ -177,11 +168,10 @@ func TestInOrderGetAndPut(t *testing.T) {
  */
 func TestFailedReversedGetAndPut(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnB.Get(10)
 	txnB.Commit()
@@ -190,7 +180,7 @@ func TestFailedReversedGetAndPut(t *testing.T) {
 	assert.Equal(false, ok)
 	txnA.Abort()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	_, found := txnGet.Get(10)
 	assert.Equal(false, found)
 	txnGet.Commit()
@@ -201,11 +191,10 @@ func TestFailedReversedGetAndPut(t *testing.T) {
  */
 func TestFailedConcurrentPuts1(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnA.Put(10, 20)
 
@@ -215,7 +204,7 @@ func TestFailedConcurrentPuts1(t *testing.T) {
 	txnA.Commit()
 	txnB.Abort()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(20), v)
@@ -227,11 +216,10 @@ func TestFailedConcurrentPuts1(t *testing.T) {
  */
 func TestFailedConcurrentPuts2(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txnA := txnMgr.New(idx)
-	txnB := txnMgr.New(idx)
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
 
 	txnB.Put(10, 20)
 
@@ -241,7 +229,7 @@ func TestFailedConcurrentPuts2(t *testing.T) {
 	txnA.Abort()
 	txnB.Commit()
 
-	txnGet := txnMgr.New(idx)
+	txnGet := txnMgr.New()
 	v, found := txnGet.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(20), v)
@@ -250,10 +238,9 @@ func TestFailedConcurrentPuts2(t *testing.T) {
 
 func TestReadMyWrite(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txn := txnMgr.New(idx)
+	txn := txnMgr.New()
 	txn.Put(10, 20)
 	v, found := txn.Get(10)
 	assert.Equal(true, found)
@@ -262,10 +249,9 @@ func TestReadMyWrite(t *testing.T) {
 
 func TestWriteMyWrite(t *testing.T) {
 	assert := assert.New(t)
-	idx := index.MkIndex()
 	txnMgr := MkTxnMgr()
 
-	txn := txnMgr.New(idx)
+	txn := txnMgr.New()
 	txn.Put(10, 20)
 	txn.Put(10, 200)
 	v, found := txn.Get(10)
@@ -274,7 +260,7 @@ func TestWriteMyWrite(t *testing.T) {
 
 	txn.Commit()
 
-	txnRd := txnMgr.New(idx)
+	txnRd := txnMgr.New()
 	v, found = txnRd.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(200), v)
