@@ -188,6 +188,31 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	return val, true
 }
 
+/**
+ * Remove all versions whose `end` timestamp is less than or equal to `tid`.
+ * Preconditions:
+ */
+func (tuple *Tuple) RemoveVersions(tid uint64) {
+	tuple.latch.Lock()
+
+	var idx int
+	var ver Version
+	for idx, ver = range tuple.vers {
+		if ver.end > tid {
+			break
+		}
+	}
+	/**
+	 * `idx` points to the first usable version. A special case where `idx =
+	 * len(tuple.vers)` removes all versions.
+	 * Note that `s = s[len(s):]` is acceptable, which makes `s` a slice with
+	 * zeroed len and cap.
+	 */
+	tuple.vers = tuple.vers[idx:]
+
+	tuple.latch.Unlock()
+}
+
 func MkTuple() *Tuple {
 	tuple := new(Tuple)
 	tuple.latch = new(sync.Mutex)

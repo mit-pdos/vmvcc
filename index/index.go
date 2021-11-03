@@ -46,3 +46,15 @@ func (idx *Index) GetTuple(key uint64) *tuple.Tuple {
 	return tupleNew
 }
 
+func (idx *Index) GetKeys() []uint64 {
+	idx.latch.Lock()
+
+	keys := make([]uint64, 0, len(idx.m))
+	for k := range idx.m {
+		keys = append(keys, k)
+	}
+
+	idx.latch.Unlock()
+	return keys
+}
+

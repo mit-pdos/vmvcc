@@ -279,3 +279,35 @@ func TestReadBlocking2(t *testing.T) {
 	assert.Equal(true, ok)
 }
 
+func TestRemoveVersions(t *testing.T) {
+	assert := assert.New(t)
+	tuple := MkTuple()
+
+	tidA := uint64(10)
+	tidB := uint64(20)
+
+	tuple.Own(tidA)
+	tuple.AppendVersion(tidA, 100)
+	assert.Equal(1, len(tuple.vers))
+
+	tuple.RemoveVersions(20)
+	assert.Equal(1, len(tuple.vers))
+
+	tuple.Own(tidB)
+	tuple.AppendVersion(tidB, 200)
+	assert.Equal(2, len(tuple.vers))
+
+	tidRd := uint64(15)
+	v, ok := tuple.ReadVersion(tidRd)
+	assert.Equal(uint64(100), v)
+	assert.Equal(true, ok)
+
+	tuple.RemoveVersions(19)
+	assert.Equal(2, len(tuple.vers))
+	tuple.RemoveVersions(20)
+	assert.Equal(1, len(tuple.vers))
+
+	v, ok = tuple.ReadVersion(tidRd)
+	assert.Equal(false, ok)
+}
+

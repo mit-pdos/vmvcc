@@ -9,8 +9,10 @@ import (
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
 	txnMgr := MkTxnMgr()
+	assert.Equal(0, len(txnMgr.tidsActive))
+
 	txn := txnMgr.New()
-	assert.Equal(len(txn.wset), 0)
+	assert.Equal(0, len(txn.wset))
 }
 
 func TestPutCommitAndGet(t *testing.T) {
@@ -264,5 +266,54 @@ func TestWriteMyWrite(t *testing.T) {
 	v, found = txnRd.Get(10)
 	assert.Equal(true, found)
 	assert.Equal(uint64(200), v)
+}
+
+func TestActiveTxns(t *testing.T) {
+	assert := assert.New(t)
+	txnMgr := MkTxnMgr()
+
+	txn := txnMgr.New()
+	assert.Equal(1, len(txnMgr.tidsActive))
+	txn.Commit()
+	assert.Equal(0, len(txnMgr.tidsActive))
+
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
+	txnC := txnMgr.New()
+	assert.Equal(3, len(txnMgr.tidsActive))
+
+	txnC.Abort()
+	txnA.Commit()
+	txnB.Commit()
+	assert.Equal(0, len(txnMgr.tidsActive))
+}
+
+func TestMinActiveTxns(t *testing.T) {
+	assert := assert.New(t)
+	txnMgr := MkTxnMgr()
+
+	txns := make([]*Txn, 10)
+	for i := 0; i < 10; i++ {
+		txns[i] = txnMgr.New()
+	}
+	assert.Equal(uint64(1), txnMgr.getMinActiveTID())
+
+	txns[0].Commit()
+	txns[1].Commit()
+	txns[2].Abort()
+	txns[5].Commit()
+	txns[9].Abort()
+	assert.Equal(uint64(4), txnMgr.getMinActiveTID())
+
+	txns[7].Commit()
+	assert.Equal(uint64(4), txnMgr.getMinActiveTID())
+
+	txns[3].Abort()
+	assert.Equal(uint64(5), txnMgr.getMinActiveTID())
+
+	txns[4].Commit()
+	txns[6].Commit()
+	txns[8].Abort()
+	assert.Equal(uint64(10), txnMgr.getMinActiveTID())
 }
 

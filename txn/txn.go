@@ -14,6 +14,7 @@ type Txn struct {
 	tid		uint64
 	wset	map[uint64]WrEnt
 	idx		*index.Index
+	txnMgr	*TxnMgr
 }
 
 func (txn *Txn) Put(key, val uint64) bool {
@@ -58,6 +59,7 @@ func (txn *Txn) Commit() {
 		tuple := wrent.tuple
 		tuple.AppendVersion(txn.tid, val)
 	}
+	txn.txnMgr.deactivate(txn.tid)
 }
 
 func (txn *Txn) Abort() {
@@ -65,5 +67,6 @@ func (txn *Txn) Abort() {
 		tuple := wrent.tuple
 		tuple.Free(txn.tid)
 	}
+	txn.txnMgr.deactivate(txn.tid)
 }
 
