@@ -248,3 +248,35 @@ func TestFailedConcurrentPuts2(t *testing.T) {
 	txnGet.Commit()
 }
 
+func TestReadMyWrite(t *testing.T) {
+	assert := assert.New(t)
+	idx := index.MkIndex()
+	txnMgr := MkTxnMgr()
+
+	txn := txnMgr.New(idx)
+	txn.Put(10, 20)
+	v, found := txn.Get(10)
+	assert.Equal(true, found)
+	assert.Equal(uint64(20), v)
+}
+
+func TestWriteMyWrite(t *testing.T) {
+	assert := assert.New(t)
+	idx := index.MkIndex()
+	txnMgr := MkTxnMgr()
+
+	txn := txnMgr.New(idx)
+	txn.Put(10, 20)
+	txn.Put(10, 200)
+	v, found := txn.Get(10)
+	assert.Equal(true, found)
+	assert.Equal(uint64(200), v)
+
+	txn.Commit()
+
+	txnRd := txnMgr.New(idx)
+	v, found = txnRd.Get(10)
+	assert.Equal(true, found)
+	assert.Equal(uint64(200), v)
+}
+
