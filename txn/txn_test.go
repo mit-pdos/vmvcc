@@ -317,3 +317,26 @@ func TestMinActiveTxns(t *testing.T) {
 	assert.Equal(uint64(10), txnMgr.getMinActiveTID())
 }
 
+func TestStartGC(t *testing.T) {
+	assert := assert.New(t)
+	txnMgr := MkTxnMgr()
+
+	txnA := txnMgr.New()
+	txnB := txnMgr.New()
+	txnC := txnMgr.New()
+
+	txnA.Put(10, 20)
+	/* This GC should do nothing. */
+	txnMgr.startGC()
+	txnA.Commit()
+
+	txnB.Put(10, 200)
+	txnB.Commit()
+	/* This GC should reclaim the first version. */
+	txnMgr.startGC()
+
+	v, found := txnC.Get(10)
+	assert.Equal(true, found)
+	assert.Equal(uint64(200), v)
+}
+
