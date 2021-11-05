@@ -5,19 +5,31 @@ import (
 	"go-mvcc/tuple"
 )
 
-/**
- * TODO: Use lock-striped hash map.
- */
-type Index struct {
+const (
+	N_IDX_BUCKET uint64 = 32
+)
+
+type IndexBucket struct {
 	latch	*sync.Mutex
 	m		map[uint64]*tuple.Tuple
 }
 
+type Index struct {
+	buckets	[]IndexBucket
+}
+
 func MkIndex() *Index {
 	idx := new(Index)
-	idx.latch = new(sync.Mutex)
-	idx.m = make(map[uint64]*tuple.Tuple)
+	idx.buckets = make([]IndexBucket, N_IDX_BUCKET)
+	for i := uint64(0); i < N_IDX_BUCKET; i++ {
+		idx.buckets[i].latch = new(sync.Mutex)
+		idx.buckets[i].m = make(map[uint64]*tuple.Tuple)
+	}
 	return idx
+}
+
+func getBucket(key uint64) uint64 {
+	return key % N_IDX_BUCKET
 }
 
 /**
@@ -29,32 +41,36 @@ func MkIndex() *Index {
  * with the `tidrd` field of each tuple.
  */
 func (idx *Index) GetTuple(key uint64) *tuple.Tuple {
-	idx.latch.Lock()
+	b := getBucket(key)
+	bucket := idx.buckets[b]
+	bucket.latch.Lock()
 
 	/* Return the tuple if there exists one. */
-	tupleCur, ok := idx.m[key]
+	tupleCur, ok := bucket.m[key]
 	if ok {
-		idx.latch.Unlock()
+		bucket.latch.Unlock()
 		return tupleCur
 	}
 
 	/* Create a new tuple and associate it with the key. */
 	tupleNew := tuple.MkTuple()
-	idx.m[key] = tupleNew
+	bucket.m[key] = tupleNew
 
-	idx.latch.Unlock()
+	bucket.latch.Unlock()
 	return tupleNew
 }
 
 func (idx *Index) GetKeys() []uint64 {
-	idx.latch.Lock()
-
-	keys := make([]uint64, 0, len(idx.m))
-	for k := range idx.m {
-		keys = append(keys, k)
+	/* TODO: Try to estimate initial cap. */
+	keys := make([]uint64, 0, 2000)
+	for b := uint64(0); b < N_IDX_BUCKET; b++ {
+		bucket := idx.buckets[b]
+		bucket.latch.Lock()
+		for k := range bucket.m {
+			keys = append(keys, k)
+		}
+		bucket.latch.Unlock()
 	}
-
-	idx.latch.Unlock()
 	return keys
 }
 

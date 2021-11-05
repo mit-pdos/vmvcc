@@ -2,6 +2,7 @@ package txn
 
 import (
 	"sync"
+	"time"
 	"go-mvcc/gc"
 	"go-mvcc/index"
 )
@@ -25,21 +26,27 @@ func MkTxnMgr() *TxnMgr {
 
 func (txnMgr *TxnMgr) New() *Txn {
 	txnMgr.latch.Lock()
-	txnMgr.tidCur++
-	tidNew := txnMgr.tidCur
 
 	/* Make a new txn. */
 	txn := new(Txn)
-	txn.tid = tidNew
-	txn.wset = make(map[uint64]WrEnt)
+	txn.wset = make([]WrEnt, 0, 32)
 	txn.idx = txnMgr.idx
 	txn.txnMgr = txnMgr
+
+	txnMgr.latch.Unlock()
+	return txn
+}
+
+func (txnMgr *TxnMgr) activate() uint64 {
+	txnMgr.latch.Lock()
+	txnMgr.tidCur++
+	tidNew := txnMgr.tidCur
 
 	/* Add `tidNew` to the set of active txns. */
 	txnMgr.tidsActive[tidNew] = true
 
 	txnMgr.latch.Unlock()
-	return txn
+	return tidNew
 }
 
 /**
@@ -70,7 +77,16 @@ func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 	return min
 }
 
-func (txnMgr *TxnMgr) startGC() {
+func (txnMgr *TxnMgr) StartGC() {
+	go func() {
+		for {
+			txnMgr.runGC()
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+}
+
+func (txnMgr *TxnMgr) runGC() {
 	tidMin := txnMgr.getMinActiveTID()
 	txnMgr.gc.Start(tidMin)
 }
