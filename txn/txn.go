@@ -27,11 +27,16 @@ type Txn struct {
 
 func (txn *Txn) Put(key, val uint64) bool {
 	/* First try to find `key` in the local write set. */
+	var found bool = false
 	for i, _ := range txn.wset {
 		if key == txn.wset[i].key {
-			txn.wset[i].val = val
-			return true
+			went := &txn.wset[i]
+			went.val = val
+			found = true
 		}
+	}
+	if found {
+		return true
 	}
 
 	idx := txn.idx
@@ -51,16 +56,24 @@ func (txn *Txn) Put(key, val uint64) bool {
 
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
-	for _, wrent := range txn.wset {
-		if key == wrent.key {
-			return wrent.val, true
+	var found bool = false
+	var val uint64 = 0
+	for i, _ := range txn.wset {
+		if key == txn.wset[i].key {
+			went := &txn.wset[i]
+			val = went.val
+			found = true
 		}
+	}
+	if found {
+		return val, true
 	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
-	val, found := tuple.ReadVersion(txn.tid)
-	return val, found
+	/* Cannot reuse `found` and `val` as Goose forbids multi-assignment. */
+	valTuple, foundTuple := tuple.ReadVersion(txn.tid)
+	return valTuple, foundTuple
 }
 
 func (txn *Txn) Begin() {

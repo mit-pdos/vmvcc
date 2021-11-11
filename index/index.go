@@ -22,8 +22,14 @@ func MkIndex() *Index {
 	idx := new(Index)
 	idx.buckets = make([]IndexBucket, N_IDX_BUCKET)
 	for i := uint64(0); i < N_IDX_BUCKET; i++ {
+		b := &idx.buckets[i]
+		b.latch = new(sync.Mutex)
+		b.m = make(map[uint64]*tuple.Tuple)
+		/*
+		Rejected by Goose:
 		idx.buckets[i].latch = new(sync.Mutex)
 		idx.buckets[i].m = make(map[uint64]*tuple.Tuple)
+		*/
 	}
 	return idx
 }
@@ -62,7 +68,8 @@ func (idx *Index) GetTuple(key uint64) *tuple.Tuple {
 
 func (idx *Index) GetKeys() []uint64 {
 	/* TODO: Try to estimate initial cap. */
-	keys := make([]uint64, 0, 2000)
+	var keys []uint64
+	keys = make([]uint64, 0, 2000)
 	for b := uint64(0); b < N_IDX_BUCKET; b++ {
 		bucket := idx.buckets[b]
 		bucket.latch.Lock()

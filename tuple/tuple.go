@@ -45,12 +45,13 @@ type Tuple struct {
  * TODO: Maybe start from the end (i.e., the newest version).
  */
 func findRightVer(tid uint64, vers []Version) *Version {
-	for _, ver := range vers {
-		if ver.begin <= tid && tid < ver.end {
-			return &ver
+	var ret *Version
+	for i, _ := range vers {
+		if vers[i].begin <= tid && tid < vers[i].end {
+			ret = &vers[i]
 		}
 	}
-	return nil
+	return ret
 }
 
 /**
@@ -195,11 +196,14 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 func (tuple *Tuple) RemoveVersions(tid uint64) {
 	tuple.latch.Lock()
 
-	var idx int
-	var ver Version
-	for idx, ver = range tuple.vers {
-		if ver.end > tid {
-			break
+	var idx uint64 = 0
+	for _, ver := range tuple.vers {
+		/**
+		 * TODO: Break early, as `tuple.vers` are sorted. Goose currently does
+		 * not support break within non-unbounded loops.
+		 */
+		if ver.end <= tid {
+			idx++
 		}
 	}
 	/**

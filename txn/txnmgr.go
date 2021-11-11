@@ -2,7 +2,7 @@ package txn
 
 import (
 	"sync"
-	"time"
+	//"time"
 	"go-mvcc/gc"
 	"go-mvcc/index"
 )
@@ -39,7 +39,8 @@ func (txnMgr *TxnMgr) New() *Txn {
 
 func (txnMgr *TxnMgr) activate() uint64 {
 	txnMgr.latch.Lock()
-	txnMgr.tidCur++
+	/* Goose: cannot use inc/dec non-var */
+	txnMgr.tidCur = txnMgr.tidCur + 1
 	tidNew := txnMgr.tidCur
 
 	/* Add `tidNew` to the set of active txns. */
@@ -66,7 +67,7 @@ func (txnMgr *TxnMgr) deactivate(tid uint64) {
 func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 	txnMgr.latch.Lock()
 
-	min := txnMgr.tidCur
+	var min uint64 = txnMgr.tidCur
 	for tid := range txnMgr.tidsActive {
 		if tid < min {
 			min = tid
@@ -81,7 +82,8 @@ func (txnMgr *TxnMgr) StartGC() {
 	go func() {
 		for {
 			txnMgr.runGC()
-			time.Sleep(100 * time.Millisecond)
+			/* Goose: literal with kind INT */
+			// time.Sleep(time.Duration(uint64(100)) * time.Millisecond)
 		}
 	}()
 }
