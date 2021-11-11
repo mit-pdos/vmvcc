@@ -13,15 +13,7 @@ import (
 
 var done bool
 
-func populateDB(txn *txn.Txn, r uint64) {
-	for k := uint64(0); k < r; k++ {
-		txn.Begin()
-		txn.Put(k, 2 * k + 1)
-		txn.Commit()
-	}
-}
-
-func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
+func writer(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
 	var c uint64 = 0
 	var t uint64 = 0
 	r := int64(rkeys)
@@ -32,7 +24,7 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 		canCommit := true
 		for i := 0; i < nkeys; i++ {
 			k := uint64(rd.Int63n(r))
-			_, ok := txn.Get(k)
+			ok := txn.Put(k, 2 * k + 1)
 			if !ok {
 				canCommit = false
 				break
@@ -52,7 +44,7 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 
 func main() {
 	txnMgr := txn.MkTxnMgr()
-	//txnMgr.StartGC()
+	txnMgr.StartGC()
 
 	var nthrds int
 	var nkeys int
@@ -81,14 +73,10 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	txn := txnMgr.New()
-	populateDB(txn, rkeys)
-	fmt.Printf("Database populated.\n")
-
 	done = false
 	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
-		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
+		go writer(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
 	}
 	time.Sleep(10 * time.Second)
 	done = true
