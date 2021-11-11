@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	N_IDX_BUCKET uint64 = 32
+	N_IDX_BUCKET uint64 = 128
 )
 
 type IndexBucket struct {
