@@ -21,7 +21,7 @@ func populateDB(txn *txn.Txn, r uint64) {
 	}
 }
 
-func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, rkeys uint64) {
+func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
 	var c uint64 = 0
 	var t uint64 = 0
 	r := int64(rkeys)
@@ -30,7 +30,7 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 	for !done {
 		txn.Begin()
 		canCommit := true
-		for i := 0; i < 1; i++ {
+		for i := 0; i < nkeys; i++ {
 			k := uint64(rd.Int63n(r))
 			_, ok := txn.Get(k)
 			if !ok {
@@ -50,7 +50,23 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 	chTotal <-t
 }
 
-func startCPUProfiler(cpuprof string) {
+func main() {
+	txnMgr := txn.MkTxnMgr()
+	//txnMgr.StartGC()
+
+	var nthrds int
+	var nkeys int
+	var rkeys uint64
+	var cpuprof string
+	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
+	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
+	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
+	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
+	flag.Parse()
+
+	chCommitted := make(chan uint64)
+	chTotal := make(chan uint64)
+
 	if cpuprof != "" {
 		f, err := os.Create(cpuprof)
 		if err != nil {
@@ -62,40 +78,22 @@ func startCPUProfiler(cpuprof string) {
 		}
 		defer pprof.StopCPUProfile()
 	}
-}
-
-func main() {
-	txnMgr := txn.MkTxnMgr()
-	//txnMgr.StartGC()
-
-	var nthrd int
-	var rkeys uint64
-	var cpuprof string
-	flag.IntVar(&nthrd, "nthrd", 1, "number of threads")
-	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
-	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
-	flag.Parse()
-
-	chCommitted := make(chan uint64)
-	chTotal := make(chan uint64)
-
-	startCPUProfiler(cpuprof)
 
 	txn := txnMgr.New()
 	populateDB(txn, rkeys)
 	fmt.Printf("Database populated.\n")
 
 	done = false
-	for i := 0; i < nthrd; i++ {
+	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
-		go reader(txnMgr, src, chCommitted, chTotal, rkeys)
+		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
 	}
 	time.Sleep(3 * time.Second)
 	done = true
 
 	var c uint64 = 0
 	var t uint64 = 0
-	for i := 0; i < nthrd; i++ {
+	for i := 0; i < nthrds; i++ {
 		c += <-chCommitted
 		t += <-chTotal
 	}
