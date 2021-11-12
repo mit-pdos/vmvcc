@@ -2,11 +2,8 @@ package index
 
 import (
 	"sync"
+	"go-mvcc/config"
 	"go-mvcc/tuple"
-)
-
-const (
-	N_IDX_BUCKET uint64 = 128
 )
 
 type IndexBucket struct {
@@ -20,8 +17,8 @@ type Index struct {
 
 func MkIndex() *Index {
 	idx := new(Index)
-	idx.buckets = make([]IndexBucket, N_IDX_BUCKET)
-	for i := uint64(0); i < N_IDX_BUCKET; i++ {
+	idx.buckets = make([]IndexBucket, config.N_IDX_BUCKET)
+	for i := uint64(0); i < config.N_IDX_BUCKET; i++ {
 		b := &idx.buckets[i]
 		b.latch = new(sync.Mutex)
 		b.m = make(map[uint64]*tuple.Tuple)
@@ -35,7 +32,7 @@ func MkIndex() *Index {
 }
 
 func getBucket(key uint64) uint64 {
-	return key % N_IDX_BUCKET
+	return key % config.N_IDX_BUCKET
 }
 
 /**
@@ -70,7 +67,7 @@ func (idx *Index) GetKeys() []uint64 {
 	/* TODO: Try to estimate initial cap. */
 	var keys []uint64
 	keys = make([]uint64, 0, 2000)
-	for b := uint64(0); b < N_IDX_BUCKET; b++ {
+	for b := uint64(0); b < config.N_IDX_BUCKET; b++ {
 		bucket := idx.buckets[b]
 		bucket.latch.Lock()
 		for k := range bucket.m {
