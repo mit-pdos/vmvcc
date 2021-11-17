@@ -11,7 +11,7 @@ import (
 	"go-mvcc/cfmutex"
 )
 
-type TIDGen struct {
+type TxnSite struct {
 	latch		*cfmutex.CFMutex
 	tidLast		uint64
 	tidsActive	[]uint64 /* or struct{} if Goose supports. */
@@ -20,8 +20,8 @@ type TIDGen struct {
 
 type TxnMgr struct {
 	latch		*cfmutex.CFMutex
-	tokenCur	uint64
-	tidGens		[]TIDGen
+	sidCur		uint64
+	sites		[]TxnSite
 	idx			*index.Index
 	gc			*gc.GC
 }
@@ -29,9 +29,9 @@ type TxnMgr struct {
 func MkTxnMgr() *TxnMgr {
 	txnMgr := new(TxnMgr)
 	txnMgr.latch = new(cfmutex.CFMutex)
-	txnMgr.tidGens = make([]TIDGen, config.MAX_TOKEN)
-	for i := uint64(0); i < config.MAX_TOKEN; i++ {
-		g := &txnMgr.tidGens[i]
+	txnMgr.sites = make([]TxnSite, config.N_TXN_SITES)
+	for i := uint64(0); i < config.N_TXN_SITES; i++ {
+		g := &txnMgr.sites[i]
 		g.latch = new(cfmutex.CFMutex)
 		g.tidsActive = make([]uint64, 0, 8)
 	}
@@ -46,52 +46,53 @@ func (txnMgr *TxnMgr) New() *Txn {
 	/* Make a new txn. */
 	txn := new(Txn)
 	txn.wset = make([]WrEnt, 0, 32)
-	token := txnMgr.tokenCur
-	txn.token = token
+	sid := txnMgr.sidCur
+	txn.sid = sid
 	txn.idx = txnMgr.idx
 	txn.txnMgr = txnMgr
 
-	txnMgr.tokenCur = token + 1
-	if txnMgr.tokenCur == config.MAX_TOKEN {
-		txnMgr.tokenCur = 0
+	txnMgr.sidCur = sid + 1
+	if txnMgr.sidCur == config.N_TXN_SITES {
+		txnMgr.sidCur = 0
 	}
 
 	txnMgr.latch.Unlock()
 	return txn
 }
 
-func genTID(token uint64) uint64 {
+func genTID(sid uint64) uint64 {
 	tid := tsc.GetTSC()
-	tid = (tid & ^(config.MAX_TOKEN - 1)) + token
+	tid = (tid & ^(config.N_TXN_SITES - 1)) + sid
 	return tid
 }
 
 func getToken(tid uint64) uint64 {
-	token := tid & (config.MAX_TOKEN - 1)
-	return token
+	sid := tid & (config.N_TXN_SITES - 1)
+	return sid
 }
 
-func (txnMgr *TxnMgr) activate(token uint64) uint64 {
-	tidGen := &txnMgr.tidGens[token]
-	tidGen.latch.Lock()
+func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
+	site := &txnMgr.sites[sid]
+	site.latch.Lock()
 
 	/**
 	 * Justifying why TID is unique:
-	 * For transactions with different token, the last few bits are distinct.
-	 * For transactions with the same token, the loop below ensures the
-	 * generated TIDs are strictly increasing.
+	 * For transactions with different SID (site ID), the last few bits are
+	 * distinct.
+	 * For transactions with the same SID, the loop below ensures the generated
+	 * TIDs are strictly increasing.
 	 */
 	var tid uint64
-	tid = genTID(token)
-	for tid <= tidGen.tidLast {
-		tid = genTID(token)
+	tid = genTID(sid)
+	for tid <= site.tidLast {
+		tid = genTID(sid)
 	}
-	tidGen.tidLast = tid
+	site.tidLast = tid
 
 	/* Add `tid` to the set of active transactions */
-	tidGen.tidsActive = append(tidGen.tidsActive, tid)
+	site.tidsActive = append(site.tidsActive, tid)
 
-	tidGen.latch.Unlock()
+	site.latch.Unlock()
 	return tid
 }
 
@@ -122,30 +123,30 @@ func swapWithEnd(xs []uint64, i uint64) {
  * 1. The set of active transactions contains `tid`.
  */
 func (txnMgr *TxnMgr) deactivate(tid uint64) {
-	token := getToken(tid)
-	tidGen := &txnMgr.tidGens[token]
-	tidGen.latch.Lock()
+	sid := getToken(tid)
+	site := &txnMgr.sites[sid]
+	site.latch.Lock()
 
 	/* Remove `tid` from the set of active transactions. */
-	idx := findTID(tid, tidGen.tidsActive)
-	swapWithEnd(tidGen.tidsActive, idx)
-	tidGen.tidsActive = tidGen.tidsActive[:len(tidGen.tidsActive) - 1]
+	idx := findTID(tid, site.tidsActive)
+	swapWithEnd(site.tidsActive, idx)
+	site.tidsActive = site.tidsActive[:len(site.tidsActive) - 1]
 
-	tidGen.latch.Unlock()
+	site.latch.Unlock()
 }
 
-func (txnMgr *TxnMgr) getMinActiveTIDShard(sid uint64) uint64 {
-	tidShard := &txnMgr.tidGens[sid]
-	tidShard.latch.Lock()
+func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
+	site := &txnMgr.sites[sid]
+	site.latch.Lock()
 
 	var min uint64 = config.TID_SENTINEL
-	for _, tid := range tidShard.tidsActive {
+	for _, tid := range site.tidsActive {
 		if tid < min {
 			min = tid
 		}
 	}
 
-	tidShard.latch.Unlock()
+	site.latch.Unlock()
 	return min
 }
 
@@ -155,8 +156,8 @@ func (txnMgr *TxnMgr) getMinActiveTIDShard(sid uint64) uint64 {
  */
 func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 	var min uint64 = config.TID_SENTINEL
-	for sid := uint64(0); sid < config.MAX_TOKEN; sid++ {
-		tid := txnMgr.getMinActiveTIDShard(sid)
+	for sid := uint64(0); sid < config.N_TXN_SITES; sid++ {
+		tid := txnMgr.getMinActiveTIDSite(sid)
 		if tid < min {
 			min = tid
 		}
@@ -170,11 +171,11 @@ func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
  */
 func (txnMgr *TxnMgr) getNumActiveTxns() uint64 {
 	var n uint64 = 0
-	for sid := uint64(0); sid < config.MAX_TOKEN; sid++ {
-		tidShard := &txnMgr.tidGens[sid]
-		tidShard.latch.Lock()
-		n += uint64(len(tidShard.tidsActive))
-		tidShard.latch.Unlock()
+	for sid := uint64(0); sid < config.N_TXN_SITES; sid++ {
+		site := &txnMgr.sites[sid]
+		site.latch.Lock()
+		n += uint64(len(site.tidsActive))
+		site.latch.Unlock()
 	}
 
 	return n

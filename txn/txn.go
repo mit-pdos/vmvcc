@@ -21,7 +21,7 @@ type WrEnt struct {
 type Txn struct {
 	tid		uint64
 	wset	[]WrEnt
-	token	uint64
+	sid		uint64
 	idx		*index.Index
 	txnMgr	*TxnMgr
 }
@@ -78,7 +78,7 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 }
 
 func (txn *Txn) Begin() {
-	tid := txn.txnMgr.activate(txn.token)
+	tid := txn.txnMgr.activate(txn.sid)
 	txn.tid = tid
 	txn.wset = txn.wset[:0]
 }

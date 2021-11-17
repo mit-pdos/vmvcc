@@ -12,7 +12,7 @@ func TestCacheAligned(t *testing.T) {
 	assert := assert.New(t)
 	txnMgr := MkTxnMgr()
 
-	assert.Equal(uintptr(64), unsafe.Sizeof(txnMgr.tidGens[0]))
+	assert.Equal(uintptr(64), unsafe.Sizeof(txnMgr.sites[0]))
 }
 
 func TestNew(t *testing.T) {
