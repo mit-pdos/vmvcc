@@ -2,10 +2,7 @@ package tuple
 
 import (
 	"sync"
-)
-
-const (
-	MAX_U64 uint64 = 18446744073709551615
+	"go-mvcc/config"
 )
 
 type Version struct {
@@ -28,7 +25,8 @@ type Version struct {
  *
  * Invariants:
  *		1. `tidown != 0` -> this tuple is read-only
- *		2. `vers` not empty -> exists a version whose `end` is MAX_U64
+ *		2. `vers` not empty -> exists a version whose `end` is
+ *			config.TID_SENTINEL
  *		3. `len(vers) != 0` -> `tidwr == vers[len(vers) - 1].begin`
  * 		4. `len(vers) == 0` -> `tidwr == 0`
  */
@@ -107,7 +105,7 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	/* Allocate a new version. */
 	verNext := Version{
 		begin	: tid,
-		end		: MAX_U64,
+		end		: config.TID_SENTINEL,
 		val		: val,
 	}
 	tuple.vers = append(tuple.vers, verNext)
