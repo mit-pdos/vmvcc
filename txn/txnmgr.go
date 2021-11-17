@@ -4,7 +4,6 @@ import (
 	//"fmt"
 	//"sync"
 	//"time"
-	//"sync/atomic"
 	"go-mvcc/config"
 	"go-mvcc/tsc"
 	"go-mvcc/gc"
@@ -15,8 +14,8 @@ import (
 type TIDGen struct {
 	latch		*cfmutex.CFMutex
 	tidLast		uint64
-	tidsActive	map[uint64]bool /* or struct{} if Goose supports. */
-	padding		[5]uint64
+	tidsActive	[]uint64 /* or struct{} if Goose supports. */
+	padding		[3]uint64
 }
 
 type TxnMgr struct {
@@ -34,7 +33,7 @@ func MkTxnMgr() *TxnMgr {
 	for i := uint64(0); i < config.MAX_TOKEN; i++ {
 		g := &txnMgr.tidGens[i]
 		g.latch = new(cfmutex.CFMutex)
-		g.tidsActive = make(map[uint64]bool)
+		g.tidsActive = make([]uint64, 0, 8)
 	}
 	txnMgr.idx = index.MkIndex()
 	txnMgr.gc = gc.MkGC(txnMgr.idx)
@@ -90,22 +89,47 @@ func (txnMgr *TxnMgr) activate(token uint64) uint64 {
 	tidGen.tidLast = tid
 
 	/* Add `tid` to the set of active transactions */
-	tidGen.tidsActive[tid] = true
+	tidGen.tidsActive = append(tidGen.tidsActive, tid)
 
 	tidGen.latch.Unlock()
 	return tid
 }
 
+func findTID(tid uint64, tids []uint64) uint64 {
+	var idx uint64 = 0
+	for i, x := range tids {
+		if tid == x {
+			idx = uint64(i)
+		}
+	}
+	return idx
+}
+
+/**
+ * Precondition:
+ * 1. `xs` not empty.
+ * 2. `i < len(xs)`
+ */
+func swapWithEnd(xs []uint64, i uint64) {
+	tmp := xs[len(xs) - 1]
+	xs[len(xs) - 1] = xs[i]
+	xs[i] = tmp
+}
+
 /**
  * This function is called by `Txn` at commit/abort time.
+ * Precondition:
+ * 1. The set of active transactions contains `tid`.
  */
 func (txnMgr *TxnMgr) deactivate(tid uint64) {
 	token := getToken(tid)
 	tidGen := &txnMgr.tidGens[token]
 	tidGen.latch.Lock()
 
-	/* Remove `tid` to the set of active transactions. */
-	delete(tidGen.tidsActive, tid)
+	/* Remove `tid` from the set of active transactions. */
+	idx := findTID(tid, tidGen.tidsActive)
+	swapWithEnd(tidGen.tidsActive, idx)
+	tidGen.tidsActive = tidGen.tidsActive[:len(tidGen.tidsActive) - 1]
 
 	tidGen.latch.Unlock()
 }
@@ -115,7 +139,7 @@ func (txnMgr *TxnMgr) getMinActiveTIDShard(sid uint64) uint64 {
 	tidShard.latch.Lock()
 
 	var min uint64 = config.TID_SENTINEL
-	for tid := range tidShard.tidsActive {
+	for _, tid := range tidShard.tidsActive {
 		if tid < min {
 			min = tid
 		}

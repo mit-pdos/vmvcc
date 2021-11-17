@@ -3,9 +3,17 @@ package txn
 import (
 	"testing"
 	"time"
+	"unsafe"
 	"github.com/stretchr/testify/assert"
 	"go-mvcc/config"
 )
+
+func TestCacheAligned(t *testing.T) {
+	assert := assert.New(t)
+	txnMgr := MkTxnMgr()
+
+	assert.Equal(uintptr(64), unsafe.Sizeof(txnMgr.tidGens[0]))
+}
 
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
