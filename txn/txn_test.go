@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 	"github.com/stretchr/testify/assert"
+	"go-mvcc/config"
 )
 
 func TestNew(t *testing.T) {
 	assert := assert.New(t)
 	txnMgr := MkTxnMgr()
-	assert.Equal(0, len(txnMgr.tidsActive))
 
 	txn := txnMgr.New()
 	assert.Equal(0, len(txn.wset))
@@ -303,9 +303,9 @@ func TestActiveTxns(t *testing.T) {
 
 	txn := txnMgr.New()
 	txn.Begin()
-	assert.Equal(1, len(txnMgr.tidsActive))
+	assert.Equal(uint64(1), txnMgr.getNumActiveTxns())
 	txn.Commit()
-	assert.Equal(0, len(txnMgr.tidsActive))
+	assert.Equal(uint64(0), txnMgr.getNumActiveTxns())
 
 	txnA := txnMgr.New()
 	txnA.Begin()
@@ -313,12 +313,12 @@ func TestActiveTxns(t *testing.T) {
 	txnB.Begin()
 	txnC := txnMgr.New()
 	txnC.Begin()
-	assert.Equal(3, len(txnMgr.tidsActive))
+	assert.Equal(uint64(3), txnMgr.getNumActiveTxns())
 
 	txnC.Abort()
 	txnA.Commit()
 	txnB.Commit()
-	assert.Equal(0, len(txnMgr.tidsActive))
+	assert.Equal(uint64(0), txnMgr.getNumActiveTxns())
 }
 
 func TestMinActiveTxns(t *testing.T) {
@@ -330,25 +330,26 @@ func TestMinActiveTxns(t *testing.T) {
 		txns[i] = txnMgr.New()
 		txns[i].Begin()
 	}
-	assert.Equal(uint64(1), txnMgr.getMinActiveTID())
+	assert.Equal(txns[0].tid, txnMgr.getMinActiveTID())
 
 	txns[0].Commit()
 	txns[1].Commit()
 	txns[2].Abort()
 	txns[5].Commit()
 	txns[9].Abort()
-	assert.Equal(uint64(4), txnMgr.getMinActiveTID())
+	assert.Equal(txns[3].tid, txnMgr.getMinActiveTID())
 
 	txns[7].Commit()
-	assert.Equal(uint64(4), txnMgr.getMinActiveTID())
+	assert.Equal(txns[3].tid, txnMgr.getMinActiveTID())
 
 	txns[3].Abort()
-	assert.Equal(uint64(5), txnMgr.getMinActiveTID())
+	assert.Equal(txns[4].tid, txnMgr.getMinActiveTID())
 
 	txns[4].Commit()
 	txns[6].Commit()
 	txns[8].Abort()
-	assert.Equal(uint64(10), txnMgr.getMinActiveTID())
+	/* No active txns */
+	assert.Equal(config.TID_SENTINEL, txnMgr.getMinActiveTID())
 }
 
 func TestStartGC(t *testing.T) {
