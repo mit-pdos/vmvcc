@@ -78,7 +78,7 @@ func main() {
 		src := rand.NewSource(int64(i))
 		go writer(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Second)
 	done = true
 
 	var c uint64 = 0

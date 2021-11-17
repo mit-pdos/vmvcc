@@ -21,6 +21,36 @@ func populateDB(txn *txn.Txn, r uint64) {
 	}
 }
 
+func readerPartition(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64, part uint64) {
+	var c uint64 = 0
+	var t uint64 = 0
+	r := int64(rkeys)
+	txn := txnMgr.New()
+	rd := rand.New(src)
+	for !done {
+		txn.Begin()
+		canCommit := true
+		for i := 0; i < nkeys; i++ {
+			k := (uint64(rd.Int63n(r)) & ^uint64(63))
+			k += part
+			_, ok := txn.Get(k)
+			if !ok {
+				canCommit = false
+				break
+			}
+		}
+		if canCommit {
+			c++
+			txn.Commit()
+		} else {
+			txn.Abort()
+		}
+		t++
+	}
+	chCommitted <-c
+	chTotal <-t
+}
+
 func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
 	var c uint64 = 0
 	var t uint64 = 0
@@ -83,14 +113,17 @@ func main() {
 
 	txn := txnMgr.New()
 	populateDB(txn, rkeys)
-	fmt.Printf("Database populated.\n")
+	if !exp {
+		fmt.Printf("Database populated.\n")
+	}
 
 	done = false
 	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
 		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
+		//go readerPartition(txnMgr, src, chCommitted, chTotal, nkeys, rkeys, uint64(i))
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Second)
 	done = true
 
 	var c uint64 = 0
