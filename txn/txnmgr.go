@@ -66,7 +66,7 @@ func genTID(sid uint64) uint64 {
 	return tid
 }
 
-func getToken(tid uint64) uint64 {
+func getSID(tid uint64) uint64 {
 	sid := tid & (config.N_TXN_SITES - 1)
 	return sid
 }
@@ -123,7 +123,7 @@ func swapWithEnd(xs []uint64, i uint64) {
  * 1. The set of active transactions contains `tid`.
  */
 func (txnMgr *TxnMgr) deactivate(tid uint64) {
-	sid := getToken(tid)
+	sid := getSID(tid)
 	site := &txnMgr.sites[sid]
 	site.latch.Lock()
 
