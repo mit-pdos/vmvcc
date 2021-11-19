@@ -2,24 +2,25 @@ package txn
 
 import (
 	//"fmt"
-	//"sync"
+	"sync"
 	//"time"
 	"go-mvcc/config"
 	"go-mvcc/tsc"
 	"go-mvcc/gc"
 	"go-mvcc/index"
-	"go-mvcc/cfmutex"
+	/* Figure a way to support `cfmutex` */
+	//"go-mvcc/cfmutex"
 )
 
 type TxnSite struct {
-	latch		*cfmutex.CFMutex
+	latch		*sync.Mutex
 	tidLast		uint64
 	tidsActive	[]uint64 /* or struct{} if Goose supports. */
 	padding		[3]uint64
 }
 
 type TxnMgr struct {
-	latch		*cfmutex.CFMutex
+	latch		*sync.Mutex
 	sidCur		uint64
 	sites		[]TxnSite
 	idx			*index.Index
@@ -28,11 +29,11 @@ type TxnMgr struct {
 
 func MkTxnMgr() *TxnMgr {
 	txnMgr := new(TxnMgr)
-	txnMgr.latch = new(cfmutex.CFMutex)
+	txnMgr.latch = new(sync.Mutex)
 	txnMgr.sites = make([]TxnSite, config.N_TXN_SITES)
 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
 		g := &txnMgr.sites[i]
-		g.latch = new(cfmutex.CFMutex)
+		g.latch = new(sync.Mutex)
 		g.tidsActive = make([]uint64, 0, 8)
 	}
 	txnMgr.idx = index.MkIndex()
@@ -61,7 +62,8 @@ func (txnMgr *TxnMgr) New() *Txn {
 }
 
 func genTID(sid uint64) uint64 {
-	tid := tsc.GetTSC()
+	var tid uint64
+	tid = tsc.GetTSC()
 	tid = (tid & ^(config.N_TXN_SITES - 1)) + sid
 	return tid
 }
