@@ -42,14 +42,16 @@ type Tuple struct {
 /**
  * TODO: Maybe start from the end (i.e., the newest version).
  */
-func findRightVer(tid uint64, vers []Version) *Version {
-	var ret *Version
-	for i, _ := range vers {
-		if vers[i].begin <= tid && tid < vers[i].end {
-			ret = &vers[i]
+func findRightVer(tid uint64, vers []Version) (Version, bool) {
+	var ret Version
+	var found bool = false
+	for _, ver := range vers {
+		if ver.begin <= tid && tid < ver.end {
+			ret = ver
+			found = true
 		}
 	}
-	return ret
+	return ret, found
 }
 
 /**
@@ -98,6 +100,10 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	 */
 	if len(tuple.vers) > 0 {
 		idx := len(tuple.vers) - 1
+		/**
+		 * tuple.vers[idx].end = tid
+		 * Goose error: [future]: reference to other types of expressions
+		 */
 		verPrevRef := &tuple.vers[idx]
 		verPrevRef.end = tid
 	}
@@ -172,11 +178,10 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 		tuple.tidrd = tid
 	}
 
-	var ver *Version
-	ver = findRightVer(tid, tuple.vers)
+	ver, found := findRightVer(tid, tuple.vers)
 
 	/* Return an error when there is no right version for txn `tid`. */
-	if ver == nil {
+	if !found {
 		tuple.latch.Unlock()
 		return 0, false
 	}
