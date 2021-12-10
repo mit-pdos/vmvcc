@@ -200,14 +200,15 @@ func (tuple *Tuple) RemoveVersions(tid uint64) {
 	tuple.latch.Lock()
 
 	var idx uint64 = 0
-	for _, ver := range tuple.vers {
-		/**
-		 * TODO: Break early, as `tuple.vers` are sorted. Goose currently does
-		 * not support break within non-unbounded loops.
-		 */
-		if ver.end <= tid {
-			idx++
+	for {
+		if idx >= uint64(len(tuple.vers)) {
+			break
 		}
+		ver := tuple.vers[idx]
+		if ver.end > tid {
+			break
+		}
+		idx++
 	}
 	/**
 	 * `idx` points to the first usable version. A special case where `idx =
