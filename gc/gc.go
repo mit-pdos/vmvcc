@@ -1,7 +1,7 @@
 package gc
 
 import (
-	"go-mvcc/index"
+	"github.com/mit-pdos/go-mvcc/index"
 )
 
 type GC struct {

@@ -1,8 +1,8 @@
 package txn
 
 import (
-	"go-mvcc/tuple"
-	"go-mvcc/index"
+	"github.com/mit-pdos/go-mvcc/tuple"
+	"github.com/mit-pdos/go-mvcc/index"
 )
 
 /**

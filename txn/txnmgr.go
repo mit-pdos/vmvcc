@@ -4,10 +4,10 @@ import (
 	//"fmt"
 	"sync"
 	//"time"
-	"go-mvcc/config"
-	"go-mvcc/tsc"
-	"go-mvcc/gc"
-	"go-mvcc/index"
+	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/tsc"
+	"github.com/mit-pdos/go-mvcc/gc"
+	"github.com/mit-pdos/go-mvcc/index"
 	/* Figure a way to support `cfmutex` */
 	//"go-mvcc/cfmutex"
 )

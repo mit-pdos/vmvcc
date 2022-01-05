@@ -2,8 +2,8 @@ package index
 
 import (
 	"sync"
-	"go-mvcc/config"
-	"go-mvcc/tuple"
+	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/tuple"
 )
 
 type IndexBucket struct {

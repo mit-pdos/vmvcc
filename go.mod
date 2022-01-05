@@ -1,4 +1,4 @@
-module go-mvcc
+module github.com/mit-pdos/go-mvcc
 
 go 1.15
 

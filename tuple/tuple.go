@@ -2,7 +2,7 @@ package tuple
 
 import (
 	"sync"
-	"go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/config"
 )
 
 type Version struct {
