@@ -5,7 +5,7 @@ import (
 	"time"
 	"unsafe"
 	"github.com/stretchr/testify/assert"
-	"go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/config"
 )
 
 func TestCacheAligned(t *testing.T) {
