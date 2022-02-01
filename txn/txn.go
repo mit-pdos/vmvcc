@@ -222,8 +222,26 @@ func (txnMgr *TxnMgr) StartGC() {
 	}()
 }
 
+func matchLocalWrites(key uint64, wset []WrEnt) (uint64, bool) {
+	var idx uint64 = 0
+	var found bool = false
+	for {
+		if idx >= uint64(len(wset)) {
+			break
+		}
+		if key == wset[idx].key {
+			found = true
+			break
+		}
+		idx++
+	}
+
+	return idx, found
+}
+
 func (txn *Txn) Put(key, val uint64) bool {
 	/* First try to find `key` in the local write set. */
+	/*
 	var found bool = false
 	for i, _ := range txn.wset {
 		if key == txn.wset[i].key {
@@ -232,7 +250,11 @@ func (txn *Txn) Put(key, val uint64) bool {
 			found = true
 		}
 	}
+	*/
+	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
+		went := &txn.wset[pos]
+		went.val = val
 		return true
 	}
 
@@ -253,6 +275,7 @@ func (txn *Txn) Put(key, val uint64) bool {
 
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
+	/*
 	var found bool = false
 	var val uint64 = 0
 	for i, _ := range txn.wset {
@@ -262,7 +285,10 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 			found = true
 		}
 	}
+	*/
+	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
+		val := txn.wset[pos].val
 		return val, true
 	}
 
