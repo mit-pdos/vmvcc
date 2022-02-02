@@ -223,20 +223,19 @@ func (txnMgr *TxnMgr) StartGC() {
 }
 
 func matchLocalWrites(key uint64, wset []WrEnt) (uint64, bool) {
-	var idx uint64 = 0
-	var found bool = false
+	var pos uint64 = 0
 	for {
-		if idx >= uint64(len(wset)) {
+		if pos >= uint64(len(wset)) {
 			break
 		}
-		if key == wset[idx].key {
-			found = true
+		if key == wset[pos].key {
 			break
 		}
-		idx++
+		pos++
 	}
 
-	return idx, found
+	found := pos < uint64(len(wset))
+	return pos, found
 }
 
 func (txn *Txn) Put(key, val uint64) bool {
