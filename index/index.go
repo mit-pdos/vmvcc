@@ -12,16 +12,17 @@ type IndexBucket struct {
 }
 
 type Index struct {
-	buckets	[]IndexBucket
+	buckets	[]*IndexBucket
 }
 
 func MkIndex() *Index {
 	idx := new(Index)
-	idx.buckets = make([]IndexBucket, config.N_IDX_BUCKET)
+	idx.buckets = make([]*IndexBucket, config.N_IDX_BUCKET)
 	for i := uint64(0); i < config.N_IDX_BUCKET; i++ {
-		b := &idx.buckets[i]
+		b := new(IndexBucket)
 		b.latch = new(sync.Mutex)
 		b.m = make(map[uint64]*tuple.Tuple)
+		idx.buckets[i] = b
 		/*
 		Rejected by Goose:
 		idx.buckets[i].latch = new(sync.Mutex)
