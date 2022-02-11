@@ -76,7 +76,7 @@ func (txnMgr *TxnMgr) New() *Txn {
 	txn.txnMgr = txnMgr
 
 	txnMgr.sidCur = sid + 1
-	if txnMgr.sidCur == config.N_TXN_SITES {
+	if txnMgr.sidCur >= config.N_TXN_SITES {
 		txnMgr.sidCur = 0
 	}
 
