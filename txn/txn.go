@@ -44,7 +44,7 @@ type TxnSite struct {
 type TxnMgr struct {
 	latch		*sync.Mutex
 	sidCur		uint64
-	sites		[]TxnSite
+	sites		[]*TxnSite
 	idx			*index.Index
 	gc			*gc.GC
 }
@@ -52,11 +52,12 @@ type TxnMgr struct {
 func MkTxnMgr() *TxnMgr {
 	txnMgr := new(TxnMgr)
 	txnMgr.latch = new(sync.Mutex)
-	txnMgr.sites = make([]TxnSite, config.N_TXN_SITES)
+	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
-		g := &txnMgr.sites[i]
-		g.latch = new(sync.Mutex)
-		g.tidsActive = make([]uint64, 0, 8)
+		site := new(TxnSite)
+		site.latch = new(sync.Mutex)
+		site.tidsActive = make([]uint64, 0, 8)
+		txnMgr.sites[i] = site
 	}
 	txnMgr.idx = index.MkIndex()
 	txnMgr.gc = gc.MkGC(txnMgr.idx)
@@ -96,7 +97,7 @@ func getSID(tid uint64) uint64 {
 }
 
 func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
-	site := &txnMgr.sites[sid]
+	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
 	/**
@@ -148,7 +149,7 @@ func swapWithEnd(xs []uint64, i uint64) {
  */
 func (txnMgr *TxnMgr) deactivate(tid uint64) {
 	sid := getSID(tid)
-	site := &txnMgr.sites[sid]
+	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
 	/* Remove `tid` from the set of active transactions. */
@@ -160,7 +161,7 @@ func (txnMgr *TxnMgr) deactivate(tid uint64) {
 }
 
 func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
-	site := &txnMgr.sites[sid]
+	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
 	var min uint64 = config.TID_SENTINEL
@@ -196,7 +197,7 @@ func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 func (txnMgr *TxnMgr) getNumActiveTxns() uint64 {
 	var n uint64 = 0
 	for sid := uint64(0); sid < config.N_TXN_SITES; sid++ {
-		site := &txnMgr.sites[sid]
+		site := txnMgr.sites[sid]
 		site.latch.Lock()
 		n += uint64(len(site.tidsActive))
 		site.latch.Unlock()

@@ -23,11 +23,6 @@ func MkIndex() *Index {
 		b.latch = new(sync.Mutex)
 		b.m = make(map[uint64]*tuple.Tuple)
 		idx.buckets[i] = b
-		/*
-		Rejected by Goose:
-		idx.buckets[i].latch = new(sync.Mutex)
-		idx.buckets[i].m = make(map[uint64]*tuple.Tuple)
-		*/
 	}
 	return idx
 }
