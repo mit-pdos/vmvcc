@@ -87,13 +87,7 @@ func (tuple *Tuple) Own(tid uint64) bool {
 	return true
 }
 
-/**
- * Preconditions:
- * 1. The txn `tid` has the permission to update this tuple.
- */
-func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
-	tuple.latch.Lock()
-
+func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
 	/**
 	 * Modify the lifetime of the previous latest version to end at `tid` unless
 	 * the tuple has never been written to (i.e., contains no versions).
@@ -124,7 +118,15 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
+}
 
+/**
+ * Preconditions:
+ * 1. The txn `tid` has the permission to update this tuple.
+ */
+func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
+	tuple.latch.Lock()
+	tuple.appendVersion(tid, val)
 	tuple.latch.Unlock()
 }
 
@@ -192,13 +194,7 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	return val, true
 }
 
-/**
- * Remove all versions whose `end` timestamp is less than or equal to `tid`.
- * Preconditions:
- */
-func (tuple *Tuple) RemoveVersions(tid uint64) {
-	tuple.latch.Lock()
-
+func (tuple *Tuple) removeVersions(tid uint64) {
 	var idx uint64 = 0
 	for {
 		if idx >= uint64(len(tuple.vers)) {
@@ -217,7 +213,15 @@ func (tuple *Tuple) RemoveVersions(tid uint64) {
 	 * zeroed len and cap.
 	 */
 	tuple.vers = tuple.vers[idx:]
+}
 
+/**
+ * Remove all versions whose `end` timestamp is less than or equal to `tid`.
+ * Preconditions:
+ */
+func (tuple *Tuple) RemoveVersions(tid uint64) {
+	tuple.latch.Lock()
+	tuple.removeVersions(tid)
 	tuple.latch.Unlock()
 }
 
