@@ -6,6 +6,7 @@ import (
 	"unsafe"
 	"github.com/stretchr/testify/assert"
 	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/common"
 )
 
 func TestCacheAligned(t *testing.T) {
@@ -35,16 +36,16 @@ func TestPutCommitAndGet(t *testing.T) {
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 
-	v, found = txnGet.Get(11)
-	assert.Equal(true, found)
+	v, ret = txnGet.Get(11)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(22), v)
 
-	_, found = txnGet.Get(12)
-	assert.Equal(false, found)
+	_, ret = txnGet.Get(12)
+	assert.Equal(common.RET_NONEXIST, ret)
 	txnGet.Commit()
 }
 
@@ -59,8 +60,8 @@ func TestPutAbortAndGet(t *testing.T) {
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	_, found := txnGet.Get(10)
-	assert.Equal(false, found)
+	_, ret := txnGet.Get(10)
+	assert.Equal(common.RET_NONEXIST, ret)
 	txnGet.Commit()
 }
 
@@ -83,8 +84,8 @@ func TestInterleavedPutAndGet1(t *testing.T) {
 		txnPut.Commit()
 	}()
 
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 
 	txnGet.Commit()
@@ -109,8 +110,8 @@ func TestInterleavedPutAndGet2(t *testing.T) {
 		txnPut.Commit()
 	}()
 
-	_, found := txnGet.Get(10)
-	assert.Equal(false, found)
+	_, ret := txnGet.Get(10)
+	assert.Equal(common.RET_NONEXIST, ret)
 
 	txnGet.Commit()
 }
@@ -127,14 +128,14 @@ func TestInOrderPuts(t *testing.T) {
 	txnA.Put(10, 20)
 	txnA.Commit()
 
-	ok := txnB.Put(10, 200)
-	assert.Equal(true, ok)
+	ret := txnB.Put(10, 200)
+	assert.Equal(common.RET_SUCCESS, ret)
 	txnB.Commit()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(200), v)
 	txnGet.Commit()
 }
@@ -154,14 +155,14 @@ func TestFailedReversedPuts(t *testing.T) {
 	txnB.Put(10, 20)
 	txnB.Commit()
 
-	ok := txnA.Put(10, 200)
-	assert.Equal(false, ok)
+	ret := txnA.Put(10, 200)
+	assert.Equal(common.RET_UNSERIALIZABLE, ret)
 	txnA.Abort()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 	txnGet.Commit()
 }
@@ -178,14 +179,14 @@ func TestInOrderGetAndPut(t *testing.T) {
 	txnA.Get(10)
 	txnA.Commit()
 
-	ok := txnB.Put(10, 20)
-	assert.Equal(true, ok)
+	ret := txnB.Put(10, 20)
+	assert.Equal(common.RET_SUCCESS, ret)
 	txnB.Commit()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 	txnGet.Commit()
 }
@@ -205,14 +206,14 @@ func TestFailedReversedGetAndPut(t *testing.T) {
 	txnB.Get(10)
 	txnB.Commit()
 
-	ok := txnA.Put(10, 200)
-	assert.Equal(false, ok)
+	ret := txnA.Put(10, 200)
+	assert.Equal(common.RET_UNSERIALIZABLE, ret)
 	txnA.Abort()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	_, found := txnGet.Get(10)
-	assert.Equal(false, found)
+	_, ret = txnGet.Get(10)
+	assert.Equal(common.RET_NONEXIST, ret)
 	txnGet.Commit()
 }
 
@@ -230,16 +231,16 @@ func TestFailedConcurrentPuts1(t *testing.T) {
 
 	txnA.Put(10, 20)
 
-	ok := txnB.Put(10, 200)
-	assert.Equal(false, ok)
+	ret := txnB.Put(10, 200)
+	assert.Equal(common.RET_RETRY, ret)
 
 	txnA.Commit()
 	txnB.Abort()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 	txnGet.Commit()
 }
@@ -258,16 +259,16 @@ func TestFailedConcurrentPuts2(t *testing.T) {
 
 	txnB.Put(10, 20)
 
-	ok := txnA.Put(10, 200)
-	assert.Equal(false, ok)
+	ret := txnA.Put(10, 200)
+	assert.Equal(common.RET_RETRY, ret)
 
 	txnA.Abort()
 	txnB.Commit()
 
 	txnGet := txnMgr.New()
 	txnGet.Begin()
-	v, found := txnGet.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnGet.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 	txnGet.Commit()
 }
@@ -279,8 +280,8 @@ func TestReadMyWrite(t *testing.T) {
 	txn := txnMgr.New()
 	txn.Begin()
 	txn.Put(10, 20)
-	v, found := txn.Get(10)
-	assert.Equal(true, found)
+	v, ret := txn.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(20), v)
 }
 
@@ -292,16 +293,16 @@ func TestWriteMyWrite(t *testing.T) {
 	txn.Begin()
 	txn.Put(10, 20)
 	txn.Put(10, 200)
-	v, found := txn.Get(10)
-	assert.Equal(true, found)
+	v, ret := txn.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(200), v)
 
 	txn.Commit()
 
 	txnRd := txnMgr.New()
 	txnRd.Begin()
-	v, found = txnRd.Get(10)
-	assert.Equal(true, found)
+	v, ret = txnRd.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(200), v)
 }
 
@@ -381,8 +382,8 @@ func TestStartGC(t *testing.T) {
 	/* This GC should reclaim the first version. */
 	txnMgr.runGC()
 
-	v, found := txnC.Get(10)
-	assert.Equal(true, found)
+	v, ret := txnC.Get(10)
+	assert.Equal(common.RET_SUCCESS, ret)
 	assert.Equal(uint64(200), v)
 }
 

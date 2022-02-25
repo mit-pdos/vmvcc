@@ -3,8 +3,12 @@ package tuple
 import (
 	"sync"
 	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/common"
 )
 
+/**
+ * The lifetime of a version is a half-open interval `(begin, val]`.
+ */
 type Version struct {
 	begin	uint64
 	end		uint64
@@ -13,45 +17,34 @@ type Version struct {
 
 /**
  * `tidown`
- *		An TID specifying which txn owns the permission to update this tuple.
- * `tidrd`
+ *		An TID specifying which txn owns the permission to write this tuple.
+ * `tidlast`
  *		An TID specifying the last txn (in the sense of the largest TID, not
- *		actual physical time) that reads this tuple.
- * `tidwr`
- *		An TID specifying the last txn (in the sense of the largest TID, not
- *		actual physical time) that writes this tuple. `tidwr` should be the same
- *		as the begin timestamp of the latest version. For tuples without any
- *		version, this field is set to 0.
- *
- * Invariants:
- *		1. `tidown != 0` -> this tuple is read-only
- *		2. `vers` not empty -> exists a version whose `end` is
- *			config.TID_SENTINEL
- *		3. `len(vers) != 0` -> `tidwr == vers[len(vers) - 1].begin`
- * 		4. `len(vers) == 0` -> `tidwr == 0`
+ *		actual physical time) that reads or writes this tuple.
  */
 type Tuple struct {
 	latch	*sync.Mutex
 	rcond	*sync.Cond
 	tidown	uint64
-	tidrd	uint64
-	tidwr	uint64
+	tidlast	uint64
+	verlast	Version
 	vers	[]Version
 }
 
 /**
  * TODO: Maybe start from the end (i.e., the newest version).
+ * TODO: Can simply return a value rather than a version.
  */
-func findRightVer(tid uint64, vers []Version) (Version, bool) {
-	var ret Version
-	var found bool = false
-	for _, ver := range vers {
-		if ver.begin <= tid && tid < ver.end {
-			ret = ver
-			found = true
+func findRightVer(tid uint64, vers []Version) (Version, uint64) {
+	var ver Version
+	var ret uint64 = common.RET_NONEXIST
+	for _, v := range vers {
+		if v.begin < tid && tid <= v.end {
+			ver = v
+			ret = common.RET_SUCCESS
 		}
 	}
-	return ret, found
+	return ver, ret
 }
 
 /**
@@ -61,7 +54,7 @@ func findRightVer(tid uint64, vers []Version) (Version, bool) {
  * 1. On a successful return, the txn `tid` get the permission to update this
  * tuple (when we also acquire the latch of this tuple).
  */
-func (tuple *Tuple) Own(tid uint64) bool {
+func (tuple *Tuple) Own(tid uint64) uint64 {
 	tuple.latch.Lock()
 
 	/**
@@ -69,55 +62,47 @@ func (tuple *Tuple) Own(tid uint64) bool {
 	 * higher TID has already read from or written to, as it would fail to
 	 * satisfy serializability.
 	 */
-	if tid < tuple.tidrd || tid < tuple.tidwr {
+	if tid < tuple.tidlast {
 		tuple.latch.Unlock()
-		return false
+		return common.RET_UNSERIALIZABLE
 	}
 
-	/* Return an error if the latest version is already onwed by another txn. */
+	/* Return an error if the latest version is already owned by another txn. */
 	if tuple.tidown != 0 {
 		tuple.latch.Unlock()
-		return false
+		return common.RET_RETRY
 	}
 
 	/* Acquire the permission to update this tuple (will do on commit). */
 	tuple.tidown = tid
 
 	tuple.latch.Unlock()
-	return true
+	return common.RET_SUCCESS
 }
 
 func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
 	/**
-	 * Modify the lifetime of the previous latest version to end at `tid` unless
-	 * the tuple has never been written to (i.e., contains no versions).
+	 * Modify the lifetime of the last version if it has not been deleted.
 	 */
-	if len(tuple.vers) > 0 {
-		idx := len(tuple.vers) - 1
-		/**
-		 * tuple.vers[idx].end = tid
-		 * Goose error: [future]: reference to other types of expressions
-		 */
-		verPrevRef := &tuple.vers[idx]
-		verPrevRef.end = tid
+	var verLast Version
+	verLast = tuple.verlast
+	if verLast.end == config.TID_SENTINEL {
+		verLast.end = tid
 	}
+	tuple.vers = append(tuple.vers, verLast)
 
-	/* Allocate a new version. */
+	/* Create a new version. */
 	verNext := Version{
 		begin	: tid,
 		end		: config.TID_SENTINEL,
 		val		: val,
 	}
-	tuple.vers = append(tuple.vers, verNext)
+	tuple.verlast = verNext
 
 	/* Release the permission to update this tuple. */
 	tuple.tidown = 0
 
-	/* Record the TID of the last writer. */
-	tuple.tidwr = tid
-
-	/* Wake up txns waiting on reading this tuple. */
-	tuple.rcond.Broadcast()
+	tuple.tidlast = tid
 }
 
 /**
@@ -126,8 +111,48 @@ func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
  */
 func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	tuple.latch.Lock()
+
 	tuple.appendVersion(tid, val)
+
+	/* Wake up txns waiting on reading this tuple. */
+	tuple.rcond.Broadcast()
+
 	tuple.latch.Unlock()
+}
+
+func (tuple *Tuple) killVersion(tid uint64) uint64 {
+	var ret uint64
+
+	if tuple.verlast.end == config.TID_SENTINEL {
+		ret = common.RET_SUCCESS
+	} else {
+		ret = common.RET_NONEXIST
+	}
+	tuple.verlast.end = tid
+
+	/* Release the permission to update this tuple. */
+	tuple.tidown = 0
+
+	tuple.tidlast = tid
+
+	return ret
+}
+
+/**
+ * Preconditions:
+ * 1. The txn `tid` has the permission to update this tuple.
+ */
+func (tuple *Tuple) KillVersion(tid uint64) uint64 {
+	tuple.latch.Lock()
+
+	ret := tuple.killVersion(tid)
+
+	/* Wake up txns waiting on reading this tuple. */
+	tuple.rcond.Broadcast()
+
+	tuple.latch.Unlock()
+
+	return ret
 }
 
 /**
@@ -148,50 +173,67 @@ func (tuple *Tuple) Free(tid uint64) {
 /**
  * Preconditions:
  */
-func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
+func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 	tuple.latch.Lock()
 
 	/**
 	 * The only case where a writer can block a reader is when the reader is
-	 * trying to read the latest version (`tid >= tuple.tidwr`) AND the latest
-	 * version may change in the future (`tuple.tidown != 0`).
+	 * trying to read the latest version (`tid > tuple.verlast.begin`) AND the
+	 * latest version may change in the future (`tuple.tidown != 0`).
+	 *
+	 * TODO: An optimization we can do here is checking `tid < tidlast`.
+	 * Not sure if it's effective though.
 	 */
-	for tid >= tuple.tidwr && tuple.tidown != 0 {
+	var verLast Version
+	verLast = tuple.verlast
+	for tid > verLast.begin && tuple.tidown != 0 {
+		/* TODO: Add timeout-retry to avoid deadlock. */
 		tuple.rcond.Wait()
+		verLast = tuple.verlast
 	}
 
 	/**
 	 * We'll be able to do a case analysis here:
-	 *		1. `tid < tuple.tidwr` means we can read previous versions.
-	 *		2. `tuple.tidown == 0` means that follow-up txns trying to append a
-	 *		new version will either fail (if the writer's `tid` is lower than
-	 *		this `tid`), or succeed (if the writer's `tid` is greater than this
-	 *		`tid`) but with the guarantee that the `end` timestamp of the new
-	 *		version is going to be greater than `tid`, so this txn can safely
-	 *		read the latest version at this point.
+	 * 1. `tid <= tuple.verlast.begin` means we can read previous versions.
+	 * 2. `tuple.tidown == 0` means that follow-up txns trying to append a new
+	 *    version will either fail (if the writer's `tid` is lower than this
+	 *    `tid`), or succeed (if the writer's `tid` is greater than this `tid`)
+	 *    but with the guarantee that the `end` timestamp of the new version is
+	 *    going to be greater than `tid`, so this txn can safely read the
+	 *    latest version at this point.
 	 */
 
 	/**
-	 * Record the TID of the last reader. This is done at the start so that if
-	 * there is no right version for txn `tid` to read, earlier txns (i.e.,
-	 * those with smaller TID) won't be able to create one.
+	 * Try to find the right version from the list of previous versions if
+	 * `tid` is less than or equal to the begin timestamp of the last version.
 	 */
-	if tuple.tidrd < tid {
-		tuple.tidrd = tid
-	}
-
-	ver, found := findRightVer(tid, tuple.vers)
-
-	/* Return an error when there is no right version for txn `tid`. */
-	if !found {
+	if tid <= verLast.begin {
+		ver, found := findRightVer(tid, tuple.vers)
 		tuple.latch.Unlock()
-		return 0, false
+		return ver.val, found
 	}
 
-	val := ver.val
+	/**
+	 * Check whether `tid` lies within the lifetime of the last version.
+	 */
+	var val uint64
+	var ret uint64
+	if tid <= verLast.end {
+		val = verLast.val
+		ret = common.RET_SUCCESS
+	} else {
+		ret = common.RET_NONEXIST
+	}
+
+	/**
+	 * Record the TID of the last reader/writer of this tuple.
+	 */
+	if tuple.tidlast < tid {
+		tuple.tidlast = tid
+	}
 
 	tuple.latch.Unlock()
-	return val, true
+	return val, ret
 }
 
 func (tuple *Tuple) removeVersions(tid uint64) {
@@ -230,8 +272,12 @@ func MkTuple() *Tuple {
 	tuple.latch = new(sync.Mutex)
 	tuple.rcond = sync.NewCond(tuple.latch)
 	tuple.tidown = 0
-	tuple.tidrd = 0
-	tuple.tidwr = 0
+	tuple.tidlast = 0
+	tuple.verlast = Version{
+		begin : 0,
+		end   : 0,
+		val   : 0,
+	}
 	tuple.vers = make([]Version, 0, 16)
 	return tuple
 }

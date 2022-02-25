@@ -5,6 +5,7 @@ import (
 	"sync"
 	//"time"
 	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/common"
 	"github.com/mit-pdos/go-mvcc/tsc"
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/tuple"
@@ -239,64 +240,43 @@ func matchLocalWrites(key uint64, wset []WrEnt) (uint64, bool) {
 	return pos, found
 }
 
-func (txn *Txn) Put(key, val uint64) bool {
+func (txn *Txn) Put(key, val uint64) uint64 {
 	/* First try to find `key` in the local write set. */
-	/*
-	var found bool = false
-	for i, _ := range txn.wset {
-		if key == txn.wset[i].key {
-			went := &txn.wset[i]
-			went.val = val
-			found = true
-		}
-	}
-	*/
 	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
 		went := &txn.wset[pos]
 		went.val = val
-		return true
+		return common.RET_SUCCESS
 	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 
 	/* Try to get the permission to update this tuple. */
-	ok := tuple.Own(txn.tid)
-	if !ok {
-		return false
+	ret := tuple.Own(txn.tid)
+	if ret != common.RET_SUCCESS {
+		return ret
 	}
 
 	/* Add the key-value pair to the local write set. */
 	txn.wset = append(txn.wset, WrEnt{key: key, val: val, tuple: tuple})
 
-	return true
+	return common.RET_SUCCESS
 }
 
-func (txn *Txn) Get(key uint64) (uint64, bool) {
+func (txn *Txn) Get(key uint64) (uint64, uint64) {
 	/* First try to find `key` in the local write set. */
-	/*
-	var found bool = false
-	var val uint64 = 0
-	for i, _ := range txn.wset {
-		if key == txn.wset[i].key {
-			went := &txn.wset[i]
-			val = went.val
-			found = true
-		}
-	}
-	*/
 	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
 		val := txn.wset[pos].val
-		return val, true
+		return val, common.RET_SUCCESS
 	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
-	/* Cannot reuse `found` and `val` as Goose forbids multi-assignment. */
-	valTuple, foundTuple := tuple.ReadVersion(txn.tid)
-	return valTuple, foundTuple
+	val, ret := tuple.ReadVersion(txn.tid)
+
+	return val, ret
 }
 
 func (txn *Txn) Begin() {

@@ -2,49 +2,26 @@ package tuple
 
 import (
 	"testing"
-	"sync"
 	"time"
 	"github.com/stretchr/testify/assert"
+	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/go-mvcc/common"
 )
 
 func TestMkTuple(t *testing.T) {
 	assert := assert.New(t)
 	tuple := MkTuple()
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(uint64(0), tuple.tidrd)
+	assert.Equal(uint64(0), tuple.tidlast)
+	assert.Equal(uint64(0), tuple.verlast.begin)
+	assert.Equal(uint64(0), tuple.verlast.end)
 	assert.Equal(0, len(tuple.vers))
-
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-
-	go func() {
-		tuple.latch.Lock()
-		for len(tuple.vers) != 1 {
-			tuple.rcond.Wait()
-		}
-		tuple.vers = append(tuple.vers, Version{1, 1, 1})
-		tuple.latch.Unlock()
-		wg.Done()
-	}()
-
-	go func() {
-		tuple.latch.Lock()
-		tuple.vers = append(tuple.vers, Version{0, 0, 0})
-		tuple.rcond.Signal()
-		tuple.latch.Unlock()
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	assert.Equal(2, len(tuple.vers))
-	assert.Equal(Version{0, 0, 0}, tuple.vers[0])
-	assert.Equal(Version{1, 1, 1}, tuple.vers[1])
 }
 
 func TestOwnAppendRead(t *testing.T) {
 	assert := assert.New(t)
 	tuple := MkTuple()
+
 	tid := uint64(10)
 	tuple.Own(tid)
 
@@ -53,22 +30,33 @@ func TestOwnAppendRead(t *testing.T) {
 	tuple.AppendVersion(tid, 20)
 
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(tid, tuple.tidwr)
-	assert.Equal(1, len(tuple.vers))
-	assert.Equal(tid, tuple.vers[0].begin)
-	assert.Equal(uint64(18446744073709551615), tuple.vers[0].end)
-	assert.Equal(uint64(20), tuple.vers[0].val)
 
-	v, ok := tuple.ReadVersion(tid)
+	assert.Equal(tid, tuple.verlast.begin)
+	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
+	assert.Equal(uint64(20), tuple.verlast.val)
+
+	assert.Equal(1, len(tuple.vers))
+	assert.Equal(uint64(0), tuple.vers[0].begin)
+	assert.Equal(uint64(0), tuple.vers[0].end)
+
+	_, ret := tuple.ReadVersion(tid - 1)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	_, ret = tuple.ReadVersion(tid)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	v, ret := tuple.ReadVersion(tid + 1)
 	assert.Equal(uint64(20), v)
-	assert.Equal(true, ok)
+	assert.Equal(common.RET_SUCCESS, ret)
 }
 
 func TestOwnFreeRead(t *testing.T) {
 	assert := assert.New(t)
 	tuple := MkTuple()
+
 	tid := uint64(10)
-	tidrdPrev := tuple.tidrd
+	tidlastPrev := tuple.tidlast
+
 	tuple.Own(tid)
 
 	assert.Equal(tid, tuple.tidown)
@@ -76,20 +64,27 @@ func TestOwnFreeRead(t *testing.T) {
 	tuple.Free(tid)
 
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(tidrdPrev, tuple.tidrd)
+	/* `tidlast` remains unchanged. */
+	assert.Equal(tidlastPrev, tuple.tidlast)
 	assert.Equal(0, len(tuple.vers))
 
-	_, ok := tuple.ReadVersion(tid)
-	assert.Equal(false, ok)
+	_, ret := tuple.ReadVersion(tid - 1)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	_, ret = tuple.ReadVersion(tid)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	_, ret = tuple.ReadVersion(tid + 1)
+	assert.Equal(common.RET_NONEXIST, ret)
 }
 
 func TestReadNonexist(t *testing.T) {
 	assert := assert.New(t)
 	tuple := MkTuple()
-	tid := uint64(10)
 
-	_, ok := tuple.ReadVersion(tid)
-	assert.Equal(false, ok)
+	tid := uint64(10)
+	_, ret := tuple.ReadVersion(tid)
+	assert.Equal(common.RET_NONEXIST, ret)
 }
 
 func TestMultiVersion(t *testing.T) {
@@ -105,29 +100,40 @@ func TestMultiVersion(t *testing.T) {
 	tuple.AppendVersion(tid, 30)
 
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(tid, tuple.tidwr)
 	assert.Equal(2, len(tuple.vers))
-	assert.Equal(uint64(10), tuple.vers[0].begin)
-	assert.Equal(uint64(15), tuple.vers[0].end)
-	assert.Equal(uint64(20), tuple.vers[0].val)
-	assert.Equal(uint64(15), tuple.vers[1].begin)
-	assert.Equal(uint64(18446744073709551615), tuple.vers[1].end)
-	assert.Equal(uint64(30), tuple.vers[1].val)
 
-	tid = uint64(9)
-	_, ok := tuple.ReadVersion(tid)
-	assert.Equal(false, ok)
+	assert.Equal(uint64(0), tuple.vers[0].begin)
+	assert.Equal(uint64(0), tuple.vers[0].end)
 
-	for tid = uint64(10); tid < uint64(14); tid++ {
-		v, ok := tuple.ReadVersion(tid)
-		assert.Equal(uint64(20), v)
-		assert.Equal(true, ok)
-	}
-	for tid = uint64(15); tid < uint64(19); tid++ {
-		v, ok := tuple.ReadVersion(tid)
-		assert.Equal(uint64(30), v)
-		assert.Equal(true, ok)
-	}
+	assert.Equal(uint64(10), tuple.vers[1].begin)
+	assert.Equal(uint64(15), tuple.vers[1].end)
+	assert.Equal(uint64(20), tuple.vers[1].val)
+
+	assert.Equal(uint64(15), tuple.verlast.begin)
+	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
+	assert.Equal(uint64(30), tuple.verlast.val)
+
+	_, ret := tuple.ReadVersion(9)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	_, ret = tuple.ReadVersion(10)
+	assert.Equal(common.RET_NONEXIST, ret)
+
+	v, ret := tuple.ReadVersion(11)
+	assert.Equal(common.RET_SUCCESS, ret)
+	assert.Equal(uint64(20), v)
+
+	v, ret = tuple.ReadVersion(14)
+	assert.Equal(common.RET_SUCCESS, ret)
+	assert.Equal(uint64(20), v)
+
+	v, ret = tuple.ReadVersion(15)
+	assert.Equal(common.RET_SUCCESS, ret)
+	assert.Equal(uint64(20), v)
+
+	v, ret = tuple.ReadVersion(16)
+	assert.Equal(common.RET_SUCCESS, ret)
+	assert.Equal(uint64(30), v)
 }
 
 /**
@@ -142,8 +148,15 @@ func TestFailedOwn1(t *testing.T) {
 	tuple.AppendVersion(tid, 20)
 
 	tid = uint64(5)
-	ok := tuple.Own(tid)
-	assert.Equal(false, ok)
+	ret := tuple.Own(tid)
+	assert.Equal(common.RET_UNSERIALIZABLE, ret)
+
+	assert.Equal(uint64(0), tuple.tidown)
+	assert.Equal(uint64(10), tuple.tidlast)
+	assert.Equal(1, len(tuple.vers))
+	assert.Equal(uint64(10), tuple.verlast.begin)
+	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
+	assert.Equal(uint64(20), tuple.verlast.val)
 }
 
 /**
@@ -154,19 +167,27 @@ func TestFailedOwn2(t *testing.T) {
 	tuple := MkTuple()
 
 	tid := uint64(10)
-	tuple.Own(tid)
-	tuple.AppendVersion(tid, 20)
-
-	tid = uint64(15)
 	tuple.ReadVersion(tid)
 
-	tid = uint64(13)
-	ok := tuple.Own(tid)
-	assert.Equal(false, ok)
+	tid = uint64(5)
+	ret := tuple.Own(tid)
+	assert.Equal(common.RET_UNSERIALIZABLE, ret)
 
-	tid = uint64(18)
-	ok = tuple.Own(tid)
-	assert.Equal(true, ok)
+	assert.Equal(uint64(0), tuple.tidown)
+	assert.Equal(uint64(10), tuple.tidlast)
+	assert.Equal(0, len(tuple.vers))
+	assert.Equal(uint64(0), tuple.verlast.begin)
+	assert.Equal(uint64(0), tuple.verlast.end)
+
+	tid = uint64(15)
+	ret = tuple.Own(tid)
+	assert.Equal(common.RET_SUCCESS, ret)
+
+	assert.Equal(tid, tuple.tidown)
+	assert.Equal(uint64(10), tuple.tidlast)
+	assert.Equal(0, len(tuple.vers))
+	assert.Equal(uint64(0), tuple.verlast.begin)
+	assert.Equal(uint64(0), tuple.verlast.end)
 }
 
 /**
@@ -180,8 +201,14 @@ func TestFailedOwn3(t *testing.T) {
 	tuple.Own(tid)
 
 	tid = uint64(15)
-	ok := tuple.Own(tid)
-	assert.Equal(false, ok)
+	ret := tuple.Own(tid)
+	assert.Equal(common.RET_RETRY, ret)
+
+	assert.Equal(uint64(10), tuple.tidown)
+	assert.Equal(uint64(0), tuple.tidlast)
+	assert.Equal(0, len(tuple.vers))
+	assert.Equal(uint64(0), tuple.verlast.begin)
+	assert.Equal(uint64(0), tuple.verlast.end)
 }
 
 /**
@@ -201,8 +228,8 @@ func TestReadBlockingEmpty1(t *testing.T) {
 	}()
 
 	tidRd := uint64(5)
-	_, ok := tuple.ReadVersion(tidRd)
-	assert.Equal(false, ok)
+	_, ret := tuple.ReadVersion(tidRd)
+	assert.Equal(common.RET_NONEXIST, ret)
 }
 
 /**
@@ -222,9 +249,9 @@ func TestReadBlockingEmpty2(t *testing.T) {
 	}()
 
 	tidRd := uint64(15)
-	v, ok := tuple.ReadVersion(tidRd)
+	v, ret := tuple.ReadVersion(tidRd)
 	assert.Equal(uint64(20), v)
-	assert.Equal(true, ok)
+	assert.Equal(common.RET_SUCCESS, ret)
 }
 
 /**
@@ -248,9 +275,9 @@ func TestReadBlocking1(t *testing.T) {
 	}()
 
 	tidRd := uint64(5)
-	v, ok := tuple.ReadVersion(tidRd)
+	v, ret := tuple.ReadVersion(tidRd)
 	assert.Equal(uint64(4), v)
-	assert.Equal(true, ok)
+	assert.Equal(common.RET_SUCCESS, ret)
 }
 
 /**
@@ -274,9 +301,9 @@ func TestReadBlocking2(t *testing.T) {
 	}()
 
 	tidRd := uint64(15)
-	v, ok := tuple.ReadVersion(tidRd)
+	v, ret := tuple.ReadVersion(tidRd)
 	assert.Equal(uint64(20), v)
-	assert.Equal(true, ok)
+	assert.Equal(common.RET_SUCCESS, ret)
 }
 
 func TestRemoveVersions(t *testing.T) {
@@ -291,23 +318,23 @@ func TestRemoveVersions(t *testing.T) {
 	assert.Equal(1, len(tuple.vers))
 
 	tuple.RemoveVersions(20)
-	assert.Equal(1, len(tuple.vers))
+	assert.Equal(0, len(tuple.vers))
 
 	tuple.Own(tidB)
 	tuple.AppendVersion(tidB, 200)
-	assert.Equal(2, len(tuple.vers))
-
-	tidRd := uint64(15)
-	v, ok := tuple.ReadVersion(tidRd)
-	assert.Equal(uint64(100), v)
-	assert.Equal(true, ok)
-
-	tuple.RemoveVersions(19)
-	assert.Equal(2, len(tuple.vers))
-	tuple.RemoveVersions(20)
 	assert.Equal(1, len(tuple.vers))
 
-	v, ok = tuple.ReadVersion(tidRd)
-	assert.Equal(false, ok)
+	tidRd := uint64(15)
+	v, ret := tuple.ReadVersion(tidRd)
+	assert.Equal(uint64(100), v)
+	assert.Equal(common.RET_SUCCESS, ret)
+
+	tuple.RemoveVersions(19)
+	assert.Equal(1, len(tuple.vers))
+	tuple.RemoveVersions(20)
+	assert.Equal(0, len(tuple.vers))
+
+	v, ret = tuple.ReadVersion(tidRd)
+	assert.Equal(common.RET_NONEXIST, ret)
 }
 
