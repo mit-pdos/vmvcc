@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 	"github.com/stretchr/testify/assert"
-	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/common"
 )
 
@@ -13,9 +12,7 @@ func TestMkTuple(t *testing.T) {
 	tuple := MkTuple()
 	assert.Equal(uint64(0), tuple.tidown)
 	assert.Equal(uint64(0), tuple.tidlast)
-	assert.Equal(uint64(0), tuple.verlast.begin)
-	assert.Equal(uint64(0), tuple.verlast.end)
-	assert.Equal(0, len(tuple.vers))
+	assert.Equal(1, len(tuple.vers))
 }
 
 func TestOwnAppendRead(t *testing.T) {
@@ -31,13 +28,8 @@ func TestOwnAppendRead(t *testing.T) {
 
 	assert.Equal(uint64(0), tuple.tidown)
 
-	assert.Equal(tid, tuple.verlast.begin)
-	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
-	assert.Equal(uint64(20), tuple.verlast.val)
-
-	assert.Equal(1, len(tuple.vers))
-	assert.Equal(uint64(0), tuple.vers[0].begin)
-	assert.Equal(uint64(0), tuple.vers[0].end)
+	assert.Equal(2, len(tuple.vers))
+	assert.Equal(uint64(10), tuple.vers[1].begin)
 
 	_, ret := tuple.ReadVersion(tid - 1)
 	assert.Equal(common.RET_NONEXIST, ret)
@@ -66,7 +58,7 @@ func TestOwnFreeRead(t *testing.T) {
 	assert.Equal(uint64(0), tuple.tidown)
 	/* `tidlast` remains unchanged. */
 	assert.Equal(tidlastPrev, tuple.tidlast)
-	assert.Equal(0, len(tuple.vers))
+	assert.Equal(1, len(tuple.vers))
 
 	_, ret := tuple.ReadVersion(tid - 1)
 	assert.Equal(common.RET_NONEXIST, ret)
@@ -100,18 +92,13 @@ func TestMultiVersion(t *testing.T) {
 	tuple.AppendVersion(tid, 30)
 
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(2, len(tuple.vers))
-
-	assert.Equal(uint64(0), tuple.vers[0].begin)
-	assert.Equal(uint64(0), tuple.vers[0].end)
+	assert.Equal(3, len(tuple.vers))
 
 	assert.Equal(uint64(10), tuple.vers[1].begin)
-	assert.Equal(uint64(15), tuple.vers[1].end)
 	assert.Equal(uint64(20), tuple.vers[1].val)
 
-	assert.Equal(uint64(15), tuple.verlast.begin)
-	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
-	assert.Equal(uint64(30), tuple.verlast.val)
+	assert.Equal(uint64(15), tuple.vers[2].begin)
+	assert.Equal(uint64(30), tuple.vers[2].val)
 
 	_, ret := tuple.ReadVersion(9)
 	assert.Equal(common.RET_NONEXIST, ret)
@@ -153,10 +140,9 @@ func TestFailedOwn1(t *testing.T) {
 
 	assert.Equal(uint64(0), tuple.tidown)
 	assert.Equal(uint64(10), tuple.tidlast)
-	assert.Equal(1, len(tuple.vers))
-	assert.Equal(uint64(10), tuple.verlast.begin)
-	assert.Equal(config.TID_SENTINEL, tuple.verlast.end)
-	assert.Equal(uint64(20), tuple.verlast.val)
+	assert.Equal(2, len(tuple.vers))
+	assert.Equal(uint64(10), tuple.vers[1].begin)
+	assert.Equal(uint64(20), tuple.vers[1].val)
 }
 
 /**
@@ -175,9 +161,7 @@ func TestFailedOwn2(t *testing.T) {
 
 	assert.Equal(uint64(0), tuple.tidown)
 	assert.Equal(uint64(10), tuple.tidlast)
-	assert.Equal(0, len(tuple.vers))
-	assert.Equal(uint64(0), tuple.verlast.begin)
-	assert.Equal(uint64(0), tuple.verlast.end)
+	assert.Equal(1, len(tuple.vers))
 
 	tid = uint64(15)
 	ret = tuple.Own(tid)
@@ -185,9 +169,7 @@ func TestFailedOwn2(t *testing.T) {
 
 	assert.Equal(tid, tuple.tidown)
 	assert.Equal(uint64(10), tuple.tidlast)
-	assert.Equal(0, len(tuple.vers))
-	assert.Equal(uint64(0), tuple.verlast.begin)
-	assert.Equal(uint64(0), tuple.verlast.end)
+	assert.Equal(1, len(tuple.vers))
 }
 
 /**
@@ -206,9 +188,7 @@ func TestFailedOwn3(t *testing.T) {
 
 	assert.Equal(uint64(10), tuple.tidown)
 	assert.Equal(uint64(0), tuple.tidlast)
-	assert.Equal(0, len(tuple.vers))
-	assert.Equal(uint64(0), tuple.verlast.begin)
-	assert.Equal(uint64(0), tuple.verlast.end)
+	assert.Equal(1, len(tuple.vers))
 }
 
 /**
@@ -315,14 +295,14 @@ func TestRemoveVersions(t *testing.T) {
 
 	tuple.Own(tidA)
 	tuple.AppendVersion(tidA, 100)
-	assert.Equal(1, len(tuple.vers))
+	assert.Equal(2, len(tuple.vers))
 
 	tuple.RemoveVersions(20)
-	assert.Equal(0, len(tuple.vers))
+	assert.Equal(1, len(tuple.vers))
 
 	tuple.Own(tidB)
 	tuple.AppendVersion(tidB, 200)
-	assert.Equal(1, len(tuple.vers))
+	assert.Equal(2, len(tuple.vers))
 
 	tidRd := uint64(15)
 	v, ret := tuple.ReadVersion(tidRd)
@@ -330,11 +310,8 @@ func TestRemoveVersions(t *testing.T) {
 	assert.Equal(common.RET_SUCCESS, ret)
 
 	tuple.RemoveVersions(19)
-	assert.Equal(1, len(tuple.vers))
+	assert.Equal(2, len(tuple.vers))
 	tuple.RemoveVersions(20)
-	assert.Equal(0, len(tuple.vers))
-
-	v, ret = tuple.ReadVersion(tidRd)
-	assert.Equal(common.RET_NONEXIST, ret)
+	assert.Equal(1, len(tuple.vers))
 }
 

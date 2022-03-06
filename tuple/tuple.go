@@ -2,16 +2,16 @@ package tuple
 
 import (
 	"sync"
-	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/common"
 )
 
 /**
- * The lifetime of a version is a half-open interval `(begin, val]`.
+ * The lifetime of a version starts from `begin` of itself to the `begin` of
+ * next version; it's a half-open interval (].
  */
 type Version struct {
 	begin	uint64
-	end		uint64
+	deleted	bool
 	val		uint64
 }
 
@@ -27,7 +27,6 @@ type Tuple struct {
 	rcond	*sync.Cond
 	tidown	uint64
 	tidlast	uint64
-	verlast	Version
 	vers	[]Version
 }
 
@@ -35,7 +34,8 @@ type Tuple struct {
  * TODO: Maybe start from the end (i.e., the newest version).
  * TODO: Can simply return a value rather than a version.
  */
-func findRightVer(tid uint64, vers []Version) (Version, uint64) {
+func findRightVer(tid uint64, vers []Version) Version {
+	/*
 	var ver Version
 	var ret uint64 = common.RET_NONEXIST
 	for _, v := range vers {
@@ -45,6 +45,22 @@ func findRightVer(tid uint64, vers []Version) (Version, uint64) {
 		}
 	}
 	return ver, ret
+	*/
+	var ver Version
+	length := uint64(len(vers))
+	var idx uint64 = 0
+	for {
+		if idx >= length {
+			break
+		}
+		// ver = vers[length - (1 + idx)]
+		ver = vers[length - idx - 1]
+		if tid > ver.begin {
+			break
+		}
+		idx++
+	}
+	return ver
 }
 
 /**
@@ -81,23 +97,13 @@ func (tuple *Tuple) Own(tid uint64) uint64 {
 }
 
 func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
-	/**
-	 * Modify the lifetime of the last version if it has not been deleted.
-	 */
-	var verLast Version
-	verLast = tuple.verlast
-	if verLast.end == config.TID_SENTINEL {
-		verLast.end = tid
-	}
-	tuple.vers = append(tuple.vers, verLast)
-
-	/* Create a new version. */
-	verNext := Version{
+	/* Create a new version and add it to the version chain. */
+	verNew := Version{
 		begin	: tid,
-		end		: config.TID_SENTINEL,
 		val		: val,
+		deleted	: false,
 	}
-	tuple.verlast = verNext
+	tuple.vers = append(tuple.vers, verNew)
 
 	/* Release the permission to update this tuple. */
 	tuple.tidown = 0
@@ -120,22 +126,26 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	tuple.latch.Unlock()
 }
 
-func (tuple *Tuple) killVersion(tid uint64) uint64 {
-	var ret uint64
+func (tuple *Tuple) killVersion(tid uint64) bool {
+	/**
+	 * TODO: Check if the last version is already deleted; if so, simply return
+	 * false.
+	 */
 
-	if tuple.verlast.end == config.TID_SENTINEL {
-		ret = common.RET_SUCCESS
-	} else {
-		ret = common.RET_NONEXIST
+	/* Create a tombstone and add it to the version chain. */
+	verNew := Version{
+		begin	: tid,
+		deleted	: true,
 	}
-	tuple.verlast.end = tid
+	tuple.vers = append(tuple.vers, verNew)
 
 	/* Release the permission to update this tuple. */
 	tuple.tidown = 0
 
 	tuple.tidlast = tid
 
-	return ret
+	/* TODO: Differentiate a successful and a no-op deletion. */
+	return true
 }
 
 /**
@@ -145,7 +155,14 @@ func (tuple *Tuple) killVersion(tid uint64) uint64 {
 func (tuple *Tuple) KillVersion(tid uint64) uint64 {
 	tuple.latch.Lock()
 
-	ret := tuple.killVersion(tid)
+	ok := tuple.killVersion(tid)
+	var ret uint64
+	if ok {
+		ret = common.RET_SUCCESS
+	} else {
+		/* The tuple is already deleted. */
+		ret = common.RET_NONEXIST
+	}
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
@@ -184,45 +201,32 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 	 * TODO: An optimization we can do here is checking `tid < tidlast`.
 	 * Not sure if it's effective though.
 	 */
-	var verLast Version
-	verLast = tuple.verlast
-	for tid > verLast.begin && tuple.tidown != 0 {
+	for tid > tuple.tidlast && tuple.tidown != 0 {
 		/* TODO: Add timeout-retry to avoid deadlock. */
 		tuple.rcond.Wait()
-		verLast = tuple.verlast
 	}
 
 	/**
 	 * We'll be able to do a case analysis here:
-	 * 1. `tid <= tuple.verlast.begin` means we can read previous versions.
+	 * 1. `tid <= tuple.tidlast` means that the logical tuple has already been
+	 * fixed at `tid`, so we can safety read it.
 	 * 2. `tuple.tidown == 0` means that follow-up txns trying to append a new
-	 *    version will either fail (if the writer's `tid` is lower than this
-	 *    `tid`), or succeed (if the writer's `tid` is greater than this `tid`)
-	 *    but with the guarantee that the `end` timestamp of the new version is
-	 *    going to be greater than `tid`, so this txn can safely read the
-	 *    latest version at this point.
+	 * version will either fail (if the writer's `tid` is lower than this
+	 * `tid`), or succeed (if the writer's `tid` is greater than this `tid`)
+	 * but with the guarantee that the `end` timestamp of the new version is
+	 * going to be greater than `tid`, so this txn can safely read the latest
+	 * version at this point.
 	 */
 
 	/**
-	 * Try to find the right version from the list of previous versions if
-	 * `tid` is less than or equal to the begin timestamp of the last version.
+	 * Try to find the right version from the version list.
 	 */
-	if tid <= verLast.begin {
-		ver, found := findRightVer(tid, tuple.vers)
-		tuple.latch.Unlock()
-		return ver.val, found
-	}
-
-	/**
-	 * Check whether `tid` lies within the lifetime of the last version.
-	 */
-	var val uint64
+	ver := findRightVer(tid, tuple.vers)
 	var ret uint64
-	if tid <= verLast.end {
-		val = verLast.val
-		ret = common.RET_SUCCESS
-	} else {
+	if ver.deleted {
 		ret = common.RET_NONEXIST
+	} else {
+		ret = common.RET_SUCCESS
 	}
 
 	/**
@@ -233,26 +237,25 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 	}
 
 	tuple.latch.Unlock()
-	return val, ret
+	return ver.val, ret
 }
 
 func (tuple *Tuple) removeVersions(tid uint64) {
-	var idx uint64 = 0
+	/* `tuple.vers` is never empty. */
+	var idx uint64
+	idx = uint64(len(tuple.vers)) - 1
 	for {
-		if idx >= uint64(len(tuple.vers)) {
+		if idx == 0 {
 			break
 		}
 		ver := tuple.vers[idx]
-		if ver.end > tid {
+		if ver.begin <= tid {
 			break
 		}
-		idx++
+		idx--
 	}
 	/**
-	 * `idx` points to the first usable version. A special case where `idx =
-	 * len(tuple.vers)` removes all versions.
-	 * Note that `s = s[len(s):]` is acceptable, which makes `s` a slice with
-	 * zeroed len and cap.
+	 * `idx` points to the first usable version.
 	 */
 	tuple.vers = tuple.vers[idx:]
 }
@@ -273,12 +276,9 @@ func MkTuple() *Tuple {
 	tuple.rcond = sync.NewCond(tuple.latch)
 	tuple.tidown = 0
 	tuple.tidlast = 0
-	tuple.verlast = Version{
-		begin : 0,
-		end   : 0,
-		val   : 0,
-	}
-	tuple.vers = make([]Version, 0, 16)
+	tuple.vers = make([]Version, 1, 16)
+	verRef := &tuple.vers[0]
+	verRef.deleted = true
 	return tuple
 }
 
