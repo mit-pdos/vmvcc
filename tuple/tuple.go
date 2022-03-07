@@ -30,10 +30,6 @@ type Tuple struct {
 	vers	[]Version
 }
 
-/**
- * TODO: Maybe start from the end (i.e., the newest version).
- * TODO: Can simply return a value rather than a version.
- */
 func findRightVer(tid uint64, vers []Version) Version {
 	/*
 	var ver Version
@@ -277,8 +273,10 @@ func MkTuple() *Tuple {
 	tuple.tidown = 0
 	tuple.tidlast = 0
 	tuple.vers = make([]Version, 1, 16)
-	verRef := &tuple.vers[0]
-	verRef.deleted = true
+	tuple.vers[0] = Version{
+		deleted : true,
+	}
+	/* Goose does not support: tuple.vers[0].deleted = true. */
 	return tuple
 }
 
