@@ -245,7 +245,7 @@ func (tuple *Tuple) removeVersions(tid uint64) {
 			break
 		}
 		ver := tuple.vers[idx]
-		if ver.begin <= tid {
+		if ver.begin < tid {
 			break
 		}
 		idx--

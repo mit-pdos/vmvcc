@@ -312,6 +312,8 @@ func TestRemoveVersions(t *testing.T) {
 	tuple.RemoveVersions(19)
 	assert.Equal(2, len(tuple.vers))
 	tuple.RemoveVersions(20)
+	assert.Equal(2, len(tuple.vers))
+	tuple.RemoveVersions(21)
 	assert.Equal(1, len(tuple.vers))
 }
 
