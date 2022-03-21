@@ -14,12 +14,17 @@ import (
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
 )
 
+type DBVal struct {
+	tomb bool
+	val  uint64
+}
+
 /**
  * We need `key` as to match in the local write set
  */
 type WrEnt struct {
 	key		uint64
-	val		uint64
+	val		DBVal
 	tuple	*tuple.Tuple
 }
 
@@ -240,13 +245,16 @@ func matchLocalWrites(key uint64, wset []WrEnt) (uint64, bool) {
 	return pos, found
 }
 
-func (txn *Txn) Put(key, val uint64) uint64 {
+func (txn *Txn) Put(key, val uint64) bool {
 	/* First try to find `key` in the local write set. */
 	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
 		went := &txn.wset[pos]
-		went.val = val
-		return common.RET_SUCCESS
+		went.val = DBVal{
+			tomb : false,
+			val  : val,
+		}
+		return true
 	}
 
 	idx := txn.idx
@@ -255,28 +263,33 @@ func (txn *Txn) Put(key, val uint64) uint64 {
 	/* Try to get the permission to update this tuple. */
 	ret := tuple.Own(txn.tid)
 	if ret != common.RET_SUCCESS {
-		return ret
+		/* TODO: can retry a few times for RET_RETRY. */
+		return false
 	}
 
 	/* Add the key-value pair to the local write set. */
-	txn.wset = append(txn.wset, WrEnt{key: key, val: val, tuple: tuple})
+	dbval := DBVal{
+		tomb : false,
+		val  : val,
+	}
+	txn.wset = append(txn.wset, WrEnt{key: key, val: dbval, tuple: tuple})
 
-	return common.RET_SUCCESS
+	return true
 }
 
-func (txn *Txn) Get(key uint64) (uint64, uint64) {
+func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
 	pos, found := matchLocalWrites(key, txn.wset)
 	if found {
-		val := txn.wset[pos].val
-		return val, common.RET_SUCCESS
+		dbval := txn.wset[pos].val
+		return dbval.val, !dbval.tomb
 	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 	val, ret := tuple.ReadVersion(txn.tid)
 
-	return val, ret
+	return val, ret == common.RET_SUCCESS
 }
 
 func (txn *Txn) Begin() {
@@ -287,9 +300,10 @@ func (txn *Txn) Begin() {
 
 func (txn *Txn) Commit() {
 	for _, wrent := range txn.wset {
-		val := wrent.val
+		dbval := wrent.val
 		tuple := wrent.tuple
-		tuple.AppendVersion(txn.tid, val)
+		/* TODO: Call KillVersion for tombstone. */
+		tuple.AppendVersion(txn.tid, dbval.val)
 	}
 	txn.txnMgr.deactivate(txn.tid)
 }
