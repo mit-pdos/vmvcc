@@ -277,6 +277,36 @@ func (txn *Txn) Put(key, val uint64) bool {
 	return true
 }
 
+func (txn *Txn) Delete(key uint64) bool {
+	/* First try to find `key` in the local write set. */
+	pos, found := matchLocalWrites(key, txn.wset)
+	if found {
+		went := &txn.wset[pos]
+		went.val = DBVal{
+			tomb : true,
+		}
+		return true
+	}
+
+	idx := txn.idx
+	tuple := idx.GetTuple(key)
+
+	/* Try to get the permission to update this tuple. */
+	ret := tuple.Own(txn.tid)
+	if ret != common.RET_SUCCESS {
+		/* TODO: can retry a few times for RET_RETRY. */
+		return false
+	}
+
+	/* Add the key-value pair to the local write set. */
+	dbval := DBVal{
+		tomb : true,
+	}
+	txn.wset = append(txn.wset, WrEnt{key: key, val: dbval, tuple: tuple})
+
+	return true
+}
+
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
 	pos, found := matchLocalWrites(key, txn.wset)
