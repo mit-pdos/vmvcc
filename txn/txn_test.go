@@ -5,7 +5,6 @@ import (
 	"time"
 	"unsafe"
 	"github.com/stretchr/testify/assert"
-	"github.com/mit-pdos/go-mvcc/config"
 )
 
 func TestCacheAligned(t *testing.T) {
@@ -356,8 +355,6 @@ func TestMinActiveTxns(t *testing.T) {
 	txns[4].Commit()
 	txns[6].Commit()
 	txns[8].Abort()
-	/* No active txns */
-	assert.Equal(config.TID_SENTINEL, txnMgr.getMinActiveTID())
 }
 
 func TestStartGC(t *testing.T) {

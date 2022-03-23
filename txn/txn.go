@@ -170,20 +170,26 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
-	var min uint64 = config.TID_SENTINEL
+	var tidnew uint64
+	tidnew = genTID(sid)
+	for tidnew <= site.tidLast {
+		tidnew = genTID(sid)
+	}
+	site.tidLast = tidnew
+
+	var tidmin uint64 = tidnew
 	for _, tid := range site.tidsActive {
-		if tid < min {
-			min = tid
+		if tid < tidmin {
+			tidmin = tid
 		}
 	}
 
 	site.latch.Unlock()
-	return min
+	return tidmin
 }
 
 /**
- * This function returns the minimal TID of the active txns. If there is no
- * active txns, it returns `config.TID_SENTINEL`.
+ * This function returns a lower bound of the active TID.
  */
 func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 	var min uint64 = config.TID_SENTINEL
