@@ -97,11 +97,6 @@ func genTID(sid uint64) uint64 {
 	return tid
 }
 
-func getSID(tid uint64) uint64 {
-	sid := tid & (config.N_TXN_SITES - 1)
-	return sid
-}
-
 func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	site := txnMgr.sites[sid]
 	site.latch.Lock()
@@ -129,11 +124,14 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 
 func findTID(tid uint64, tids []uint64) uint64 {
 	var idx uint64 = 0
-	for i, x := range tids {
-		if tid == x {
-			idx = uint64(i)
+	for {
+		tidx := tids[idx]
+		if tid == tidx {
+			break
 		}
+		idx++
 	}
+
 	return idx
 }
 
@@ -153,8 +151,7 @@ func swapWithEnd(xs []uint64, i uint64) {
  * Precondition:
  * 1. The set of active transactions contains `tid`.
  */
-func (txnMgr *TxnMgr) deactivate(tid uint64) {
-	sid := getSID(tid)
+func (txnMgr *TxnMgr) deactivate(sid uint64, tid uint64) {
 	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
@@ -341,7 +338,7 @@ func (txn *Txn) Commit() {
 		/* TODO: Call KillVersion for tombstone. */
 		tuple.AppendVersion(txn.tid, dbval.val)
 	}
-	txn.txnMgr.deactivate(txn.tid)
+	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) Abort() {
@@ -349,6 +346,6 @@ func (txn *Txn) Abort() {
 		tuple := wrent.tuple
 		tuple.Free(txn.tid)
 	}
-	txn.txnMgr.deactivate(txn.tid)
+	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
