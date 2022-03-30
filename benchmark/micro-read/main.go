@@ -8,7 +8,7 @@ import (
 	"os"
 	"log"
 	"math/rand"
-	"go-mvcc/txn"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
 var done bool
