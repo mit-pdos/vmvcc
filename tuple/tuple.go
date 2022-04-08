@@ -104,7 +104,7 @@ func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
 	/* Release the permission to update this tuple. */
 	tuple.tidown = 0
 
-	tuple.tidlast = tid
+	tuple.tidlast = tid + 1
 }
 
 /**
@@ -138,7 +138,7 @@ func (tuple *Tuple) killVersion(tid uint64) bool {
 	/* Release the permission to update this tuple. */
 	tuple.tidown = 0
 
-	tuple.tidlast = tid
+	tuple.tidlast = tid + 1
 
 	/* TODO: Differentiate a successful and a no-op deletion. */
 	return true

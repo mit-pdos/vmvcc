@@ -139,7 +139,7 @@ func TestFailedOwn1(t *testing.T) {
 	assert.Equal(common.RET_UNSERIALIZABLE, ret)
 
 	assert.Equal(uint64(0), tuple.tidown)
-	assert.Equal(uint64(10), tuple.tidlast)
+	assert.Equal(uint64(11), tuple.tidlast)
 	assert.Equal(2, len(tuple.vers))
 	assert.Equal(uint64(10), tuple.vers[1].begin)
 	assert.Equal(uint64(20), tuple.vers[1].val)

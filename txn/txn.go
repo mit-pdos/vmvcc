@@ -12,6 +12,7 @@ import (
 	"github.com/mit-pdos/go-mvcc/index"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
+	"github.com/tchajed/goose/machine"
 )
 
 type DBVal struct {
@@ -113,6 +114,8 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	for tid <= site.tidLast {
 		tid = genTID(sid)
 	}
+	/* Assume TID never overflow */
+	machine.Assume(tid < 18446744073709551615)
 	site.tidLast = tid
 
 	/* Add `tid` to the set of active transactions */
