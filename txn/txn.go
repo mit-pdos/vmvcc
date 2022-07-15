@@ -4,9 +4,9 @@ import (
 	//"fmt"
 	"sync"
 	//"time"
+	"github.com/mit-pdos/gokv/grove_ffi"
 	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/common"
-	"github.com/mit-pdos/go-mvcc/tsc"
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/tuple"
 	"github.com/mit-pdos/go-mvcc/index"
@@ -93,7 +93,7 @@ func (txnMgr *TxnMgr) New() *Txn {
 
 func genTID(sid uint64) uint64 {
 	var tid uint64
-	tid = tsc.GetTSC()
+	tid = grove_ffi.GetTSC()
 	tid = (tid & ^(config.N_TXN_SITES - 1)) + sid
 	return tid
 }
