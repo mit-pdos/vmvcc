@@ -22,7 +22,6 @@ type Txn struct {
 	wrbuf	*wrbuf.WrBuf
 	idx		*index.Index
 	txnMgr	*TxnMgr
-	p		machine.ProphId
 }
 
 type TxnSite struct {
@@ -38,6 +37,7 @@ type TxnMgr struct {
 	sites		[]*TxnSite
 	idx			*index.Index
 	gc			*gc.GC
+	p			machine.ProphId
 }
 
 func MkTxnMgr() *TxnMgr {
