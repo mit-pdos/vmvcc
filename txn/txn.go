@@ -8,37 +8,21 @@ import (
 	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/common"
 	"github.com/mit-pdos/go-mvcc/gc"
-	"github.com/mit-pdos/go-mvcc/tuple"
 	"github.com/mit-pdos/go-mvcc/index"
+	"github.com/mit-pdos/go-mvcc/wrbuf"
+	// "github.com/mit-pdos/go-mvcc/proph"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
 	"github.com/tchajed/goose/machine"
 )
 
-type DBVal struct {
-	tomb bool
-	val  uint64
-}
-
-/**
- * We need `key` as to match in the local write set
- */
-type WrEnt struct {
-	key		uint64
-	val		DBVal
-	tuple	*tuple.Tuple
-}
-
-/**
- * `wset` as a `map[uint64]WrEnt` has the issue of allocating and deallocating
- * many `WrEnt`.
- */
 type Txn struct {
 	tid		uint64
-	wset	[]WrEnt
 	sid		uint64
+	wrbuf	*wrbuf.WrBuf
 	idx		*index.Index
 	txnMgr	*TxnMgr
+	p		machine.ProphId
 }
 
 type TxnSite struct {
@@ -76,7 +60,7 @@ func (txnMgr *TxnMgr) New() *Txn {
 
 	/* Make a new txn. */
 	txn := new(Txn)
-	txn.wset = make([]WrEnt, 0, 32)
+	// TODO: MkWrBuf
 	sid := txnMgr.sidCur
 	txn.sid = sid
 	txn.idx = txnMgr.idx
@@ -245,34 +229,11 @@ func (txnMgr *TxnMgr) StartGC() {
 	}()
 }
 
-func matchLocalWrites(key uint64, wset []WrEnt) (uint64, bool) {
-	var pos uint64 = 0
-	for {
-		if pos >= uint64(len(wset)) {
-			break
-		}
-		if key == wset[pos].key {
-			break
-		}
-		pos++
-	}
-
-	found := pos < uint64(len(wset))
-	return pos, found
-}
-
 func (txn *Txn) Put(key, val uint64) bool {
-	/* First try to find `key` in the local write set. */
-	pos, found := matchLocalWrites(key, txn.wset)
-	if found {
-		went := &txn.wset[pos]
-		went.val = DBVal{
-			tomb : false,
-			val  : val,
-		}
-		return true
-	}
+	wrbuf := txn.wrbuf
+	wrbuf.Put(key, val)
 
+	/* TODO: Move this to `OwnAll`. */
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 
@@ -282,28 +243,15 @@ func (txn *Txn) Put(key, val uint64) bool {
 		/* TODO: can retry a few times for RET_RETRY. */
 		return false
 	}
-
-	/* Add the key-value pair to the local write set. */
-	dbval := DBVal{
-		tomb : false,
-		val  : val,
-	}
-	txn.wset = append(txn.wset, WrEnt{key: key, val: dbval, tuple: tuple})
 
 	return true
 }
 
 func (txn *Txn) Delete(key uint64) bool {
-	/* First try to find `key` in the local write set. */
-	pos, found := matchLocalWrites(key, txn.wset)
-	if found {
-		went := &txn.wset[pos]
-		went.val = DBVal{
-			tomb : true,
-		}
-		return true
-	}
+	wrbuf := txn.wrbuf
+	wrbuf.Delete(key)
 
+	/* TODO: Move this to `OwnAll`. */
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 
@@ -313,22 +261,16 @@ func (txn *Txn) Delete(key uint64) bool {
 		/* TODO: can retry a few times for RET_RETRY. */
 		return false
 	}
-
-	/* Add the key-value pair to the local write set. */
-	dbval := DBVal{
-		tomb : true,
-	}
-	txn.wset = append(txn.wset, WrEnt{key: key, val: dbval, tuple: tuple})
 
 	return true
 }
 
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
-	pos, found := matchLocalWrites(key, txn.wset)
+	wrbuf := txn.wrbuf
+	valb, del, found := wrbuf.Lookup(key)
 	if found {
-		dbval := txn.wset[pos].val
-		return dbval.val, !dbval.tomb
+		return valb, !del
 	}
 
 	idx := txn.idx
@@ -341,22 +283,33 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 func (txn *Txn) Begin() {
 	tid := txn.txnMgr.activate(txn.sid)
 	txn.tid = tid
-	txn.wset = txn.wset[:0]
+	txn.wrbuf.Clear()
 }
 
 func (txn *Txn) Commit() {
-	for _, wrent := range txn.wset {
-		dbval := wrent.val
-		tuple := wrent.tuple
+	wrbuf := txn.wrbuf
+	for i := uint64(0); i < wrbuf.Len(); i++ {
+		key, val, del := wrbuf.GetEntAt(i)
+		idx := txn.idx
+		// If this additional `GetTuple` ever becomes a performance issue, use
+		// another slice to store the `tuple` pointers.
+		tuple := idx.GetTuple(key)
 		/* TODO: Call KillVersion for tombstone. */
-		tuple.AppendVersion(txn.tid, dbval.val)
+		if del {
+			tuple.KillVersion(txn.tid)
+		} else {
+			tuple.AppendVersion(txn.tid, val)
+		}
 	}
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) Abort() {
-	for _, wrent := range txn.wset {
-		tuple := wrent.tuple
+	wrbuf := txn.wrbuf
+	for i := uint64(0); i < wrbuf.Len(); i++ {
+		key, _, _ := wrbuf.GetEntAt(i)
+		idx := txn.idx
+		tuple := idx.GetTuple(key)
 		tuple.Free(txn.tid)
 	}
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
