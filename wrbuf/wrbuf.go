@@ -6,6 +6,14 @@ type WrEnt struct {
 	del bool
 }
 
+func (ent WrEnt) Key() uint64 {
+	return ent.key
+}
+
+func (ent WrEnt) Destruct() (uint64, uint64, bool) {
+	return ent.key, ent.val, ent.del
+}
+
 type WrBuf struct {
 	ents []WrEnt
 }
@@ -68,13 +76,8 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
-func (wrbuf *WrBuf) GetEntAt(idx uint64) (uint64, uint64, bool) {
-	ent := wrbuf.ents[idx]
-	return ent.key, ent.val, ent.del
-}
-
-func (wrbuf *WrBuf) Len() uint64 {
-	return uint64(len(wrbuf.ents))
+func (wrbuf *WrBuf) IntoEnts() []WrEnt {
+	return wrbuf.ents
 }
 
 func (wrbuf *WrBuf) Clear() {

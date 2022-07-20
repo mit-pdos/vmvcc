@@ -286,32 +286,62 @@ func (txn *Txn) Begin() {
 	txn.wrbuf.Clear()
 }
 
-func (txn *Txn) Commit() {
-	wrbuf := txn.wrbuf
-	for i := uint64(0); i < wrbuf.Len(); i++ {
-		key, val, del := wrbuf.GetEntAt(i)
+func (txn *Txn) acquire(ents []wrbuf.WrEnt) bool {
+	/**
+	 * TODO: acquire locks in key order to prevent deadlock.
+	 */
+	var ok bool = true
+	for _, ent := range ents {
+		key := ent.Key()
+		idx := txn.idx
+		tuple := idx.GetTuple(key)
+		ret := tuple.Own(txn.tid)
+		if ret != common.RET_SUCCESS {
+			/* TODO: can retry a few times for RET_RETRY. */
+			/* TODO: early return, but Goose currently does not support this. */
+			ok = false
+		}
+	}
+	return ok
+}
+
+func (txn *Txn) release(ents []wrbuf.WrEnt) {
+	for _, ent := range ents {
+		key := ent.Key()
+		idx := txn.idx
+		tuple := idx.GetTuple(key)
+		tuple.Free(txn.tid)
+	}
+}
+
+func (txn *Txn) apply(ents []wrbuf.WrEnt) {
+	for _, ent := range ents {
+		key, val, del := ent.Destruct()
 		idx := txn.idx
 		// If this additional `GetTuple` ever becomes a performance issue, use
 		// another slice to store the `tuple` pointers.
 		tuple := idx.GetTuple(key)
-		/* TODO: Call KillVersion for tombstone. */
 		if del {
 			tuple.KillVersion(txn.tid)
 		} else {
 			tuple.AppendVersion(txn.tid, val)
 		}
 	}
+}
+
+func (txn *Txn) Commit() {
+	ents := txn.wrbuf.IntoEnts()
+	ret := txn.acquire(ents)
+	if ret {
+		txn.apply(ents)
+	} else {
+		txn.release(ents)
+	}
+	// TODO: Rebuild wrbuf
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) Abort() {
-	wrbuf := txn.wrbuf
-	for i := uint64(0); i < wrbuf.Len(); i++ {
-		key, _, _ := wrbuf.GetEntAt(i)
-		idx := txn.idx
-		tuple := idx.GetTuple(key)
-		tuple.Free(txn.tid)
-	}
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
