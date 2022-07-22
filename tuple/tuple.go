@@ -119,7 +119,7 @@ func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
 
-	tuple.latch.Unlock()
+	// tuple.latch.Unlock()
 }
 
 func (tuple *Tuple) killVersion(tid uint64) bool {
@@ -163,7 +163,7 @@ func (tuple *Tuple) KillVersion(tid uint64) uint64 {
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
 
-	tuple.latch.Unlock()
+	// tuple.latch.Unlock()
 
 	return ret
 }
@@ -232,8 +232,12 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 		tuple.tidlast = tid
 	}
 
-	tuple.latch.Unlock()
+	// tuple.latch.Unlock()
 	return ver.val, ret
+}
+
+func (tuple *Tuple) Release() {
+	tuple.latch.Unlock()
 }
 
 func (tuple *Tuple) removeVersions(tid uint64) {
