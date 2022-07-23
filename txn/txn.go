@@ -60,7 +60,7 @@ func (txnMgr *TxnMgr) New() *Txn {
 
 	/* Make a new txn. */
 	txn := new(Txn)
-	// TODO: MkWrBuf
+	txn.wrbuf = wrbuf.MkWrBuf()
 	sid := txnMgr.sidCur
 	txn.sid = sid
 	txn.idx = txnMgr.idx

@@ -34,6 +34,12 @@ type WrBuf struct {
 	ents []WrEnt
 }
 
+func MkWrBuf() *WrBuf {
+	wrbuf := new(WrBuf)
+	wrbuf.ents = make([]WrEnt, 0, 16)
+	return wrbuf
+}
+
 func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
