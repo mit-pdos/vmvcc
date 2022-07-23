@@ -14,28 +14,28 @@ func (ent WrEnt) Destruct() (uint64, uint64, bool) {
 	return ent.key, ent.val, ent.del
 }
 
-type WrBuf struct {
-	ents []WrEnt
-}
-
-func (wrbuf *WrBuf) lookup(key uint64) (uint64, bool) {
+func search(ents []WrEnt, key uint64) (uint64, bool) {
 	var pos uint64 = 0
 	for {
-		if pos >= uint64(len(wrbuf.ents)) {
+		if pos >= uint64(len(ents)) {
 			break
 		}
-		if key == wrbuf.ents[pos].key {
+		if key == ents[pos].key {
 			break
 		}
 		pos++
 	}
 
-	found := pos < uint64(len(wrbuf.ents))
+	found := pos < uint64(len(ents))
 	return pos, found
 }
 
+type WrBuf struct {
+	ents []WrEnt
+}
+
 func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
-	pos, found := wrbuf.lookup(key)
+	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := wrbuf.ents[pos]
 		return ent.val, ent.del, true
@@ -45,11 +45,11 @@ func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
 }
 
 func (wrbuf *WrBuf) Put(key, val uint64) {
-	pos, found := wrbuf.lookup(key)
+	pos, found := search(wrbuf.ents, key)
 	if found {
-		went := &wrbuf.ents[pos]
-		went.val = val
-		went.del = false
+		ent := &wrbuf.ents[pos]
+		ent.val = val
+		ent.del = false
 		return
 	}
 
@@ -62,10 +62,10 @@ func (wrbuf *WrBuf) Put(key, val uint64) {
 }
 
 func (wrbuf *WrBuf) Delete(key uint64) {
-	pos, found := wrbuf.lookup(key)
+	pos, found := search(wrbuf.ents, key)
 	if found {
-		went := &wrbuf.ents[pos]
-		went.del = true
+		ent := &wrbuf.ents[pos]
+		ent.del = true
 		return
 	}
 

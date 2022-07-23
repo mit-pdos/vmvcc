@@ -229,39 +229,16 @@ func (txnMgr *TxnMgr) StartGC() {
 	}()
 }
 
-func (txn *Txn) Put(key, val uint64) bool {
+func (txn *Txn) Put(key, val uint64) {
 	wrbuf := txn.wrbuf
 	wrbuf.Put(key, val)
-
-	/* TODO: Move this to `OwnAll`. */
-	idx := txn.idx
-	tuple := idx.GetTuple(key)
-
-	/* Try to get the permission to update this tuple. */
-	ret := tuple.Own(txn.tid)
-	if ret != common.RET_SUCCESS {
-		/* TODO: can retry a few times for RET_RETRY. */
-		return false
-	}
-
-	return true
 }
 
 func (txn *Txn) Delete(key uint64) bool {
 	wrbuf := txn.wrbuf
 	wrbuf.Delete(key)
 
-	/* TODO: Move this to `OwnAll`. */
-	idx := txn.idx
-	tuple := idx.GetTuple(key)
-
-	/* Try to get the permission to update this tuple. */
-	ret := tuple.Own(txn.tid)
-	if ret != common.RET_SUCCESS {
-		/* TODO: can retry a few times for RET_RETRY. */
-		return false
-	}
-
+	/* TODO: `Delete` should return false when no such key. */
 	return true
 }
 
