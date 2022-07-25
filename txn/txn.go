@@ -10,7 +10,7 @@ import (
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
-	// "github.com/mit-pdos/go-mvcc/proph"
+	"github.com/mit-pdos/go-mvcc/proph"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
 	"github.com/tchajed/goose/machine"
@@ -52,6 +52,7 @@ func MkTxnMgr() *TxnMgr {
 	}
 	txnMgr.idx = index.MkIndex()
 	txnMgr.gc = gc.MkGC(txnMgr.idx)
+	txnMgr.p = machine.NewProph()
 	return txnMgr
 }
 
@@ -253,6 +254,8 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 	val, ret := tuple.ReadVersion(txn.tid)
+	proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
+	tuple.Release()
 
 	return val, ret == common.RET_SUCCESS
 }
