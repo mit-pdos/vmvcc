@@ -186,7 +186,7 @@ func (tuple *Tuple) Free(tid uint64) {
 /**
  * Preconditions:
  */
-func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
+func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	tuple.latch.Lock()
 
 	/**
@@ -218,12 +218,6 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 	 * Try to find the right version from the version list.
 	 */
 	ver := findRightVer(tid, tuple.vers)
-	var ret uint64
-	if ver.deleted {
-		ret = common.RET_NONEXIST
-	} else {
-		ret = common.RET_SUCCESS
-	}
 
 	/**
 	 * Record the TID of the last reader/writer of this tuple.
@@ -233,7 +227,7 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, uint64) {
 	}
 
 	// tuple.latch.Unlock()
-	return ver.val, ret
+	return ver.val, !ver.deleted
 }
 
 func (tuple *Tuple) Release() {

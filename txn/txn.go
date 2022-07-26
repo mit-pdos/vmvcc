@@ -246,18 +246,18 @@ func (txn *Txn) Delete(key uint64) bool {
 func (txn *Txn) Get(key uint64) (uint64, bool) {
 	/* First try to find `key` in the local write set. */
 	wrbuf := txn.wrbuf
-	valb, del, found := wrbuf.Lookup(key)
+	valb, wr, found := wrbuf.Lookup(key)
 	if found {
-		return valb, !del
+		return valb, wr
 	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
-	val, ret := tuple.ReadVersion(txn.tid)
+	val, found := tuple.ReadVersion(txn.tid)
 	proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
 	tuple.Release()
 
-	return val, ret == common.RET_SUCCESS
+	return val, found
 }
 
 func (txn *Txn) Begin() {

@@ -3,7 +3,7 @@ package wrbuf
 type WrEnt struct {
 	key uint64
 	val uint64
-	del bool
+	wr  bool
 }
 
 func (ent WrEnt) Key() uint64 {
@@ -11,7 +11,7 @@ func (ent WrEnt) Key() uint64 {
 }
 
 func (ent WrEnt) Destruct() (uint64, uint64, bool) {
-	return ent.key, ent.val, ent.del
+	return ent.key, ent.val, ent.wr
 }
 
 func search(ents []WrEnt, key uint64) (uint64, bool) {
@@ -44,7 +44,7 @@ func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := wrbuf.ents[pos]
-		return ent.val, ent.del, true
+		return ent.val, ent.wr, true
 	}
 
 	return 0, false, false
@@ -55,14 +55,14 @@ func (wrbuf *WrBuf) Put(key, val uint64) {
 	if found {
 		ent := &wrbuf.ents[pos]
 		ent.val = val
-		ent.del = false
+		ent.wr  = true
 		return
 	}
 
 	ent := WrEnt {
 		key : key,
 		val : val,
-		del : false,
+		wr  : true,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -71,13 +71,13 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := &wrbuf.ents[pos]
-		ent.del = true
+		ent.wr = false
 		return
 	}
 
 	ent := WrEnt {
 		key : key,
-		del : true,
+		wr  : false,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
