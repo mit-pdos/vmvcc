@@ -309,19 +309,44 @@ func (txn *Txn) apply(ents []wrbuf.WrEnt) {
 	}
 }
 
-func (txn *Txn) Commit() {
+func (txn *Txn) Commit() bool {
 	ents := txn.wrbuf.IntoEnts()
-	ret := txn.acquire(ents)
-	if ret {
+	ok := txn.acquire(ents)
+	if ok {
 		txn.apply(ents)
 	} else {
 		txn.release(ents)
 	}
 	// TODO: Rebuild wrbuf
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
+    return ok
 }
 
 func (txn *Txn) Abort() {
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
+}
+
+func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
+    txn.Begin()
+    cmt := body(txn)
+    if !cmt {
+        txn.Abort()
+        return false
+    }
+    ok := txn.Commit()
+    return ok
+}
+
+/* TODO: Move these to examples. */
+func SwapSeq(txn *Txn) bool {
+    v1, _ := txn.Get(10)
+    v2, _ := txn.Get(20)
+    txn.Put(10, v2)
+    txn.Put(20, v1)
+    return true
+}
+
+func Swap(txn *Txn) bool {
+    return txn.DoTxn(SwapSeq)
 }
 
