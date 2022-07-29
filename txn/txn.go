@@ -106,9 +106,11 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	 */
 	var tid uint64
 	tid = genTID(sid)
+	/*
 	for tid <= site.tidLast {
 		tid = genTID(sid)
 	}
+	*/
 	/* Assume TID never overflow */
 	machine.Assume(tid < 18446744073709551615)
 	site.tidLast = tid
@@ -167,9 +169,8 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 
 	var tidnew uint64
 	tidnew = genTID(sid)
-	for tidnew <= site.tidLast {
-		tidnew = genTID(sid)
-	}
+	machine.Assume(tidnew < 18446744073709551615)
+
 	site.tidLast = tidnew
 
 	var tidmin uint64 = tidnew
@@ -266,10 +267,11 @@ func (txn *Txn) Begin() {
 	txn.wrbuf.Clear()
 }
 
-func (txn *Txn) acquire(ents []wrbuf.WrEnt) bool {
+func (txn *Txn) acquire() bool {
 	/**
 	 * TODO: acquire locks in key order to prevent deadlock.
 	 */
+	ents := txn.wrbuf.IntoEnts()
 	var ok bool = true
 	for _, ent := range ents {
 		key := ent.Key()
@@ -282,6 +284,7 @@ func (txn *Txn) acquire(ents []wrbuf.WrEnt) bool {
 			ok = false
 		}
 	}
+	// TODO: Rebuild wrbuf
 	return ok
 }
 
@@ -294,7 +297,11 @@ func (txn *Txn) release(ents []wrbuf.WrEnt) {
 	}
 }
 
-func (txn *Txn) apply(ents []wrbuf.WrEnt) {
+/**
+ * TODO: Figure out the right way to handle latches and locks.
+ */
+func (txn *Txn) Commit() {
+	ents := txn.wrbuf.IntoEnts()
 	for _, ent := range ents {
 		key, val, del := ent.Destruct()
 		idx := txn.idx
@@ -307,19 +314,8 @@ func (txn *Txn) apply(ents []wrbuf.WrEnt) {
 			tuple.AppendVersion(txn.tid, val)
 		}
 	}
-}
-
-func (txn *Txn) Commit() bool {
-	ents := txn.wrbuf.IntoEnts()
-	ok := txn.acquire(ents)
-	if ok {
-		txn.apply(ents)
-	} else {
-		txn.release(ents)
-	}
 	// TODO: Rebuild wrbuf
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
-    return ok
 }
 
 func (txn *Txn) Abort() {
@@ -327,26 +323,31 @@ func (txn *Txn) Abort() {
 }
 
 func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
-    txn.Begin()
-    cmt := body(txn)
-    if !cmt {
-        txn.Abort()
-        return false
-    }
-    ok := txn.Commit()
-    return ok
+	txn.Begin()
+	cmt := body(txn)
+	if !cmt {
+		txn.Abort()
+		return false
+	}
+	ok := txn.acquire()
+	if !ok {
+		txn.Abort()
+		return false
+	}
+	txn.Commit()
+	return true
 }
 
 /* TODO: Move these to examples. */
 func SwapSeq(txn *Txn) bool {
-    v1, _ := txn.Get(10)
-    v2, _ := txn.Get(20)
-    txn.Put(10, v2)
-    txn.Put(20, v1)
-    return true
+	v1, _ := txn.Get(10)
+	v2, _ := txn.Get(20)
+	txn.Put(10, v2)
+	txn.Put(20, v1)
+	return true
 }
 
 func Swap(txn *Txn) bool {
-    return txn.DoTxn(SwapSeq)
+	return txn.DoTxn(SwapSeq)
 }
 
