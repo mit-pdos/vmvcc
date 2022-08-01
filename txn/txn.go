@@ -288,19 +288,7 @@ func (txn *Txn) acquire() bool {
 	return ok
 }
 
-func (txn *Txn) release(ents []wrbuf.WrEnt) {
-	for _, ent := range ents {
-		key := ent.Key()
-		idx := txn.idx
-		tuple := idx.GetTuple(key)
-		tuple.Free(txn.tid)
-	}
-}
-
-/**
- * TODO: Figure out the right way to handle latches and locks.
- */
-func (txn *Txn) Commit() {
+func (txn *Txn) apply() {
 	ents := txn.wrbuf.IntoEnts()
 	for _, ent := range ents {
 		key, val, del := ent.Destruct()
@@ -315,10 +303,27 @@ func (txn *Txn) Commit() {
 		}
 	}
 	// TODO: Rebuild wrbuf
+}
+
+func (txn *Txn) release(ents []wrbuf.WrEnt) {
+	for _, ent := range ents {
+		key := ent.Key()
+		idx := txn.idx
+		tuple := idx.GetTuple(key)
+		tuple.Free(txn.tid)
+	}
+}
+/**
+ * TODO: Figure out the right way to handle latches and locks.
+ */
+func (txn *Txn) Commit() {
+	txn.apply()
+	proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) Abort() {
+	proph.ResolveAbort(txn.txnMgr.p, txn.tid)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
