@@ -50,9 +50,9 @@ func MkTxnMgr() *TxnMgr {
 		site.tidsActive = make([]uint64, 0, 8)
 		txnMgr.sites[i] = site
 	}
+	txnMgr.p = machine.NewProph()
 	txnMgr.idx = index.MkIndex()
 	txnMgr.gc = gc.MkGC(txnMgr.idx)
-	txnMgr.p = machine.NewProph()
 	return txnMgr
 }
 
@@ -254,9 +254,9 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
-	val, found := tuple.ReadVersion(txn.tid)
+	tuple.ReadWait(txn.tid)
 	proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
-	tuple.Release()
+	val, found := tuple.ReadVersion(txn.tid)
 
 	return val, found
 }
@@ -317,8 +317,8 @@ func (txn *Txn) release(ents []wrbuf.WrEnt) {
  * TODO: Figure out the right way to handle latches and locks.
  */
 func (txn *Txn) Commit() {
-	txn.apply()
 	proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
+	txn.apply()
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 

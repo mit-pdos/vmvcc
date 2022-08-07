@@ -92,6 +92,10 @@ func (tuple *Tuple) Own(tid uint64) uint64 {
 	return common.RET_SUCCESS
 }
 
+func (tuple *Tuple) WriteLock() {
+	tuple.latch.Lock()
+}
+
 func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
 	/* Create a new version and add it to the version chain. */
 	verNew := Version{
@@ -112,14 +116,12 @@ func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
  * 1. The txn `tid` has the permission to update this tuple.
  */
 func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
-	tuple.latch.Lock()
-
 	tuple.appendVersion(tid, val)
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
 
-	// tuple.latch.Unlock()
+	tuple.latch.Unlock()
 }
 
 func (tuple *Tuple) killVersion(tid uint64) bool {
@@ -149,8 +151,6 @@ func (tuple *Tuple) killVersion(tid uint64) bool {
  * 1. The txn `tid` has the permission to update this tuple.
  */
 func (tuple *Tuple) KillVersion(tid uint64) uint64 {
-	tuple.latch.Lock()
-
 	ok := tuple.killVersion(tid)
 	var ret uint64
 	if ok {
@@ -163,7 +163,7 @@ func (tuple *Tuple) KillVersion(tid uint64) uint64 {
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
 
-	// tuple.latch.Unlock()
+	tuple.latch.Unlock()
 
 	return ret
 }
@@ -183,19 +183,13 @@ func (tuple *Tuple) Free(tid uint64) {
 	tuple.latch.Unlock()
 }
 
-/**
- * Preconditions:
- */
-func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
+func (tuple *Tuple) ReadWait(tid uint64) {
 	tuple.latch.Lock()
 
 	/**
 	 * The only case where a writer can block a reader is when the reader is
 	 * trying to read the latest version (`tid > tuple.verlast.begin`) AND the
 	 * latest version may change in the future (`tuple.tidown != 0`).
-	 *
-	 * TODO: An optimization we can do here is checking `tid < tidlast`.
-	 * Not sure if it's effective though.
 	 */
 	for tid > tuple.tidlast && tuple.tidown != 0 {
 		/* TODO: Add timeout-retry to avoid deadlock. */
@@ -213,7 +207,12 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	 * going to be greater than `tid`, so this txn can safely read the latest
 	 * version at this point.
 	 */
+}
 
+/**
+ * Preconditions:
+ */
+func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 	/**
 	 * Try to find the right version from the version list.
 	 */
@@ -226,12 +225,8 @@ func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
 		tuple.tidlast = tid
 	}
 
-	// tuple.latch.Unlock()
-	return ver.val, !ver.deleted
-}
-
-func (tuple *Tuple) Release() {
 	tuple.latch.Unlock()
+	return ver.val, !ver.deleted
 }
 
 func (tuple *Tuple) removeVersions(tid uint64) {
@@ -269,7 +264,7 @@ func MkTuple() *Tuple {
 	tuple.latch = new(sync.Mutex)
 	tuple.rcond = sync.NewCond(tuple.latch)
 	tuple.tidown = 0
-	tuple.tidlast = 0
+	tuple.tidlast = 1
 	tuple.vers = make([]Version, 1, 16)
 	tuple.vers[0] = Version{
 		deleted : true,
