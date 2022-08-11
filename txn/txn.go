@@ -56,9 +56,6 @@ func MkTxnMgr() *TxnMgr {
 	return txnMgr
 }
 
-func (txnMgr *TxnMgr) InitializeData(p *uint64) {
-}
-
 func (txnMgr *TxnMgr) New() *Txn {
 	txnMgr.latch.Lock()
 

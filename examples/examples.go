@@ -4,42 +4,48 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func WriteReservedKeySeq(txn *txn.Txn) bool {
-	txn.Put(0, 2)
+func WriteReservedKeySeq(txn *txn.Txn, v uint64) bool {
+	txn.Put(0, v)
 	return true
 }
 
-func WriteReservedKey(txn *txn.Txn) bool {
-	return txn.DoTxn(WriteReservedKeySeq)
-}
-
-func WriteFreeKeySeq(txn *txn.Txn) bool {
-	txn.Put(1, 3)
-	return true
-}
-
-func WriteFreeKey(txn *txn.Txn) bool {
-	return txn.DoTxn(WriteFreeKeySeq)
-}
-
-func WriteReservedKeyExample() (*uint64, bool) {
-	mgr := txn.MkTxnMgr()
-	p := new(uint64)
-	mgr.InitializeData(p)
-	txn := mgr.New()
-	ok := WriteReservedKey(txn)
-	if ok {
-		*p = 2
+func WriteReservedKey(t *txn.Txn, v uint64) bool {
+	body := func(txn *txn.Txn) bool {
+		return WriteReservedKeySeq(txn, v)
 	}
-	return p, ok
+	return t.DoTxn(body)
 }
 
-func WriteFreeKeyExample() bool {
+func WriteFreeKeySeq(txn *txn.Txn, v uint64) bool {
+	txn.Put(1, v)
+	return true
+}
+
+func WriteFreeKey(t *txn.Txn, v uint64) bool {
+	body := func(txn *txn.Txn) bool {
+		return WriteFreeKeySeq(txn, v)
+	}
+	return t.DoTxn(body)
+}
+
+func InitializeData(mgr *txn.TxnMgr) {
+}
+
+func InitExample() *txn.TxnMgr {
 	mgr := txn.MkTxnMgr()
-	p := new(uint64)
-	mgr.InitializeData(p)
+	InitializeData(mgr)
+	return mgr
+}
+
+func WriteReservedKeyExample(mgr *txn.TxnMgr, v uint64) bool {
 	txn := mgr.New()
-	ok := WriteFreeKey(txn)
+	ok := WriteReservedKey(txn, v)
+	return ok
+}
+
+func WriteFreeKeyExample(mgr *txn.TxnMgr, v uint64) bool {
+	txn := mgr.New()
+	ok := WriteFreeKey(txn, v)
 	return ok
 }
 
