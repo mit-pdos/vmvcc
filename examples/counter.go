@@ -5,7 +5,23 @@ import (
 	"github.com/tchajed/goose/machine"
 )
 
-func IncrementSeq(txn *txn.Txn, p *uint64) bool {
+func fetch(txn *txn.Txn, p *uint64) bool {
+	v, _ := txn.Get(0)
+	*p = v
+
+	return true
+}
+
+func Fetch(t *txn.Txn) uint64 {
+	var n uint64
+	body := func(txn *txn.Txn) bool {
+		return fetch(txn, &n)
+	}
+	t.DoTxn(body)
+	return n
+}
+
+func increment(txn *txn.Txn, p *uint64) bool {
 	v, _ := txn.Get(0)
 	*p = v
 	if v == 18446744073709551615 {
@@ -19,13 +35,13 @@ func IncrementSeq(txn *txn.Txn, p *uint64) bool {
 func Increment(t *txn.Txn) (uint64, bool) {
 	var n uint64
 	body := func(txn *txn.Txn) bool {
-		return IncrementSeq(txn, &n)
+		return increment(txn, &n)
 	}
 	ok := t.DoTxn(body)
 	return n, ok
 }
 
-func DecrementSeq(txn *txn.Txn, p *uint64) bool {
+func decrement(txn *txn.Txn, p *uint64) bool {
 	v, _ := txn.Get(0)
 	*p = v
 	if v == 0 {
@@ -38,7 +54,7 @@ func DecrementSeq(txn *txn.Txn, p *uint64) bool {
 func Decrement(t *txn.Txn) (uint64, bool) {
 	var n uint64
 	body := func(txn *txn.Txn) bool {
-		return DecrementSeq(txn, &n)
+		return decrement(txn, &n)
 	}
 	ok := t.DoTxn(body)
 	return n, ok
@@ -59,13 +75,13 @@ func CallIncrement(mgr *txn.TxnMgr) {
 	Increment(txn)
 }
 
-func CallIncrementTwice(mgr *txn.TxnMgr) {
+func CallIncrementFetch(mgr *txn.TxnMgr) {
 	txn := mgr.New()
 	n1, ok1 := Increment(txn)
 	if !ok1 {
 		return
 	}
-	n2, _ := Increment(txn)
+	n2 := Fetch(txn)
 	machine.Assert(n1 < n2)
 }
 
