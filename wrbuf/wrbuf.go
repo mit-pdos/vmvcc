@@ -1,9 +1,15 @@
 package wrbuf
 
+//  import (
+//  	"github.com/mit-pdos/go-mvcc/tuple"
+//  	"github.com/mit-pdos/go-mvcc/index"
+//  )
+
 type WrEnt struct {
 	key uint64
 	val uint64
 	wr  bool
+	// tpl *tuple.Tuple
 }
 
 func (ent WrEnt) Key() uint64 {
@@ -16,13 +22,7 @@ func (ent WrEnt) Destruct() (uint64, uint64, bool) {
 
 func search(ents []WrEnt, key uint64) (uint64, bool) {
 	var pos uint64 = 0
-	for {
-		if pos >= uint64(len(ents)) {
-			break
-		}
-		if key == ents[pos].key {
-			break
-		}
+	for pos < uint64(len(ents)) && key != ents[pos].key {
 		pos++
 	}
 
@@ -81,6 +81,38 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
+
+// func (wrbuf *WrBuf) OpenTuples(idx *index.Index) bool {
+// 	// TODO: sort keys in ascending order
+// 	var ok bool = true
+// 	for _, ent := range ents {
+// 		tuple := idx.GetTuple(ent.key)
+// 		ret := tuple.Own(txn.tid)
+// 		if ret != common.RET_SUCCESS {
+// 			/* TODO: can retry a few times for RET_RETRY. */
+// 			ok = false
+// 		}
+// 	}
+// 
+// 	if ok {
+// 		return true
+// 	}
+// 
+// 	
+// }
+// 
+// func (wrbuf *WrBuf) UpdateTuples() {
+// 	for _, ent := range ents {
+// 		key, val, del := ent.Destruct()
+// 		idx := txn.idx
+// 		tuple := idx.GetTuple(key)
+// 		if del {
+// 			tuple.KillVersion(txn.tid)
+// 		} else {
+// 			tuple.AppendVersion(txn.tid, val)
+// 		}
+// 	}
+// }
 
 func (wrbuf *WrBuf) IntoEnts() []WrEnt {
 	return wrbuf.ents
