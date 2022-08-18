@@ -16,32 +16,23 @@ type Version struct {
 }
 
 /**
- * `tidown`
- *		An TID specifying which txn owns the permission to write this tuple.
- * `tidlast`
- *		An TID specifying the last txn (in the sense of the largest TID, not
- *		actual physical time) that reads or writes this tuple.
+ * `owned`: A boolean flag indicating whether some txn owns this tuple..
+ *
+ * `tidlast`:
+ * 	An TID specifying the last txn (in the sense of the largest TID, not actual
+ * 	physical time) that reads (TID) or writes (TID + 1) this tuple.
+ *
+ * `vers`: Physical versions.
  */
 type Tuple struct {
-	latch	*sync.Mutex
-	rcond	*sync.Cond
-	tidown	uint64
-	tidlast	uint64
-	vers	[]Version
+	latch   *sync.Mutex
+	rcond   *sync.Cond
+	owned   bool
+	tidlast uint64
+	vers    []Version
 }
 
 func findRightVer(tid uint64, vers []Version) Version {
-	/*
-	var ver Version
-	var ret uint64 = common.RET_NONEXIST
-	for _, v := range vers {
-		if v.begin < tid && tid <= v.end {
-			ver = v
-			ret = common.RET_SUCCESS
-		}
-	}
-	return ver, ret
-	*/
 	var ver Version
 	length := uint64(len(vers))
 	var idx uint64 = 0
@@ -80,13 +71,13 @@ func (tuple *Tuple) Own(tid uint64) uint64 {
 	}
 
 	/* Return an error if the latest version is already owned by another txn. */
-	if tuple.tidown != 0 {
+	if tuple.owned {
 		tuple.latch.Unlock()
 		return common.RET_RETRY
 	}
 
 	/* Acquire the permission to update this tuple (will do on commit). */
-	tuple.tidown = tid
+	tuple.owned = true
 
 	tuple.latch.Unlock()
 	return common.RET_SUCCESS
@@ -106,7 +97,7 @@ func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
 	tuple.vers = append(tuple.vers, verNew)
 
 	/* Release the permission to update this tuple. */
-	tuple.tidown = 0
+	tuple.owned = false
 
 	tuple.tidlast = tid + 1
 }
@@ -138,7 +129,7 @@ func (tuple *Tuple) killVersion(tid uint64) bool {
 	tuple.vers = append(tuple.vers, verNew)
 
 	/* Release the permission to update this tuple. */
-	tuple.tidown = 0
+	tuple.owned = false
 
 	tuple.tidlast = tid + 1
 
@@ -175,7 +166,7 @@ func (tuple *Tuple) Free(tid uint64) {
 	tuple.latch.Lock()
 
 	/* Release the permission to update this tuple. */
-	tuple.tidown = 0
+	tuple.owned = false
 
 	/* Wake up txns waiting on reading this tuple. */
 	tuple.rcond.Broadcast()
@@ -189,9 +180,9 @@ func (tuple *Tuple) ReadWait(tid uint64) {
 	/**
 	 * The only case where a writer can block a reader is when the reader is
 	 * trying to read the latest version (`tid > tuple.verlast.begin`) AND the
-	 * latest version may change in the future (`tuple.tidown != 0`).
+	 * latest version may change in the future (`tuple.owned`).
 	 */
-	for tid > tuple.tidlast && tuple.tidown != 0 {
+	for tid > tuple.tidlast && tuple.owned {
 		/* TODO: Add timeout-retry to avoid deadlock. */
 		tuple.rcond.Wait()
 	}
@@ -200,7 +191,7 @@ func (tuple *Tuple) ReadWait(tid uint64) {
 	 * We'll be able to do a case analysis here:
 	 * 1. `tid <= tuple.tidlast` means that the logical tuple has already been
 	 * fixed at `tid`, so we can safety read it.
-	 * 2. `tuple.tidown == 0` means that follow-up txns trying to append a new
+	 * 2. `tuple.owned` means that follow-up txns trying to append a new
 	 * version will either fail (if the writer's `tid` is lower than this
 	 * `tid`), or succeed (if the writer's `tid` is greater than this `tid`)
 	 * but with the guarantee that the `end` timestamp of the new version is
@@ -263,7 +254,7 @@ func MkTuple() *Tuple {
 	tuple := new(Tuple)
 	tuple.latch = new(sync.Mutex)
 	tuple.rcond = sync.NewCond(tuple.latch)
-	tuple.tidown = 0
+	tuple.owned = false
 	tuple.tidlast = 1
 	tuple.vers = make([]Version, 1, 16)
 	tuple.vers[0] = Version{
