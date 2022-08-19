@@ -1,23 +1,16 @@
 package wrbuf
 
-//  import (
-//  	"github.com/mit-pdos/go-mvcc/tuple"
-//  	"github.com/mit-pdos/go-mvcc/index"
-//  )
+import (
+	"github.com/mit-pdos/go-mvcc/common"
+	"github.com/mit-pdos/go-mvcc/tuple"
+	"github.com/mit-pdos/go-mvcc/index"
+)
 
 type WrEnt struct {
 	key uint64
 	val uint64
 	wr  bool
-	// tpl *tuple.Tuple
-}
-
-func (ent WrEnt) Key() uint64 {
-	return ent.key
-}
-
-func (ent WrEnt) Destruct() (uint64, uint64, bool) {
-	return ent.key, ent.val, ent.wr
+	tpl *tuple.Tuple
 }
 
 func search(ents []WrEnt, key uint64) (uint64, bool) {
@@ -82,40 +75,44 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
-// func (wrbuf *WrBuf) OpenTuples(idx *index.Index) bool {
-// 	// TODO: sort keys in ascending order
-// 	var ok bool = true
-// 	for _, ent := range ents {
-// 		tuple := idx.GetTuple(ent.key)
-// 		ret := tuple.Own(txn.tid)
-// 		if ret != common.RET_SUCCESS {
-// 			/* TODO: can retry a few times for RET_RETRY. */
-// 			ok = false
-// 		}
-// 	}
-// 
-// 	if ok {
-// 		return true
-// 	}
-// 
-// 	
-// }
-// 
-// func (wrbuf *WrBuf) UpdateTuples() {
-// 	for _, ent := range ents {
-// 		key, val, del := ent.Destruct()
-// 		idx := txn.idx
-// 		tuple := idx.GetTuple(key)
-// 		if del {
-// 			tuple.KillVersion(txn.tid)
-// 		} else {
-// 			tuple.AppendVersion(txn.tid, val)
-// 		}
-// 	}
-// }
+func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
+	// TODO: sort keys in ascending order
+	ents := wrbuf.ents
+	var pos uint64 = 0
+	for pos < uint64(len(ents)) {
+		ent := ents[pos]
+		tpl := idx.GetTuple(ent.key)
+		ret := tpl.Own(tid)
+		if ret != common.RET_SUCCESS {
+			/* TODO: can retry a few times for RET_RETRY. */
+			break
+		}
+		pos++
+	}
 
-func (wrbuf *WrBuf) IntoEnts() []WrEnt {
-	return wrbuf.ents
+	if pos == uint64(len(ents)) {
+		return true
+	}
+
+	var i uint64 = 0
+	for i < pos {
+		tpl := ents[i].tpl
+		tpl.Free()
+		i++
+	}
+	return false
+}
+
+func (wrbuf *WrBuf) UpdateTuples(tid uint64) {
+	ents := wrbuf.ents
+	for _, ent := range ents {
+		tpl := ent.tpl
+		if ent.wr {
+			tpl.AppendVersion(tid, ent.val)
+		} else {
+			tpl.KillVersion(tid)
+		}
+	}
 }
 
 func (wrbuf *WrBuf) Clear() {

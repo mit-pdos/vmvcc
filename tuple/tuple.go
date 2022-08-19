@@ -162,7 +162,7 @@ func (tuple *Tuple) KillVersion(tid uint64) uint64 {
 /**
  * Preconditions:
  */
-func (tuple *Tuple) Free(tid uint64) {
+func (tuple *Tuple) Free() {
 	tuple.latch.Lock()
 
 	/* Release the permission to update this tuple. */

@@ -6,7 +6,6 @@ import (
 	//"time"
 	"github.com/mit-pdos/gokv/grove_ffi"
 	"github.com/mit-pdos/go-mvcc/config"
-	"github.com/mit-pdos/go-mvcc/common"
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
@@ -268,54 +267,14 @@ func (txn *Txn) Begin() {
 }
 
 func (txn *Txn) acquire() bool {
-	/**
-	 * TODO: acquire locks in key order to prevent deadlock.
-	 */
-	ents := txn.wrbuf.IntoEnts()
-	var ok bool = true
-	for _, ent := range ents {
-		key := ent.Key()
-		idx := txn.idx
-		tuple := idx.GetTuple(key)
-		ret := tuple.Own(txn.tid)
-		if ret != common.RET_SUCCESS {
-			/* TODO: can retry a few times for RET_RETRY. */
-			/* TODO: early return, but Goose currently does not support this. */
-			ok = false
-		}
-	}
-	// TODO: Rebuild wrbuf
+	ok := txn.wrbuf.OpenTuples(txn.tid, txn.idx)
 	return ok
 }
 
 func (txn *Txn) apply() {
-	ents := txn.wrbuf.IntoEnts()
-	for _, ent := range ents {
-		key, val, del := ent.Destruct()
-		idx := txn.idx
-		// If this additional `GetTuple` ever becomes a performance issue, use
-		// another slice to store the `tuple` pointers.
-		tuple := idx.GetTuple(key)
-		if del {
-			tuple.KillVersion(txn.tid)
-		} else {
-			tuple.AppendVersion(txn.tid, val)
-		}
-	}
-	// TODO: Rebuild wrbuf
+	txn.wrbuf.UpdateTuples(txn.tid)
 }
 
-func (txn *Txn) release(ents []wrbuf.WrEnt) {
-	for _, ent := range ents {
-		key := ent.Key()
-		idx := txn.idx
-		tuple := idx.GetTuple(key)
-		tuple.Free(txn.tid)
-	}
-}
-/**
- * TODO: Figure out the right way to handle latches and locks.
- */
 func (txn *Txn) Commit() {
 	proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
 	txn.apply()
