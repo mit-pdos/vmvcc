@@ -4,12 +4,12 @@ import (
 	//"fmt"
 	"sync"
 	//"time"
-	"github.com/mit-pdos/gokv/grove_ffi"
 	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
 	"github.com/mit-pdos/go-mvcc/proph"
+	"github.com/mit-pdos/go-mvcc/tid"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
 	"github.com/tchajed/goose/machine"
@@ -75,50 +75,22 @@ func (txnMgr *TxnMgr) New() *Txn {
 	return txn
 }
 
-func genTID(sid uint64) uint64 {
-	var tid uint64
-
-	/* Call `GetTSC` and round the result up to site ID boundary. */
-	tid = grove_ffi.GetTSC()
-	tid = ((tid + config.N_TXN_SITES) & ^(config.N_TXN_SITES - 1)) + sid
-	// Below is the old (and wrong) version where we simply round the result,
-	// up or down, to site ID boundary.
-	// tid = (tid & ^(config.N_TXN_SITES - 1)) + sid
-
-	/* Wait until TSC exceeds TID. */
-	for grove_ffi.GetTSC() <= tid {
-	}
-
-	return tid
-}
-
 func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	site := txnMgr.sites[sid]
 	site.latch.Lock()
 
-	/**
-	 * Justifying why TID is unique:
-	 * For transactions with different SID (site ID), the last few bits are
-	 * distinct.
-	 * For transactions with the same SID, the loop below ensures the generated
-	 * TIDs are strictly increasing.
-	 */
-	var tid uint64
-	tid = genTID(sid)
-	/*
-	for tid <= site.tidLast {
-		tid = genTID(sid)
-	}
-	*/
+	var t uint64
+	t = tid.GenTID(sid)
 	/* Assume TID never overflow */
-	machine.Assume(tid < 18446744073709551615)
-	site.tidLast = tid
+	machine.Assume(t < 18446744073709551615)
+	/* TODO: remove this when removing `tidLast` from the proof. */
+	site.tidLast = t
 
 	/* Add `tid` to the set of active transactions */
-	site.tidsActive = append(site.tidsActive, tid)
+	site.tidsActive = append(site.tidsActive, t)
 
 	site.latch.Unlock()
-	return tid
+	return t
 }
 
 func findTID(tid uint64, tids []uint64) uint64 {
@@ -167,7 +139,7 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 	site.latch.Lock()
 
 	var tidnew uint64
-	tidnew = genTID(sid)
+	tidnew = tid.GenTID(sid)
 	machine.Assume(tidnew < 18446744073709551615)
 
 	site.tidLast = tidnew
