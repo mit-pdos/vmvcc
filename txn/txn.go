@@ -8,7 +8,7 @@ import (
 	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
-	"github.com/mit-pdos/go-mvcc/proph"
+	"github.com/mit-pdos/go-mvcc/trusted_proph"
 	"github.com/mit-pdos/go-mvcc/tid"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
@@ -226,7 +226,7 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 	tuple.ReadWait(txn.tid)
-	proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
+	trusted_proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
 	val, found := tuple.ReadVersion(txn.tid)
 
 	return val, found
@@ -248,13 +248,13 @@ func (txn *Txn) apply() {
 }
 
 func (txn *Txn) Commit() {
-	proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
+	trusted_proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
 	txn.apply()
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) Abort() {
-	proph.ResolveAbort(txn.txnMgr.p, txn.tid)
+	trusted_proph.ResolveAbort(txn.txnMgr.p, txn.tid)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
