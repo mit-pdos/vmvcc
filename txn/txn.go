@@ -243,13 +243,9 @@ func (txn *Txn) acquire() bool {
 	return ok
 }
 
-func (txn *Txn) apply() {
-	txn.wrbuf.UpdateTuples(txn.tid)
-}
-
 func (txn *Txn) Commit() {
 	trusted_proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
-	txn.apply()
+	txn.wrbuf.UpdateTuples(txn.tid)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
