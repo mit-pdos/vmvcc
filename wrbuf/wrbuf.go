@@ -82,17 +82,17 @@ func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
 	for pos < uint64(len(ents)) {
 		ent := ents[pos]
 		tpl := idx.GetTuple(ent.key)
+		ret := tpl.Own(tid)
+		if ret != common.RET_SUCCESS {
+			/* TODO: can retry a few times for RET_RETRY. */
+			break
+		}
 		// A more efficient way is updating field `tpl`, but not supported by Goose.
 		ents[pos] = WrEnt {
 			key : ent.key,
 			val : ent.val,
 			wr  : ent.wr,
 			tpl : tpl,
-		}
-		ret := tpl.Own(tid)
-		if ret != common.RET_SUCCESS {
-			/* TODO: can retry a few times for RET_RETRY. */
-			break
 		}
 		pos++
 	}
