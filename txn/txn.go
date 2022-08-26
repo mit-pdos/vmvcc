@@ -5,7 +5,6 @@ import (
 	"sync"
 	//"time"
 	"github.com/mit-pdos/go-mvcc/config"
-	"github.com/mit-pdos/go-mvcc/gc"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
 	"github.com/mit-pdos/go-mvcc/trusted_proph"
@@ -35,7 +34,6 @@ type TxnMgr struct {
 	sidCur		uint64
 	sites		[]*TxnSite
 	idx			*index.Index
-	gc			*gc.GC
 	p			machine.ProphId
 }
 
@@ -51,7 +49,6 @@ func MkTxnMgr() *TxnMgr {
 	}
 	txnMgr.p = machine.NewProph()
 	txnMgr.idx = index.MkIndex()
-	txnMgr.gc = gc.MkGC(txnMgr.idx)
 	return txnMgr
 }
 
@@ -185,17 +182,17 @@ func (txnMgr *TxnMgr) getNumActiveTxns() uint64 {
 	return n
 }
 
-func (txnMgr *TxnMgr) runGC() {
+func (txnMgr *TxnMgr) gc() {
 	tidMin := txnMgr.getMinActiveTID()
 	if tidMin < config.TID_SENTINEL {
-		txnMgr.gc.Start(tidMin)
+		txnMgr.idx.DoGC(tidMin)
 	}
 }
 
-func (txnMgr *TxnMgr) StartGC() {
+func (txnMgr *TxnMgr) StartBackgroundGC() {
 	go func() {
 		for {
-			txnMgr.runGC()
+			txnMgr.gc()
 			/* Goose: literal with kind INT */
 			// time.Sleep(time.Duration(uint64(100)) * time.Millisecond)
 		}

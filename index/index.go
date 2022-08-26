@@ -59,18 +59,26 @@ func (idx *Index) GetTuple(key uint64) *tuple.Tuple {
 	return tupleNew
 }
 
-func (idx *Index) GetKeys() []uint64 {
-	/* TODO: Try to estimate initial cap. */
+func (idx *Index) getKeys() []uint64 {
 	var keys []uint64
+	/* TODO: Try a better initial cap by summing up each bucket. */
 	keys = make([]uint64, 0, 2000)
-	for b := uint64(0); b < config.N_IDX_BUCKET; b++ {
-		bucket := idx.buckets[b]
-		bucket.latch.Lock()
-		for k := range bucket.m {
+	// for b := uint64(0); b < config.N_IDX_BUCKET; b++ {
+	for _, bkt := range idx.buckets {
+		bkt.latch.Lock()
+		for k := range bkt.m {
 			keys = append(keys, k)
 		}
-		bucket.latch.Unlock()
+		bkt.latch.Unlock()
 	}
 	return keys
+}
+
+func (idx *Index) DoGC(tidMin uint64) {
+	keys := idx.getKeys()
+	for _, k := range keys {
+		tuple := idx.GetTuple(k)
+		tuple.RemoveVersions(tidMin)
+	}
 }
 
