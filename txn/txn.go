@@ -42,6 +42,8 @@ func MkTxnMgr() *TxnMgr {
 	txnMgr := new(TxnMgr)
 	txnMgr.latch = new(sync.Mutex)
 	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
+	/* Call this once for establishing invariants. */
+	tid.GenTID(0)
 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
 		site := new(TxnSite)
 		site.latch = new(sync.Mutex)
