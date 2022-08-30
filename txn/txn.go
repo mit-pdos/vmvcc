@@ -25,8 +25,7 @@ type Txn struct {
 
 type TxnSite struct {
 	latch		*sync.Mutex
-	tidLast		uint64
-	tidsActive	[]uint64 /* or struct{} if Goose supports. */
+	tidsActive	[]uint64
 	padding		[3]uint64
 }
 
@@ -83,8 +82,6 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	t = tid.GenTID(sid)
 	/* Assume TID never overflow */
 	machine.Assume(t < 18446744073709551615)
-	/* TODO: remove this when removing `tidLast` from the proof. */
-	site.tidLast = t
 
 	/* Add `tid` to the set of active transactions */
 	site.tidsActive = append(site.tidsActive, t)
@@ -141,8 +138,6 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 	var tidnew uint64
 	tidnew = tid.GenTID(sid)
 	machine.Assume(tidnew < 18446744073709551615)
-
-	site.tidLast = tidnew
 
 	var tidmin uint64 = tidnew
 	for _, tid := range site.tidsActive {
