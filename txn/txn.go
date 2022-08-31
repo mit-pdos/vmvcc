@@ -11,7 +11,6 @@ import (
 	"github.com/mit-pdos/go-mvcc/tid"
 	/* Figure a way to support `cfmutex` */
 	//"github.com/mit-pdos/go-mvcc/cfmutex"
-	"github.com/mit-pdos/gokv/grove_ffi"
 	"github.com/tchajed/goose/machine"
 )
 
@@ -191,7 +190,7 @@ func (txnMgr *TxnMgr) ActivateGC() {
 	go func() {
 		for {
 			txnMgr.gc()
-			grove_ffi.Sleep(uint64(100) * uint64(1000000))
+			machine.Sleep(100 * 1000000)
 		}
 	}()
 }
