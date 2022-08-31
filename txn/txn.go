@@ -263,16 +263,3 @@ func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
 	return true
 }
 
-/* TODO: Move these to examples. */
-func SwapSeq(txn *Txn) bool {
-	v1, _ := txn.Get(10)
-	v2, _ := txn.Get(20)
-	txn.Put(10, v2)
-	txn.Put(20, v1)
-	return true
-}
-
-func Swap(txn *Txn) bool {
-	return txn.DoTxn(SwapSeq)
-}
-

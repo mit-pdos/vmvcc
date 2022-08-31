@@ -61,7 +61,20 @@ func Decrement(t *txn.Txn) (uint64, bool) {
 }
 
 func InitializeCounterData(mgr *txn.TxnMgr) {
-	// TODO: Initialize key 0 to some value
+	// Initialize key 0 to some value
+	body := func(txn *txn.Txn) bool {
+		txn.Put(0, 0)
+		return true
+	}
+	// We wrap this transaction in a loop because the spec says it might fail.
+	// However, init methods should never fail as there are no contending txns.
+	// A better way is to have init RPs (for `tuple` and `table`) and specs
+	// that always succeed given those init RPs. These init RPs are only
+	// available at init time, and updated to regular RPs before they are
+	// sealed in some invariants.
+	t := mgr.New()
+	for !t.DoTxn(body) {
+	}
 }
 
 func InitCounter() *txn.TxnMgr {
