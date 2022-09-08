@@ -225,7 +225,7 @@ func (txn *Txn) Get(key uint64) (uint64, bool) {
 	return val, found
 }
 
-func (txn *Txn) Begin() {
+func (txn *Txn) begin() {
 	tid := txn.txnMgr.activate(txn.sid)
 	txn.tid = tid
 	txn.wrbuf.Clear()
@@ -236,30 +236,30 @@ func (txn *Txn) acquire() bool {
 	return ok
 }
 
-func (txn *Txn) Commit() {
+func (txn *Txn) commit() {
 	trusted_proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
 	txn.wrbuf.UpdateTuples(txn.tid)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
-func (txn *Txn) Abort() {
+func (txn *Txn) abort() {
 	trusted_proph.ResolveAbort(txn.txnMgr.p, txn.tid)
 	txn.txnMgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
-	txn.Begin()
+	txn.begin()
 	cmt := body(txn)
 	if !cmt {
-		txn.Abort()
+		txn.abort()
 		return false
 	}
 	ok := txn.acquire()
 	if !ok {
-		txn.Abort()
+		txn.abort()
 		return false
 	}
-	txn.Commit()
+	txn.commit()
 	return true
 }
 
