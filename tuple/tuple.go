@@ -36,10 +36,7 @@ func findRightVer(tid uint64, vers []Version) Version {
 	var ver Version
 	length := uint64(len(vers))
 	var idx uint64 = 0
-	for {
-		if idx >= length {
-			break
-		}
+	for idx < length {
 		// ver = vers[length - (1 + idx)]
 		ver = vers[length - idx - 1]
 		if tid > ver.begin {
@@ -224,10 +221,7 @@ func (tuple *Tuple) removeVersions(tid uint64) {
 	/* `tuple.vers` is never empty. */
 	var idx uint64
 	idx = uint64(len(tuple.vers)) - 1
-	for {
-		if idx == 0 {
-			break
-		}
+	for idx != 0 {
 		ver := tuple.vers[idx]
 		if ver.begin < tid {
 			break

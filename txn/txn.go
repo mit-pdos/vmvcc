@@ -89,13 +89,13 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
 	return t
 }
 
+/**
+ * Precondition:
+ * 1. `tid` in `tids`.
+ */
 func findTID(tid uint64, tids []uint64) uint64 {
 	var idx uint64 = 0
-	for {
-		tidx := tids[idx]
-		if tid == tidx {
-			break
-		}
+	for tid != tids[idx] {
 		idx++
 	}
 
