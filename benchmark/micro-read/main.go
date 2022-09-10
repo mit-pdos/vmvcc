@@ -13,71 +13,54 @@ import (
 
 var done bool
 
-func populateDB(txn *txn.Txn, r uint64) {
-	for k := uint64(0); k < r; k++ {
-		txn.Begin()
-		txn.Put(k, 2 * k + 1)
-		txn.Commit()
+func populateDataBody(txn *txn.Txn, key uint64) bool {
+	txn.Put(key, 2 * key + 1)
+	return true
+}
+
+func populateData(txnMgr *txn.TxnMgr, rkeys uint64) {
+	t := txnMgr.New()
+	for k := uint64(0); k < rkeys; k++ {
+		body := func(txn *txn.Txn) bool {
+			return populateDataBody(txn, k)
+		}
+		t.DoTxn(body)
 	}
 }
 
-func readerPartition(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64, part uint64) {
-	var c uint64 = 0
-	var t uint64 = 0
-	r := int64(rkeys)
-	txn := txnMgr.New()
-	rd := rand.New(src)
-	for !done {
-		txn.Begin()
-		canCommit := true
-		for i := 0; i < nkeys; i++ {
-			k := (uint64(rd.Int63n(r)) & ^uint64(63))
-			k += part
-			_, ok := txn.Get(k)
-			if !ok {
-				canCommit = false
-				break
-			}
+func readerBody(txn *txn.Txn, keys []uint64) bool {
+	for _, k := range(keys) {
+		_, ok := txn.Get(k)
+		if !ok {
+			return false
 		}
-		if canCommit {
-			c++
-			txn.Commit()
-		} else {
-			txn.Abort()
-		}
-		t++
 	}
-	chCommitted <-c
-	chTotal <-t
+	return true
 }
 
 func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
-	var c uint64 = 0
-	var t uint64 = 0
+	var committed uint64 = 0
+	var total uint64 = 0
 	r := int64(rkeys)
-	txn := txnMgr.New()
 	rd := rand.New(src)
+	keys := make([]uint64, nkeys)
+	t := txnMgr.New()
 	for !done {
-		txn.Begin()
-		canCommit := true
 		for i := 0; i < nkeys; i++ {
 			k := uint64(rd.Int63n(r))
-			_, ok := txn.Get(k)
-			if !ok {
-				canCommit = false
-				break
-			}
+			keys[i] = k
 		}
-		if canCommit {
-			c++
-			txn.Commit()
-		} else {
-			txn.Abort()
+		body := func(txn *txn.Txn) bool {
+			return readerBody(txn, keys)
 		}
-		t++
+		res := t.DoTxn(body)
+		if res {
+			committed++
+		}
+		total++
 	}
-	chCommitted <-c
-	chTotal <-t
+	chCommitted <-committed
+	chTotal <-total
 }
 
 func main() {
@@ -111,8 +94,7 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	txn := txnMgr.New()
-	populateDB(txn, rkeys)
+	populateData(txnMgr, rkeys)
 	if !exp {
 		fmt.Printf("Database populated.\n")
 	}
@@ -121,7 +103,6 @@ func main() {
 	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
 		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
-		//go readerPartition(txnMgr, src, chCommitted, chTotal, nkeys, rkeys, uint64(i))
 	}
 	time.Sleep(3 * time.Second)
 	done = true
