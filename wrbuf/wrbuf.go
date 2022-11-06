@@ -23,6 +23,12 @@ func search(ents []WrEnt, key uint64) (uint64, bool) {
 	return pos, found
 }
 
+func swap(ents []WrEnt, i, j uint64) {
+	tmp := ents[i]
+	ents[i] = ents[j]
+	ents[j] = tmp
+}
+
 type WrBuf struct {
 	ents []WrEnt
 }
@@ -31,6 +37,22 @@ func MkWrBuf() *WrBuf {
 	wrbuf := new(WrBuf)
 	wrbuf.ents = make([]WrEnt, 0, 16)
 	return wrbuf
+}
+
+func (wrbuf *WrBuf) sortEntsByKey() {
+	ents := wrbuf.ents
+	var i uint64 = 1
+	for i < uint64(len(ents)) {
+		var j uint64 = i
+		for j > 0 {
+			if ents[j - 1].key <= ents[j].key {
+				break
+			}
+			swap(ents, j - 1, j)
+			j--
+		}
+		i++
+	}
 }
 
 func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
@@ -76,7 +98,10 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 }
 
 func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
-	// TODO: sort keys in ascending order
+	/* Sort entries by key to prevent deadlock. */
+	wrbuf.sortEntsByKey()
+
+	/* Start acquiring locks for each key. */
 	ents := wrbuf.ents
 	var pos uint64 = 0
 	for pos < uint64(len(ents)) {
