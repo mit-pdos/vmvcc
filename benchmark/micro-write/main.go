@@ -28,14 +28,14 @@ func populateData(txnMgr *txn.TxnMgr, rkeys uint64) {
 	}
 }
 
-func readerBody(txn *txn.Txn, keys []uint64) bool {
+func writerBody(txn *txn.Txn, keys []uint64) bool {
 	for _, k := range(keys) {
 		txn.Put(k, k + 1)
 	}
 	return true
 }
 
-func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
+func writer(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
 	var committed uint64 = 0
 	var total uint64 = 0
 	r := int64(rkeys)
@@ -48,7 +48,7 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 			keys[i] = k
 		}
 		body := func(txn *txn.Txn) bool {
-			return readerBody(txn, keys)
+			return writerBody(txn, keys)
 		}
 		res := t.DoTxn(body)
 		if res {
@@ -62,7 +62,7 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 
 func main() {
 	txnMgr := txn.MkTxnMgr()
-	//txnMgr.StartGC()
+	txnMgr.StartGC()
 
 	var nthrds int
 	var nkeys int
@@ -99,7 +99,7 @@ func main() {
 	done = false
 	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
-		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
+		go writer(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
 	}
 	time.Sleep(3 * time.Second)
 	done = true
