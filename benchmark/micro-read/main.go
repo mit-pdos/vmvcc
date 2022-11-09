@@ -65,16 +65,18 @@ func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint6
 
 func main() {
 	txnMgr := txn.MkTxnMgr()
-	//txnMgr.StartGC()
+	txnMgr.ActivateGC()
 
 	var nthrds int
 	var nkeys int
 	var rkeys uint64
+	var duration uint64
 	var cpuprof string
 	var exp bool
 	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
 	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
 	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
+	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
 	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
 	flag.BoolVar(&exp, "exp", false, "print only experimental data")
 	flag.Parse()
@@ -104,7 +106,7 @@ func main() {
 		src := rand.NewSource(int64(i))
 		go reader(txnMgr, src, chCommitted, chTotal, nkeys, rkeys)
 	}
-	time.Sleep(3 * time.Second)
+	time.Sleep(time.Duration(duration) * time.Second)
 	done = true
 
 	var c uint64 = 0
@@ -114,11 +116,14 @@ func main() {
 		t += <-chTotal
 	}
 	rate := float64(c) / float64(t)
+	tp := float64(c) / float64(duration) / 1000000.0
 
 	if exp {
-		fmt.Printf("%d, %d, %d, %d, %d, %f\n", nthrds, nkeys, rkeys, c, t, rate)
+		fmt.Printf("%d, %d, %d, %d, %d, %d, %f, %f\n",
+			nthrds, nkeys, rkeys, duration, c, t, tp, rate)
 	} else {
 		fmt.Printf("committed / total = %d / %d (%f).\n", c, t, rate)
+		fmt.Printf("tp = %f (M txns/s).\n", tp)
 	}
 }
 
