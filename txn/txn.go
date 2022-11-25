@@ -37,7 +37,8 @@ type TxnMgr struct {
 }
 
 func MkTxnMgr() *TxnMgr {
-	txnMgr := new(TxnMgr)
+	p := machine.NewProph()
+	txnMgr := &TxnMgr { p: p }
 	txnMgr.latch = new(sync.Mutex)
 	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
 	/* Call this once for establishing invariants. */
@@ -48,7 +49,6 @@ func MkTxnMgr() *TxnMgr {
 		site.tidsActive = make([]uint64, 0, 8)
 		txnMgr.sites[i] = site
 	}
-	txnMgr.p = machine.NewProph()
 	txnMgr.idx = index.MkIndex()
 	return txnMgr
 }
