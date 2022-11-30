@@ -23,7 +23,7 @@ type Txn struct {
 type TxnSite struct {
 	latch		*cfmutex.CFMutex
 	tidsActive	[]uint64
-	padding		[3]uint64
+	padding		[4]uint64
 }
 
 type TxnMgr struct {
