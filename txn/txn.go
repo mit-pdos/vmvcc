@@ -2,15 +2,13 @@ package txn
 
 import (
 	//"fmt"
-	"sync"
 	//"time"
 	"github.com/mit-pdos/go-mvcc/config"
 	"github.com/mit-pdos/go-mvcc/index"
 	"github.com/mit-pdos/go-mvcc/wrbuf"
 	"github.com/mit-pdos/go-mvcc/trusted_proph"
 	"github.com/mit-pdos/go-mvcc/tid"
-	/* Figure a way to support `cfmutex` */
-	//"github.com/mit-pdos/go-mvcc/cfmutex"
+	"github.com/mit-pdos/go-mvcc/cfmutex"
 	"github.com/tchajed/goose/machine"
 )
 
@@ -23,13 +21,13 @@ type Txn struct {
 }
 
 type TxnSite struct {
-	latch		*sync.Mutex
+	latch		*cfmutex.CFMutex
 	tidsActive	[]uint64
 	padding		[3]uint64
 }
 
 type TxnMgr struct {
-	latch		*sync.Mutex
+	latch		*cfmutex.CFMutex
 	sidCur		uint64
 	sites		[]*TxnSite
 	idx			*index.Index
@@ -39,13 +37,13 @@ type TxnMgr struct {
 func MkTxnMgr() *TxnMgr {
 	p := machine.NewProph()
 	txnMgr := &TxnMgr { p: p }
-	txnMgr.latch = new(sync.Mutex)
+	txnMgr.latch = new(cfmutex.CFMutex)
 	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
 	/* Call this once for establishing invariants. */
 	tid.GenTID(0)
 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
 		site := new(TxnSite)
-		site.latch = new(sync.Mutex)
+		site.latch = new(cfmutex.CFMutex)
 		site.tidsActive = make([]uint64, 0, 8)
 		txnMgr.sites[i] = site
 	}
