@@ -12,9 +12,11 @@ import (
 )
 
 var done bool
+var szrec int = 100
 
 func populateDataBody(txn *txn.Txn, key uint64) bool {
-	txn.Put(key, 2 * key + 1)
+	s := string(make([]byte, szrec))
+	txn.Put(key, s)
 	return true
 }
 
