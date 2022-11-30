@@ -12,7 +12,7 @@ import (
 type Version struct {
 	begin	uint64
 	deleted	bool
-	val		uint64
+	val		string
 }
 
 /**
@@ -84,7 +84,7 @@ func (tuple *Tuple) WriteLock() {
 	tuple.latch.Lock()
 }
 
-func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
+func (tuple *Tuple) appendVersion(tid uint64, val string) {
 	/* Create a new version and add it to the version chain. */
 	verNew := Version{
 		begin	: tid,
@@ -103,7 +103,7 @@ func (tuple *Tuple) appendVersion(tid uint64, val uint64) {
  * Preconditions:
  * 1. The txn `tid` has the permission to update this tuple.
  */
-func (tuple *Tuple) AppendVersion(tid uint64, val uint64) {
+func (tuple *Tuple) AppendVersion(tid uint64, val string) {
 	tuple.appendVersion(tid, val)
 
 	/* Wake up txns waiting on reading this tuple. */
@@ -200,7 +200,7 @@ func (tuple *Tuple) ReadWait(tid uint64) {
 /**
  * Preconditions:
  */
-func (tuple *Tuple) ReadVersion(tid uint64) (uint64, bool) {
+func (tuple *Tuple) ReadVersion(tid uint64) (string, bool) {
 	/**
 	 * Try to find the right version from the version list.
 	 */

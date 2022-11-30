@@ -8,7 +8,7 @@ import (
 
 type WrEnt struct {
 	key uint64
-	val uint64
+	val string
 	wr  bool
 	tpl *tuple.Tuple
 }
@@ -55,17 +55,17 @@ func (wrbuf *WrBuf) sortEntsByKey() {
 	}
 }
 
-func (wrbuf *WrBuf) Lookup(key uint64) (uint64, bool, bool) {
+func (wrbuf *WrBuf) Lookup(key uint64) (string, bool, bool) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := wrbuf.ents[pos]
 		return ent.val, ent.wr, true
 	}
 
-	return 0, false, false
+	return "", false, false
 }
 
-func (wrbuf *WrBuf) Put(key, val uint64) {
+func (wrbuf *WrBuf) Put(key uint64, val string) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := &wrbuf.ents[pos]

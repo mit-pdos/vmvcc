@@ -193,7 +193,7 @@ func (txnMgr *TxnMgr) ActivateGC() {
 	}()
 }
 
-func (txn *Txn) Put(key, val uint64) {
+func (txn *Txn) Put(key uint64, val string) {
 	wrbuf := txn.wrbuf
 	wrbuf.Put(key, val)
 }
@@ -206,7 +206,7 @@ func (txn *Txn) Delete(key uint64) bool {
 	return true
 }
 
-func (txn *Txn) Get(key uint64) (uint64, bool) {
+func (txn *Txn) Get(key uint64) (string, bool) {
 	/* First try to find `key` in the local write set. */
 	wrbuf := txn.wrbuf
 	valb, wr, found := wrbuf.Lookup(key)
