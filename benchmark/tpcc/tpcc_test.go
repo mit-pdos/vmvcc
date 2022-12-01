@@ -138,8 +138,8 @@ func TestPayment(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Run Payment transaction twice. */
-	ok = TxnPayment(txno, cid, cdid, cwid, did, wid, hamount)
+	ok = TxnPayment(txno, wid, did, hamount, cwid, cdid, cid)
 	assert.Equal(true, ok)
-	ok = TxnPayment(txno, cid, cdid, cwid, did, wid, hamount)
+	ok = TxnPayment(txno, wid, did, hamount, cwid, cdid, cid)
 	assert.Equal(true, ok)
 }

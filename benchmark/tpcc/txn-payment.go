@@ -8,8 +8,7 @@ import (
 
 func payment(
 	txn *txn.Txn,
-	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
-	hamount float32,
+	wid uint8, did uint8, hamount float32, cwid uint8, cdid uint8, cid uint32,
 ) bool {
 	/* Read warehouse. */
 	warehouse := NewWarehouse(wid)
@@ -54,6 +53,8 @@ func payment(
 		history = NewHistory(hid)
 		exists = ReadTable(history, txn)
 	}
+
+	/* Insert a history record. */
 	// TODO: Silo only uses increasing number for current time (tpcc.cc:328)
 	var date uint32 = 0
 	wname := beforeNull(warehouse.W_NAME[:])
@@ -67,11 +68,10 @@ func payment(
 
 func TxnPayment(
 	txno *txn.Txn,
-	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
-	hamount float32,
+	wid uint8, did uint8, hamount float32, cwid uint8, cdid uint8, cid uint32,
 ) bool {
 	body := func(txni *txn.Txn) bool {
-		return payment(txni, cid, cdid, cwid, did, wid, hamount)
+		return payment(txni, wid, did, hamount, cwid, cdid, cid)
 	}
 	ok := txno.DoTxn(body)
 	return ok
