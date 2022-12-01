@@ -3,7 +3,7 @@ package tpcc
 import (
 	"bytes"
 	"strings"
-	"encoding/gob"
+	"encoding/binary"
 	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
@@ -12,9 +12,9 @@ import (
  * Convert primary keys of table Customer to a global key.
  * Used by all commands.
  */
-func encodeCustomerKeys(cid uint32, cwid uint8) uint64 {
-	var gkey uint64 = uint64(cid)
-	gkey = gkey << 8 + uint64(cwid)
+func (c *Customer) gkey() uint64 {
+	var gkey uint64 = uint64(c.C_ID)
+	gkey = gkey << 8 + uint64(c.C_W_ID)
 	gkey += TBLID_CUSTOMER
 	return gkey
 }
@@ -22,13 +22,10 @@ func encodeCustomerKeys(cid uint32, cwid uint8) uint64 {
 /**
  * Encode a Customer record to an opaque string.
  * Used by UPDATE/INSERT.
- *
- * Using Go's encoding library for now. Write my own if slow.
  */
-func encodeCustomer(c *Customer) string {
+func (c *Customer) encode() string {
 	buf := new(bytes.Buffer)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(*c)
+	err := binary.Write(buf, binary.LittleEndian, *c)
 	if err != nil {
 		log.Fatal("Encode error: ", err)
 	}
@@ -39,38 +36,41 @@ func encodeCustomer(c *Customer) string {
  * Decode an opaque string to a Customer record.
  * Used by SELECT.
  */
-func decodeCustomer(opaque string) Customer {
-	var c Customer
-	dec := gob.NewDecoder(strings.NewReader(opaque))
-	err := dec.Decode(&c)
+func (c *Customer) decode(opaque string) {
+	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, c)
 	if err != nil {
 		log.Fatal("Decode error: ", err)
 	}
-	return c
 }
 
 /**
- * Select always take a txn pointer, and primary keys of the table.
+ * Table mutator methods.
  */
-func SelectCustomer(txn *txn.Txn, cid uint32, cwid uint8) (Customer, bool) {
-	gkey := encodeCustomerKeys(cid, cwid)
+func (c *Customer) UpdateBadCredit(
+	bal float32, ytd float32, pcnt uint16, data [500]byte,
+) {
+	c.C_BALANCE = bal
+	c.C_YTD_PAYMENT = ytd
+	c.C_PAYMENT_CNT = pcnt
+	c.C_DATA = data
+}
+
+/**
+ * Reader and writer operation invoking transation methods.
+ */
+func (c *Customer) Read(txn *txn.Txn) bool {
+	gkey := c.gkey()
 	opaque, found := txn.Get(gkey)
-	/* TODO: check if we need to do this check. */
+	/* TODO: check if we really need to do this check. */
 	if !found {
-		return Customer{}, false
+		return false
 	}
-	customer := decodeCustomer(opaque)
-	return customer, true
+	c.decode(opaque)
+	return true
 }
 
-/**
- * Update always take a txn pointer, a table struct pointer, and new field values.
- */
-func UpdateCustomerBadCredit(
-	txn *txn.Txn, c *Customer,
-	bal float32, ytd float32, pcnt uint16, data [500]byte) {
-	gkey := encodeCustomerKeys(c.C_ID, c.C_W_ID)
-	// TODO: update each field of c
-	s := encodeCustomer(c)
+func (c *Customer) Write(txn *txn.Txn) {
+	gkey := c.gkey()
+	s := c.encode()
 	txn.Put(gkey, s)
 }

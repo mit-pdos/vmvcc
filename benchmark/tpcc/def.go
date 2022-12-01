@@ -24,10 +24,14 @@ type District struct {
 /* Customer table. */
 type Customer struct {
 	/* Primary key: (C_ID, C_D_ID, C_W_ID) */
-	C_ID   uint32
-	C_W_ID uint8
+	C_ID          uint32
+	C_W_ID        uint8
 	/* TODO: data fields */
-	C_LAST [16]byte
+	C_LAST        [16]byte
+	C_BALANCE     float32
+	C_YTD_PAYMENT float32
+	C_PAYMENT_CNT uint16
+	C_DATA        [500]byte
 }
 
 /* TODO: History table. */
