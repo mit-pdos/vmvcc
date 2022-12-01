@@ -48,13 +48,10 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Insert a Customer record. */
 	body := func(txn *txn.Txn) bool {
-		c := &Customer{
-			C_ID : 20,
-			C_W_ID : 41,
-			C_BALANCE : 10.5,
-			C_DATA : [500]byte{1, 3, 5},
-		}
-		c.Write(txn)
+		c := NewCustomer(20, 95, 41)
+		c.C_BALANCE = 10.5
+		c.C_DATA = [500]byte{1, 3, 5}
+		TableWrite(c, txn)
 		return true
 	}
 	ok := txno.DoTxn(body)
@@ -62,19 +59,17 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it and update it. */
 	body = func(txn *txn.Txn) bool {
-		c := &Customer{
-			C_ID : 20,
-			C_W_ID : 41,
-		}
-		ok := c.Read(txn)
+		c := NewCustomer(20, 95, 41)
+		ok := TableRead(c, txn)
 		assert.Equal(true, ok)
 		assert.Equal(uint32(20), c.C_ID)
+		assert.Equal(uint8(95), c.C_D_ID)
 		assert.Equal(uint8(41), c.C_W_ID)
 		assert.Equal(float32(10.5), c.C_BALANCE)
 		assert.Equal([500]byte{1, 3, 5}, c.C_DATA)
 
 		c.UpdateBadCredit(13.7, 16.66, 4, [500]byte{5, 4})
-		c.Write(txn)
+		TableWrite(c, txn)
 		return true
 	}
 	ok =  txno.DoTxn(body)
@@ -82,13 +77,11 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		c := &Customer{
-			C_ID : 20,
-			C_W_ID : 41,
-		}
-		ok := c.Read(txn)
+		c := NewCustomer(20, 95, 41)
+		ok := TableRead(c, txn)
 		assert.Equal(true, ok)
 		assert.Equal(uint32(20), c.C_ID)
+		assert.Equal(uint8(95), c.C_D_ID)
 		assert.Equal(uint8(41), c.C_W_ID)
 		assert.Equal(float32(13.7), c.C_BALANCE)
 		assert.Equal(float32(16.66), c.C_YTD_PAYMENT)

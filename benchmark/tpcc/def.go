@@ -18,6 +18,8 @@ type Warehouse struct {
 /* District table. */
 type District struct {
 	/* Primary key: (D_W_ID, D_ID) */
+	D_ID   uint8
+	D_W_ID uint8
 	/* TODO: data fields */
 }
 
@@ -25,6 +27,7 @@ type District struct {
 type Customer struct {
 	/* Primary key: (C_ID, C_D_ID, C_W_ID) */
 	C_ID          uint32
+	C_D_ID        uint8
 	C_W_ID        uint8
 	/* TODO: data fields */
 	C_LAST        [16]byte
