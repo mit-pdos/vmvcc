@@ -19,12 +19,21 @@ func TestTableId(t *testing.T) {
 	fmt.Printf("%x\n", TBLID_STOCK)
 }
 
-func TestEncodeCustomerKeys(t *testing.T) {
-	c := &Customer {
-		C_ID : 24,
-		C_W_ID : 252,
-	}
-	fmt.Printf("%x\n", c.gkey())
+func TestGkey(t *testing.T) {
+	customer := NewCustomer(1, 1, 1)
+	fmt.Printf("%x\n", customer.gkey())
+	warehouse := NewWarehouse(1)
+	fmt.Printf("%x\n", warehouse.gkey())
+}
+
+func TestRecordSize(t *testing.T) {
+	var s string
+	customer := NewCustomer(1, 1, 1)
+	s = customer.encode()
+	fmt.Printf("Customer record size = %d\n", len(s))
+	warehouse := NewWarehouse(1)
+	s = warehouse.encode()
+	fmt.Printf("Warehouse record size = %d\n", len(s))
 }
 
 func TestEncodeDecodeCustomer(t *testing.T) {
@@ -35,7 +44,6 @@ func TestEncodeDecodeCustomer(t *testing.T) {
 		C_LAST : [16]byte{4, 9},
 	}
 	s := c.encode()
-	fmt.Printf("Customer record size = %d\n", len(s))
 	d := new(Customer)
 	d.decode(s)
 	assert.Equal(*c, *d)
