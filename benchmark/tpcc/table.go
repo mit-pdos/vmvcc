@@ -16,7 +16,6 @@ type Table interface {
 func ReadTable(tbl Table, txn *txn.Txn) bool {
 	gkey := tbl.gkey()
 	opaque, found := txn.Get(gkey)
-	/* TODO: check if we really need to do this check. */
 	if !found {
 		return false
 	}

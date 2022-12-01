@@ -85,7 +85,7 @@ func TestCustomerTxn(t *testing.T) {
 		assert.Equal(uint16(3), c.C_PAYMENT_CNT)
 		// assert.Equal("", c.C_DATA)
 
-		c.UpdateBadCredit(1, 2, 3, 4, 5, 10.0)
+		c.UpdateOnBadCredit(10.0, "Hello Customer")
 		WriteTable(c, txn)
 		return true
 	}
@@ -123,6 +123,23 @@ func TestPayment(t *testing.T) {
 	wid  := uint8(5)
 	hamount := float32(10.0)
 
-	ok := TxnPayment(txno, cid, cdid, cwid, did, wid, hamount)
+	/* Insert a Customer record. */
+	var ok bool
+	body := func(txn *txn.Txn) bool {
+		c := NewCustomer(1, 2, 3)
+		c.C_BALANCE = 60.0
+		c.C_YTD_PAYMENT = 80.0
+		c.C_PAYMENT_CNT = 3
+		c.C_CREDIT = [2]byte{'B', 'C'}
+		WriteTable(c, txn)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Run Payment transaction twice. */
+	ok = TxnPayment(txno, cid, cdid, cwid, did, wid, hamount)
+	assert.Equal(true, ok)
+	ok = TxnPayment(txno, cid, cdid, cwid, did, wid, hamount)
 	assert.Equal(true, ok)
 }

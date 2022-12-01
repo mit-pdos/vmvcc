@@ -18,10 +18,17 @@ type Warehouse struct {
 /* District table. */
 type District struct {
 	/* Primary key: (D_W_ID, D_ID) */
-	D_ID   uint8
-	D_W_ID uint8
-	/* TODO: data fields */
-	D_YTD  float32
+	D_ID       uint8
+	D_W_ID     uint8
+	/* Data fields */
+	D_NAME     [10]byte
+	D_STREET_1 [20]byte
+	D_STREET_2 [20]byte
+	D_CITY     [20]byte
+	D_STATE    [2]byte
+	D_ZIP      [9]byte
+	W_TAX      float32
+	D_YTD      float32
 }
 
 /* Customer table. */
@@ -36,13 +43,22 @@ type Customer struct {
 	C_BALANCE     float32
 	C_YTD_PAYMENT float32
 	C_PAYMENT_CNT uint16
-	C_DATA        [2]byte
+	C_DATA        [500]byte
 }
 
-/* TODO: History table. */
+/* History table. */
 type History struct {
-	/* No primary key */
-	/* TODO: data fields */
+	/* Primary key: H_ID (no primary key required in the spec) */
+	H_ID     uint64
+	/* Data fields */
+	H_C_ID   uint32
+	H_C_D_ID uint8
+	H_C_W_ID uint8
+	H_D_ID   uint8
+	H_W_ID   uint8
+	H_DATE   uint32
+	H_AMOUNT float32
+	H_DATA   [25]byte
 }
 
 /* NewOrder table. */
