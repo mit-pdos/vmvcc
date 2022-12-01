@@ -21,6 +21,7 @@ type District struct {
 	D_ID   uint8
 	D_W_ID uint8
 	/* TODO: data fields */
+	D_YTD  float32
 }
 
 /* Customer table. */
@@ -31,10 +32,11 @@ type Customer struct {
 	C_W_ID        uint8
 	/* TODO: data fields */
 	C_LAST        [16]byte
+	C_CREDIT      [2]byte
 	C_BALANCE     float32
 	C_YTD_PAYMENT float32
 	C_PAYMENT_CNT uint16
-	C_DATA        [500]byte
+	C_DATA        [2]byte
 }
 
 /* TODO: History table. */

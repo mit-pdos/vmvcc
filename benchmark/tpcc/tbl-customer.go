@@ -4,28 +4,37 @@ import (
 	"bytes"
 	"strings"
 	"encoding/binary"
+	// "fmt"
 	"log"
 )
 
 func NewCustomer(cid uint32, cdid uint8, cwid uint8) *Customer {
-	c := Customer {
+	x := Customer {
 		C_ID   : cid,
 		C_D_ID : cdid,
 		C_W_ID : cwid,
 	}
-	return &c
+	return &x
 }
 
 /**
  * Table mutator methods.
  */
 func (x *Customer) UpdateBadCredit(
-	bal float32, ytd float32, pcnt uint16, data [500]byte,
+	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
+	hamount float32,
 ) {
-	x.C_BALANCE = bal
-	x.C_YTD_PAYMENT = ytd
-	x.C_PAYMENT_CNT = pcnt
-	x.C_DATA = data
+	x.C_BALANCE -= hamount
+	x.C_YTD_PAYMENT += hamount
+	x.C_PAYMENT_CNT++
+
+	// TODO: prepend those Ids to C_DATA
+	// cdata := x.C_DATA
+	// s := fmt.Sprintf("%d %d %d %d %d|%s", cid, cdid, cwid, did, wid, cdata)
+	// if len(s) > 500 {
+	// 	s = s[:500]
+	// }
+	// x.C_DATA = s
 }
 
 /**
