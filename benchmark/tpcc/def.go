@@ -96,6 +96,7 @@ type Order struct {
 	O_OL_CNT     uint8
 	O_ALL_LOCAL  bool
 }
+const O_CARRIER_ID_NULL uint8 = 255
 
 /* OrderLine table. */
 type OrderLine struct {
@@ -130,17 +131,8 @@ type Stock struct {
 	S_I_ID       uint32
 	S_W_ID       uint8
 	/* Data fields */
-	S_QUANTITY   float32
-	S_DIST_01    [24]byte
-	S_DIST_02    [24]byte
-	S_DIST_03    [24]byte
-	S_DIST_04    [24]byte
-	S_DIST_05    [24]byte
-	S_DIST_06    [24]byte
-	S_DIST_07    [24]byte
-	S_DIST_08    [24]byte
-	S_DIST_09    [24]byte
-	S_DIST_10    [24]byte
+	S_QUANTITY   uint16
+	S_DISTS      [10][24]byte
 	S_YTD        uint32
 	S_ORDER_CNT  uint16
 	S_REMOTE_CNT uint16
