@@ -5,23 +5,29 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewStock(iid uint32, wid uint8) *Stock {
-	x := Stock {
+func GetStock(txn *txn.Txn, iid uint32, wid uint8) (*Stock, bool) {
+	x := &Stock {
 		S_I_ID : iid,
 		S_W_ID : wid,
 	}
-	return &x
+	gkey := x.gkey()
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 func (x *Stock) Update(
+	txn *txn.Txn,
 	quantity uint16, ytd uint32, ordercnt uint16, remotecnt uint16,
 ) {
 	x.S_QUANTITY   = quantity
 	x.S_YTD        = ytd
 	x.S_ORDER_CNT  = ordercnt
 	x.S_REMOTE_CNT = remotecnt
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

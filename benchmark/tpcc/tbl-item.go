@@ -5,23 +5,33 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewItem(iid uint32) *Item {
-	x := Item { I_ID : iid }
-	return &x
+func GetItem(txn *txn.Txn, iid uint32) (*Item, bool) {
+	x := &Item { I_ID : iid }
+	gkey := x.gkey()
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 /**
  * Table mutator methods.
  */
-func (x *Item) Initiailize(
+func InsertItem(
+	txn *txn.Txn,
+	iid uint32,
 	imid uint32, name string, price float32, data string,
 ) {
-	x.I_IM_ID = imid
+	x := &Item {
+		I_ID    : iid,
+		I_IM_ID : imid,
+		I_PRICE : price,
+	}
 	copy(x.I_NAME[:], name)
-	x.I_PRICE = price
 	copy(x.I_DATA[:], data)
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

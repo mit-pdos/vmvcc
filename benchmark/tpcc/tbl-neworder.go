@@ -5,20 +5,32 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewNewOrder(oid uint32, did uint8, wid uint8) *NewOrder {
-	x := NewOrder {
-		NO_O_ID   : oid,
+func GetNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) *NewOrder {
+	x := &NewOrder {
+		NO_O_ID : oid,
 		NO_D_ID : did,
 		NO_W_ID : wid,
 	}
-	return &x
+	gkey := x.gkey()
+	readtbl(txn, gkey, x)
+	return x
 }
 
 /**
  * Table mutator methods.
  */
+func InsertNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
+	x := &NewOrder {
+		NO_O_ID : oid,
+		NO_D_ID : did,
+		NO_W_ID : wid,
+	}
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
+}
 
 /**
  * Convert primary keys of table NewOrder to a global key.

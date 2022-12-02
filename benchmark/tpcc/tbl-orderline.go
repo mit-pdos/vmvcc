@@ -5,32 +5,47 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewOrderLine(oid uint32, did uint8, wid uint8, olnum uint8) *OrderLine {
-	x := OrderLine {
+func GetOrderLine(
+	txn *txn.Txn,
+	oid uint32, did uint8, wid uint8, olnum uint8,
+) (*OrderLine, bool) {
+	x := &OrderLine {
 		OL_O_ID   : oid,
 		OL_D_ID   : did,
 		OL_W_ID   : wid,
 		OL_NUMBER : olnum,
 	}
-	return &x
+	gkey := x.gkey()
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 /**
  * Table mutator methods.
  */
-func (x *OrderLine) Initialize(
+func InsertOrderLine(
+	txn *txn.Txn,
+	oid uint32, did uint8, wid uint8, olnum uint8,
 	iid uint32, iwid uint8, deliveryd uint32, quantity uint8,
 	amount float32, distinfo [24]byte,
 ) {
-
-	x.OL_I_ID        = iid
-	x.OL_SUPPLY_W_ID = iwid
-	x.OL_DELIVERY_D  = deliveryd
-	x.OL_QUANTITY    = quantity
-	x.OL_AMOUNT      = amount
-	x.OL_DIST_INFO   = distinfo
+	x := &OrderLine {
+		OL_O_ID        : oid,
+		OL_D_ID        : did,
+		OL_W_ID        : wid,
+		OL_NUMBER      : olnum,
+		OL_I_ID        : iid,
+		OL_SUPPLY_W_ID : iwid,
+		OL_DELIVERY_D  : deliveryd,
+		OL_QUANTITY    : quantity,
+		OL_AMOUNT      : amount,
+		OL_DIST_INFO   : distinfo,
+	}
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

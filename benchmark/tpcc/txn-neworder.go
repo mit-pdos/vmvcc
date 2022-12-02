@@ -14,13 +14,20 @@ type ItemInfo struct {
 	OL_AMOUNT     float32
 }
 
+type NewOrderResult struct {
+	W_TAX       float32
+	D_TAX       float32
+	D_NEXT_O_ID uint32
+	TOTAL       float32
+}
+
 func neworder(
 	txn *txn.Txn,
 	/* input parameter */
 	wid uint8, did uint8, cid uint32, oentryd uint32,
 	iids []uint32, iwids []uint8, iqtys []uint8,
 	/* return value */
-	iinfos *[]ItemInfo,
+	cret *Customer, res *NewOrderResult, iinfos *[]ItemInfo,
 ) bool {
 	/* Determine whether this is a local transaction. */
 	alllocal := true
@@ -37,8 +44,7 @@ func neworder(
 	/* For each item, read their info. */
 	items := make([]*Item, 0, len(iids))
 	for _, iid := range iids {
-		item := NewItem(iid)
-		found := ReadTable(item, txn)
+		item, found := GetItem(txn, iid)
 		/* Abort if one of the iids is invalid. (1% as specified by TPC-C.) */
 		if !found {
 			return false
@@ -47,37 +53,37 @@ func neworder(
 	}
 
 	/* Read warehouse. */
-	warehouse := NewWarehouse(wid)
-	ReadTable(warehouse, txn)
+	warehouse := GetWarehouse(txn, wid)
+	res.W_TAX = warehouse.W_TAX
 
 	/* Read district. */
-	district := NewDistrict(did, wid)
-	ReadTable(district, txn)
+	district := GetDistrict(txn, did, wid)
+	res.D_TAX = district.D_TAX
+	res.D_NEXT_O_ID = district.D_NEXT_O_ID
 	oid := district.D_NEXT_O_ID
 
 	/* Read customer. */
-	customer := NewCustomer(cid, did, wid)
-	ReadTable(customer, txn)
+	customer := GetCustomer(txn, cid, did, wid)
+	*cret = *customer
 
 	/* Increment next order id of district. */
-	district.IncrementNextOrderId()
-	WriteTable(district, txn)
+	district.IncrementNextOrderId(txn)
 
 	/* Insert an Order record. */
-	order := NewOrderRecord(oid, did, wid)
-	order.Initialize(cid, oentryd, ocarrierid, olcnt, alllocal)
-	WriteTable(order, txn)
+	InsertOrder(
+		txn, oid, did, wid,
+		cid, oentryd, ocarrierid, olcnt, alllocal,
+	)
 
 	/* Insert a NewOrder record. */
-	neworder := NewNewOrder(oid, did, wid)
-	WriteTable(neworder, txn)
+	InsertNewOrder(txn, oid, did, wid)
 
 	/* For each item, read and update stock, create an order line. */
+	var total float32 = 0
 	for i, iid := range iids {
 		/* Read stock. */
 		iwid := iwids[i]
-		stock := NewStock(iid, iwid)
-		found := ReadTable(stock, txn)
+		stock, found := GetStock(txn, iid, iwid)
 		if !found {
 			continue
 		}
@@ -108,8 +114,7 @@ func neworder(
 		}
 
 		/* Write stock. */
-		stock.Update(squantity, sytd, sordercnt, sremotecnt)
-		WriteTable(stock, txn)
+		stock.Update(txn, squantity, sytd, sordercnt, sremotecnt)
 
 		/* Compute some return values. */
 		var brandgeneric byte = 'G'
@@ -118,12 +123,14 @@ func neworder(
 			brandgeneric = 'B'
 		}
 		olamount := float32(olquantity) * iprice
+		total += olamount
 
 		/* Insert an OrderLine record. */
 		olnum := uint8(i)
-		orderline := NewOrderLine(oid, did, wid, olnum)
-		orderline.Initialize(iid, iwid, oentryd, olquantity, olamount, sdist)
-		WriteTable(orderline, txn)
+		InsertOrderLine(
+			txn, oid, did, wid, olnum,
+			iid, iwid, oentryd, olquantity, olamount, sdist,
+		)
 
 		/* TODO: Collect other return values. */
 		iinfo := ItemInfo {
@@ -135,6 +142,7 @@ func neworder(
 		}
 		*iinfos = append(*iinfos, iinfo)
 	}
+	res.TOTAL = total
 
 	return true
 }
@@ -143,11 +151,16 @@ func TxnNewOrder(
 	txno *txn.Txn,
 	wid uint8, did uint8, cid uint32, oentryd uint32,
 	iids []uint32, iwids []uint8, iqtys []uint8,
-) ([]ItemInfo, bool) {
+) (*Customer, *NewOrderResult, []ItemInfo, bool) {
+	customer := new(Customer)
+	res := new(NewOrderResult)
 	iinfos := make([]ItemInfo, 0)
 	body := func(txni *txn.Txn) bool {
-		return neworder(txni, wid, did, cid, oentryd, iids, iwids, iqtys, &iinfos)
+		return neworder(
+			txni, wid, did, cid, oentryd, iids, iwids, iqtys, 
+			customer, res, &iinfos,
+		)
 	}
 	ok := txno.DoTxn(body)
-	return iinfos, ok
+	return customer, res, iinfos, ok
 }

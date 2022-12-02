@@ -5,22 +5,29 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewDistrict(did uint8, dwid uint8) *District {
-	x := District {
+func GetDistrict(txn *txn.Txn, did uint8, dwid uint8) *District {
+	x := &District {
 		D_ID   : did,
 		D_W_ID : dwid,
 	}
-	return &x
+	gkey := x.gkey()
+	readtbl(txn, gkey, x)
+	return x
 }
 
-func (x *District) IncrementNextOrderId() {
+func (x *District) IncrementNextOrderId(txn *txn.Txn) {
 	x.D_NEXT_O_ID++
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
-func (x *District) UpdateBalance(hamount float32) {
+func (x *District) UpdateBalance(txn *txn.Txn, hamount float32) {
 	x.D_YTD += hamount
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

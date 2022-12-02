@@ -18,8 +18,7 @@ func orderstatus(
 	cret **Customer,
 ) bool {
 	/* Read customer. */
-	customer := NewCustomer(cid, did, wid)
-	ReadTable(customer, txn)
+	// customer := GetCustomer(txn, cid, did, wid)
 
 	/* TODO: Get last order. */
 

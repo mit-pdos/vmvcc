@@ -5,25 +5,35 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewHistory(hid uint64) *History {
-	x := History { H_ID : hid }
-	return &x
+func GetHistory(txn *txn.Txn, hid uint64) (*History, bool) {
+	x := &History { H_ID : hid }
+	gkey := x.gkey()
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
-func (x *History) Initialize(
+func InsertHistory(
+	txn *txn.Txn,
+	hid uint64,
 	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
 	date uint32, hamount float32, hdata string,
 ) {
-	x.H_C_ID = cid
-	x.H_C_D_ID = cdid
-	x.H_C_W_ID = cwid
-	x.H_D_ID = did
-	x.H_W_ID = wid
-	x.H_DATE = date
-	x.H_AMOUNT = hamount
+	x := &History {
+		H_ID     : hid,
+		H_C_ID   : cid,
+		H_C_D_ID : cdid,
+		H_C_W_ID : cwid,
+		H_D_ID   : did,
+		H_W_ID   : wid,
+		H_DATE   : date,
+		H_AMOUNT : hamount,
+	}
 	copy(x.H_DATA[:], hdata)
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

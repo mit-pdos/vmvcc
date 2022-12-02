@@ -5,18 +5,23 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func NewWarehouse(wid uint8) *Warehouse {
-	x := Warehouse { W_ID : wid }
-	return &x
+func GetWarehouse(txn *txn.Txn, wid uint8) *Warehouse {
+	x := &Warehouse { W_ID : wid }
+	gkey := x.gkey()
+	readtbl(txn, gkey, x)
+	return x
 }
 
 /**
  * Table mutator methods.
  */
-func (x *Warehouse) UpdateBalance(hamount float32) {
+func (x *Warehouse) UpdateBalance(txn *txn.Txn, hamount float32) {
 	x.W_YTD += hamount
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

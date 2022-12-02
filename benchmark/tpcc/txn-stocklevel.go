@@ -13,8 +13,7 @@ func stocklevel(
 	cnt *uint32,
 ) bool {
 	/* Read district. */
-	district := NewDistrict(did, wid)
-	ReadTable(district, txn)
+	district := GetDistrict(txn, did, wid)
 	oidub := district.D_NEXT_O_ID
 
 	/* Computer the order id range. */
@@ -33,14 +32,12 @@ func stocklevel(
 	for oid := oidlb; oid < oidub; oid++ {
 		/* Read all the items in this order. */
 		for olnum := uint8(0); olnum < 15; olnum++ {
-			orderline := NewOrderLine(oid, did, wid, olnum)
-			found := ReadTable(orderline, txn)
+			orderline, found := GetOrderLine(txn, oid, did, wid, olnum)
 			if !found {
 				break
 			}
 			iid := orderline.OL_I_ID
-			stock := NewStock(iid, wid)
-			ReadTable(stock, txn)
+			stock, _ := GetStock(txn, iid, wid)
 			quantity := stock.S_QUANTITY
 			if quantity < threshold {
 				iids[iid] = struct{}{}

@@ -20,23 +20,23 @@ func TestTableId(t *testing.T) {
 }
 
 func TestGkey(t *testing.T) {
-	warehouse := NewWarehouse(1)
+	warehouse := Warehouse { W_ID : 1 }
 	fmt.Printf("%.15x\n", warehouse.gkey())
-	district := NewDistrict(1, 1)
+	district := District { D_ID : 1, D_W_ID : 1 }
 	fmt.Printf("%x\n", district.gkey())
-	customer := NewCustomer(1, 1, 1)
+	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
 	fmt.Printf("%x\n", customer.gkey())
 }
 
 func TestRecordSize(t *testing.T) {
 	var s string
-	warehouse := NewWarehouse(1)
+	warehouse := Warehouse { W_ID : 1 }
 	s = warehouse.encode()
 	fmt.Printf("Warehouse record size = %d\n", len(s))
-	district := NewDistrict(1, 1)
+	district := District { D_ID : 1, D_W_ID : 1 }
 	s = district.encode()
 	fmt.Printf("District record size = %d\n", len(s))
-	customer := NewCustomer(1, 1, 1)
+	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
 	s = customer.encode()
 	fmt.Printf("Customer record size = %d\n", len(s))
 }
@@ -61,12 +61,19 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Insert a Customer record. */
 	body := func(txn *txn.Txn) bool {
-		c := NewCustomer(20, 95, 41)
-		c.C_BALANCE = 60.0
-		c.C_YTD_PAYMENT = 80.0
-		c.C_PAYMENT_CNT = 3
+		InsertCustomer(
+			txn,
+			20, 95, 41,
+			"first", [2]byte{'O', 'S'}, "last", "street1", "street2", "city",
+			[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
+			[16]byte{'0', '1'}, 1994, [2]byte{'B', 'C'}, 12.3, 43.1, 60.0, 80.0,
+			3, 9, "data",
+		)
+		// c := NewCustomer(20, 95, 41)
+		// c.C_BALANCE = 60.0
+		// c.C_YTD_PAYMENT = 80.0
+		// c.C_PAYMENT_CNT = 3
 		// c.C_DATA = ""
-		WriteTable(c, txn)
 		return true
 	}
 	ok := txno.DoTxn(body)
@@ -74,8 +81,7 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it and update it. */
 	body = func(txn *txn.Txn) bool {
-		c := NewCustomer(20, 95, 41)
-		ok := ReadTable(c, txn)
+		c := GetCustomer(txn, 20, 95, 41)
 		assert.Equal(true, ok)
 		assert.Equal(uint32(20), c.C_ID)
 		assert.Equal(uint8(95), c.C_D_ID)
@@ -85,8 +91,7 @@ func TestCustomerTxn(t *testing.T) {
 		assert.Equal(uint16(3), c.C_PAYMENT_CNT)
 		// assert.Equal("", c.C_DATA)
 
-		c.UpdateOnBadCredit(10.0, "Hello Customer")
-		WriteTable(c, txn)
+		c.UpdateOnBadCredit(txn, 10.0, "Hello Customer")
 		return true
 	}
 	ok = txno.DoTxn(body)
@@ -94,8 +99,7 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		c := NewCustomer(20, 95, 41)
-		ok := ReadTable(c, txn)
+		c := GetCustomer(txn, 20, 95, 41)
 		assert.Equal(true, ok)
 		assert.Equal(uint32(20), c.C_ID)
 		assert.Equal(uint8(95), c.C_D_ID)
@@ -126,12 +130,18 @@ func TestPayment(t *testing.T) {
 	/* Insert a Customer record. */
 	var ok bool
 	body := func(txn *txn.Txn) bool {
-		c := NewCustomer(1, 2, 3)
-		c.C_BALANCE = 60.0
-		c.C_YTD_PAYMENT = 80.0
-		c.C_PAYMENT_CNT = 3
-		c.C_CREDIT = [2]byte{'B', 'C'}
-		WriteTable(c, txn)
+		// c.C_BALANCE = 60.0
+		// c.C_YTD_PAYMENT = 80.0
+		// c.C_PAYMENT_CNT = 3
+		// c.C_CREDIT = [2]byte{'B', 'C'}
+		InsertCustomer(
+			txn,
+			20, 95, 41,
+			"first", [2]byte{'O', 'S'}, "last", "street1", "street2", "city",
+			[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
+			[16]byte{'0', '1'}, 1994, [2]byte{'B', 'C'}, 12.3, 43.1, 60.0, 80.0,
+			3, 9, "data",
+		)
 		return true
 	}
 	ok = txno.DoTxn(body)

@@ -11,24 +11,19 @@ func payment(
 	wid uint8, did uint8, hamount float32, cwid uint8, cdid uint8, cid uint32,
 ) bool {
 	/* Read warehouse. */
-	warehouse := NewWarehouse(wid)
-	ReadTable(warehouse, txn)
+	warehouse := GetWarehouse(txn, wid)
 
 	/* Update warehouse balance. */
-	warehouse.UpdateBalance(hamount)
-	WriteTable(warehouse, txn)
+	warehouse.UpdateBalance(txn, hamount)
 
 	/* Read district. */
-	district := NewDistrict(did, wid)
-	ReadTable(district, txn)
+	district := GetDistrict(txn, did, wid)
 
 	/* Update district balance. */
-	district.UpdateBalance(hamount)
-	WriteTable(district, txn)
+	district.UpdateBalance(txn, hamount)
 
 	/* Read customer. */
-	customer := NewCustomer(cid, cdid, cwid)
-	ReadTable(customer, txn)
+	customer := GetCustomer(txn, cid, cdid, cwid)
 
 	/* Update customer balance, payment, and payment count. */
 	if customer.C_CREDIT == [2]byte{ 'B', 'C' } {
@@ -39,19 +34,17 @@ func payment(
 		if len(cdata) > 500 {
 			cdata = cdata[: 500]
 		}
-		customer.UpdateOnBadCredit(hamount, cdata)
+		customer.UpdateOnBadCredit(txn, hamount, cdata)
 	} else {
-		customer.UpdateOnGoodCredit(hamount)
+		customer.UpdateOnGoodCredit(txn, hamount)
 	}
-	WriteTable(customer, txn)
 
 	/* Randomly generate history record id (not part of TPC-C). */
 	exists := true
-	var history *History
+	var hid uint64
 	for exists {
-		hid := rand.Uint64()
-		history = NewHistory(hid)
-		exists = ReadTable(history, txn)
+		hid = rand.Uint64()
+		_, exists = GetHistory(txn, hid)
 	}
 
 	/* Insert a history record. */
@@ -60,8 +53,7 @@ func payment(
 	wname := beforeNull(warehouse.W_NAME[:])
 	dname := beforeNull(district.D_NAME[:])
 	hdata := fmt.Sprintf("%s    %s", wname, dname)
-	history.Initialize(cid, cdid, cwid, did, wid, date, hamount, hdata)
-	WriteTable(history, txn)
+	InsertHistory(txn, hid, cid, cdid, cwid, did, wid, date, hamount, hdata)
 
 	return true
 }

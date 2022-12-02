@@ -8,20 +8,18 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-/**
- * XXX: Bad interface design.
- * Currently we're forcing `ReadTable` to read a single record.
- */
-func NewOrderRecord(oid uint32, did uint8, wid uint8) *Order {
-	x := Order {
+func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) *Order {
+	x := &Order {
 		O_ID   : oid,
 		O_D_ID : did,
 		O_W_ID : wid,
 	}
-	return &x
+	gkey := x.gkey()
+	readtbl(txn, gkey, x)
+	return x
 }
 
-func GetOrderRecordsByIndex(
+func GetOrdersByIndex(
 	txn *txn.Txn,
 	cid uint32, did uint8, wid uint8,
 ) []*Order {
@@ -49,14 +47,23 @@ func GetOrderRecordsByIndex(
 /**
  * Table mutator methods.
  */
-func (x *Order) Initialize(
+func InsertOrder(
+	txn *txn.Txn,
+	oid uint32, did uint8, wid uint8,
 	cid uint32, oentryd uint32, ocarrierid uint8, olcnt uint8, alllocal bool,
 ) {
-	x.O_C_ID = cid
-	x.O_ENTRY_D = oentryd
-	x.O_CARRIER_ID = ocarrierid
-	x.O_OL_CNT = olcnt
-	x.O_ALL_LOCAL = alllocal
+	x := &Order {
+		O_ID         : oid,
+		O_D_ID       : did,
+		O_W_ID       : wid,
+		O_C_ID       : cid,
+		O_ENTRY_D    : oentryd,
+		O_CARRIER_ID : ocarrierid,
+		O_OL_CNT     : olcnt,
+		O_ALL_LOCAL  : alllocal,
+	}
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**
