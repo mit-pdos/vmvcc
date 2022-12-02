@@ -5,8 +5,13 @@ import (
 	"strings"
 	"encoding/binary"
 	"log"
+	"github.com/mit-pdos/go-mvcc/txn"
 )
 
+/**
+ * XXX: Bad interface design.
+ * Currently we're forcing `ReadTable` to read a single record.
+ */
 func NewOrderRecord(oid uint32, did uint8, wid uint8) *Order {
 	x := Order {
 		O_ID   : oid,
@@ -14,6 +19,31 @@ func NewOrderRecord(oid uint32, did uint8, wid uint8) *Order {
 		O_W_ID : wid,
 	}
 	return &x
+}
+
+func GetOrderRecordsByIndex(
+	txn *txn.Txn,
+	cid uint32, did uint8, wid uint8,
+) []*Order {
+	records := make([]*Order, 0)
+
+	/* Read the index entry. */
+	// gkeyidx := tbl.gkeyidx()
+	// opaque, found := txn.Get(gkeyidx)
+	// if !found {
+	// 	return records
+	// }
+	// gkeys := decodeidx(opaque)
+
+	/* Read all the records. */
+	// for _, gkey := range gkeys {
+	// 	opaque, _ := txn.Get(gkey)
+	// 	record := new(IndexedTable)
+	// 	record.decode(opaque)
+	// 	records := append(records, record)
+	// }
+
+	return records
 }
 
 /**
@@ -38,6 +68,14 @@ func (x *Order) gkey() uint64 {
 	gkey = gkey << 8 + uint64(x.O_D_ID)
 	gkey = gkey << 8 + uint64(x.O_W_ID)
 	gkey += TBLID_ORDER
+	return gkey
+}
+
+func (x *Order) gkeyidx() uint64 {
+	var gkey uint64 = uint64(x.O_C_ID)
+	gkey = gkey << 8 + uint64(x.O_D_ID)
+	gkey = gkey << 8 + uint64(x.O_W_ID)
+	gkey += IDXID_ORDER
 	return gkey
 }
 
