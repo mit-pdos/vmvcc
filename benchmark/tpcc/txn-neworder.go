@@ -120,7 +120,7 @@ func neworder(
 		olamount := float32(olquantity) * iprice
 
 		/* Insert an OrderLine record. */
-		olnum := uint8(i) + 1
+		olnum := uint8(i)
 		orderline := NewOrderLine(oid, did, wid, olnum)
 		orderline.Initialize(iid, iwid, oentryd, olquantity, olamount, sdist)
 		WriteTable(orderline, txn)

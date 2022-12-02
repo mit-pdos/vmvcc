@@ -45,7 +45,7 @@ func payment(
 	}
 	WriteTable(customer, txn)
 
-	/* Randomly generate history record ID (not part of TPC-C). */
+	/* Randomly generate history record id (not part of TPC-C). */
 	exists := true
 	var history *History
 	for exists {
