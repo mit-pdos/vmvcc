@@ -18,17 +18,18 @@ type Warehouse struct {
 /* District table. */
 type District struct {
 	/* Primary key: (D_W_ID, D_ID) */
-	D_ID       uint8
-	D_W_ID     uint8
+	D_ID        uint8
+	D_W_ID      uint8
 	/* Data fields */
-	D_NAME     [10]byte
-	D_STREET_1 [20]byte
-	D_STREET_2 [20]byte
-	D_CITY     [20]byte
-	D_STATE    [2]byte
-	D_ZIP      [9]byte
-	W_TAX      float32
-	D_YTD      float32
+	D_NAME      [10]byte
+	D_STREET_1  [20]byte
+	D_STREET_2  [20]byte
+	D_CITY      [20]byte
+	D_STATE     [2]byte
+	D_ZIP       [9]byte
+	D_TAX       float32
+	D_YTD       float32
+	D_NEXT_O_ID uint32
 }
 
 /* Customer table. */
@@ -75,7 +76,7 @@ type History struct {
 
 /* NewOrder table. */
 type NewOrder struct {
-	/* Primary key: (NO_W_ID, NO_D_ID, NO_W_ID) */
+	/* Primary key: (NO_O_ID, NO_D_ID, NO_W_ID) */
 	NO_O_ID uint32
 	NO_D_ID uint8
 	NO_W_ID uint8
@@ -93,7 +94,7 @@ type Order struct {
 	O_ENTRY_D    uint32
 	O_CARRIER_ID uint8
 	O_OL_CNT     uint8
-	O_ALL_LOCAL  uint8
+	O_ALL_LOCAL  bool
 }
 
 /* OrderLine table. */

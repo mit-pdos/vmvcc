@@ -15,6 +15,10 @@ func NewDistrict(did uint8, dwid uint8) *District {
 	return &x
 }
 
+func (x *District) IncrementNextOrderId() {
+	x.D_NEXT_O_ID++
+}
+
 func (x *District) UpdateBalance(hamount float32) {
 	x.D_YTD += hamount
 }
