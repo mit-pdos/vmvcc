@@ -8,11 +8,11 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetWarehouse(txn *txn.Txn, wid uint8) *Warehouse {
+func GetWarehouse(txn *txn.Txn, wid uint8) (*Warehouse, bool) {
 	x := &Warehouse { W_ID : wid }
 	gkey := x.gkey()
-	readtbl(txn, gkey, x)
-	return x
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 func InsertWarehouse(

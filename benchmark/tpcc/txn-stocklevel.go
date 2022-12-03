@@ -13,7 +13,7 @@ func stocklevel(
 	cnt *uint32,
 ) bool {
 	/* Read district. */
-	district := GetDistrict(txn, did, wid)
+	district, _ := GetDistrict(txn, did, wid)
 	oidub := district.D_NEXT_O_ID
 
 	/* Computer the order id range. */

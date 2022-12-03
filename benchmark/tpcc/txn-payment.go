@@ -11,19 +11,19 @@ func payment(
 	wid uint8, did uint8, hamount float32, cwid uint8, cdid uint8, cid uint32,
 ) bool {
 	/* Read warehouse. */
-	warehouse := GetWarehouse(txn, wid)
+	warehouse, _ := GetWarehouse(txn, wid)
 
 	/* Update warehouse balance. */
 	warehouse.UpdateBalance(txn, hamount)
 
 	/* Read district. */
-	district := GetDistrict(txn, did, wid)
+	district, _ := GetDistrict(txn, did, wid)
 
 	/* Update district balance. */
 	district.UpdateBalance(txn, hamount)
 
 	/* Read customer. */
-	customer := GetCustomer(txn, cid, cdid, cwid)
+	customer, _ := GetCustomer(txn, cid, cdid, cwid)
 
 	/* Update customer balance, payment, and payment count. */
 	if customer.C_CREDIT == [2]byte{ 'B', 'C' } {

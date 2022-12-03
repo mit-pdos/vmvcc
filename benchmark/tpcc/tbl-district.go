@@ -8,14 +8,14 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetDistrict(txn *txn.Txn, did uint8, wid uint8) *District {
+func GetDistrict(txn *txn.Txn, did uint8, wid uint8) (*District, bool) {
 	x := &District {
 		D_ID   : did,
 		D_W_ID : wid,
 	}
 	gkey := x.gkey()
-	readtbl(txn, gkey, x)
-	return x
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 func InsertDistrict(

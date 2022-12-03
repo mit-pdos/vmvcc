@@ -53,17 +53,17 @@ func neworder(
 	}
 
 	/* Read warehouse. */
-	warehouse := GetWarehouse(txn, wid)
+	warehouse, _ := GetWarehouse(txn, wid)
 	res.W_TAX = warehouse.W_TAX
 
 	/* Read district. */
-	district := GetDistrict(txn, did, wid)
+	district, _ := GetDistrict(txn, did, wid)
 	res.D_TAX = district.D_TAX
 	res.D_NEXT_O_ID = district.D_NEXT_O_ID
 	oid := district.D_NEXT_O_ID
 
 	/* Read customer. */
-	customer := GetCustomer(txn, cid, did, wid)
+	customer, _ := GetCustomer(txn, cid, did, wid)
 	*cret = *customer
 
 	/* Increment next order id of district. */

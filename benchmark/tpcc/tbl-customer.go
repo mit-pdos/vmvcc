@@ -8,15 +8,18 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetCustomer(txn *txn.Txn, cid uint32, did uint8, wid uint8) *Customer {
+func GetCustomer(
+	txn *txn.Txn,
+	cid uint32, did uint8, wid uint8,
+) (*Customer, bool) {
 	x := &Customer {
 		C_ID   : cid,
 		C_D_ID : did,
 		C_W_ID : wid,
 	}
 	gkey := x.gkey()
-	readtbl(txn, gkey, x)
-	return x
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 /**

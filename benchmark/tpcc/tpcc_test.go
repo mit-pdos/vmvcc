@@ -121,14 +121,15 @@ func TestTableWarehouse(t *testing.T) {
 
 	/* Read it, update it, and read it again in one transaction. */
 	body = func(txn *txn.Txn) bool {
-		x := GetWarehouse(txn, 41)
+		x, found := GetWarehouse(txn, 41)
+		assert.Equal(true, found)
 		assert.Equal(uint8(41), x.W_ID)
 		assert.Equal(float32(6.25), x.W_TAX)
 		assert.Equal(float32(80.0), x.W_YTD)
 
 		x.UpdateBalance(txn, 10.0)
 
-		x = GetWarehouse(txn, 41)
+		x, _ = GetWarehouse(txn, 41)
 		assert.Equal(float32(90.0), x.W_YTD)
 		return true
 	}
@@ -137,7 +138,8 @@ func TestTableWarehouse(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		x := GetWarehouse(txn, 41)
+		x, found := GetWarehouse(txn, 41)
+		assert.Equal(true, found)
 		assert.Equal(uint8(41), x.W_ID)
 		assert.Equal(float32(6.25), x.W_TAX)
 		assert.Equal(float32(90.0), x.W_YTD)
@@ -168,7 +170,8 @@ func TestTableDistrict(t *testing.T) {
 
 	/* Read it, update it, and read it again in one transaction. */
 	body = func(txn *txn.Txn) bool {
-		x := GetDistrict(txn, 95, 41)
+		x, found := GetDistrict(txn, 95, 41)
+		assert.Equal(true, found)
 		assert.Equal(uint8(95), x.D_ID)
 		assert.Equal(uint8(41), x.D_W_ID)
 		assert.Equal(float32(6.25), x.D_TAX)
@@ -180,7 +183,7 @@ func TestTableDistrict(t *testing.T) {
 		x.IncrementOldestOrderId(txn)
 		x.UpdateBalance(txn, 10.0)
 
-		x = GetDistrict(txn, 95, 41)
+		x, _ = GetDistrict(txn, 95, 41)
 		assert.Equal(float32(90.0), x.D_YTD)
 		assert.Equal(uint32(2), x.D_NEXT_O_ID)
 		assert.Equal(uint32(2), x.D_OLD_O_ID)
@@ -191,7 +194,8 @@ func TestTableDistrict(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		x := GetDistrict(txn, 95, 41)
+		x, found := GetDistrict(txn, 95, 41)
+		assert.Equal(true, found)
 		assert.Equal(float32(90.0), x.D_YTD)
 		assert.Equal(uint32(2), x.D_NEXT_O_ID)
 		assert.Equal(uint32(2), x.D_OLD_O_ID)
@@ -223,7 +227,8 @@ func TestTableCustomer(t *testing.T) {
 
 	/* Read it, update it, and read it again in one transaction. */
 	body = func(txn *txn.Txn) bool {
-		x := GetCustomer(txn, 20, 95, 41)
+		x, found := GetCustomer(txn, 20, 95, 41)
+		assert.Equal(true, found)
 		assert.Equal(uint32(20), x.C_ID)
 		assert.Equal(uint8(95), x.C_D_ID)
 		assert.Equal(uint8(41), x.C_W_ID)
@@ -234,7 +239,7 @@ func TestTableCustomer(t *testing.T) {
 
 		x.UpdateOnBadCredit(txn, 10.0, "Hello Customer")
 
-		x = GetCustomer(txn, 20, 95, 41)
+		x, _ = GetCustomer(txn, 20, 95, 41)
 		assert.Equal(float32(50.0), x.C_BALANCE)
 		assert.Equal(float32(90.0), x.C_YTD_PAYMENT)
 		assert.Equal(uint16(4), x.C_PAYMENT_CNT)
@@ -246,7 +251,8 @@ func TestTableCustomer(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		x := GetCustomer(txn, 20, 95, 41)
+		x, found := GetCustomer(txn, 20, 95, 41)
+		assert.Equal(true, found)
 		assert.Equal(uint32(20), x.C_ID)
 		assert.Equal(uint8(95), x.C_D_ID)
 		assert.Equal(uint8(41), x.C_W_ID)
@@ -262,21 +268,36 @@ func TestTableCustomer(t *testing.T) {
 
 
 /**
- * Tests for loader.
+ * Tests for TPC-C database loader.
  */
-func TestLoadItem(t *testing.T) {
+func TestLoader(t *testing.T) {
 	assert := assert.New(t)
 	mgr := txn.MkTxnMgr()
 	txno := mgr.New()
 
 	var ok bool
+	// Takes about 110 seconds to load the standard size of an TPC-C database
+	// var nItems uint32 = N_ITEMS
+	// var nWarehouses uint8 = 10
+	// var nLocalDists uint8 = N_DISTRICTS_PER_WAREHOUSE
+	// var nLocalCustomers uint32 = N_CUSTOMERS_PER_DISTRICT
+	// var nInitLocalNewOrders uint32 = N_INIT_NEW_ORDERS_PER_DISTRICT
+	var nItems uint32 = 50
+	var nWarehouses uint8 = 10
+	var nLocalDists uint8 = 10
+	var nLocalCustomers uint32 = 100
+	var nInitLocalNewOrders uint32 = 20
 	body := func(txni *txn.Txn) bool {
-		loadItem(txni, 50)
+		LoadTPCC(
+			txni, nItems, nWarehouses,
+			nLocalDists, nLocalCustomers, nInitLocalNewOrders, 
+		)
 		return true
 	}
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 
+	/* Testing items. */
 	body = func(txni *txn.Txn) bool {
 		var item *Item
 		var found bool
@@ -288,16 +309,111 @@ func TestLoadItem(t *testing.T) {
 		assert.Equal(uint32(1), item.I_ID)
 		assert.Equal(float32(14.7), item.I_PRICE)
 
-		item, found = GetItem(txni, 17)
+		item, found = GetItem(txni, nItems / 2)
 		assert.Equal(true, found)
-		assert.Equal(uint32(17), item.I_ID)
+		assert.Equal(nItems / 2, item.I_ID)
 
-		item, found = GetItem(txni, 50)
+		item, found = GetItem(txni, nItems)
 		assert.Equal(true, found)
-		assert.Equal(uint32(50), item.I_ID)
+		assert.Equal(nItems, item.I_ID)
 
-		item, found = GetItem(txni, 51)
+		item, found = GetItem(txni, nItems + 1)
 		assert.Equal(false, found)
+
+		/* TODO: Testing whether ~10% of items contain "ORIGINAL" in I_DATA. */
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Testing warehouses. */
+	body = func(txni *txn.Txn) bool {
+		var warehouse *Warehouse
+		var found bool
+		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+			warehouse, found = GetWarehouse(txni, wid)
+			if wid < 1 || wid > nWarehouses {
+				assert.Equal(false, found)
+			} else {
+				assert.Equal(true, found)
+				assert.Equal(wid, warehouse.W_ID)
+			}
+		}
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Testing districts. */
+	body = func(txni *txn.Txn) bool {
+		var district *District
+		var found bool
+		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+			for did := uint8(0); did <= nLocalDists + 1; did++ {
+				district, found = GetDistrict(txni, did, wid)
+				if wid < 1 || wid > nWarehouses || did < 1 || did > nLocalDists {
+					assert.Equal(false, found)
+				} else {
+					assert.Equal(true, found)
+					assert.Equal(did, district.D_ID)
+					assert.Equal(wid, district.D_W_ID)
+				}
+			}
+		}
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Testing customers. */
+	body = func(txni *txn.Txn) bool {
+		var customer *Customer
+		var found bool
+		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+			for did := uint8(0); did <= nLocalDists + 1; did++ {
+				for cid := uint32(0); cid <= nLocalCustomers + 1; cid++ {
+					customer, found = GetCustomer(txni, cid, did, wid)
+					if wid < 1 || wid > nWarehouses ||
+						did < 1 || did > nLocalDists ||
+						cid < 1 || cid > nLocalCustomers {
+						assert.Equal(false, found)
+					} else {
+						assert.Equal(true, found)
+						assert.Equal(cid, customer.C_ID)
+						assert.Equal(did, customer.C_D_ID)
+						assert.Equal(wid, customer.C_W_ID)
+					}
+				}
+			}
+		}
+
+		/* TODO: Testing whehther ~10% of customers have a bad credit. */
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Testing neworders. */
+	body = func(txni *txn.Txn) bool {
+		var neworder *NewOrder
+		var found bool
+		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+			for did := uint8(0); did <= nLocalDists + 1; did++ {
+				for oid := uint32(0); oid <= nInitLocalNewOrders + 1; oid++ {
+					neworder, found = GetNewOrder(txni, oid, did, wid)
+					if wid < 1 || wid > nWarehouses ||
+						did < 1 || did > nLocalDists ||
+						oid < 1 || oid > nInitLocalNewOrders {
+						assert.Equal(false, found)
+					} else {
+						assert.Equal(true, found)
+						assert.Equal(oid, neworder.NO_O_ID)
+						assert.Equal(did, neworder.NO_D_ID)
+						assert.Equal(wid, neworder.NO_W_ID)
+					}
+				}
+			}
+		}
 		return true
 	}
 	ok = txno.DoTxn(body)

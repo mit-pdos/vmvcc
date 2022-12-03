@@ -40,7 +40,7 @@ func orderstatus(
 	res *OrderStatusResult,
 ) bool {
 	/* Read customer. */
-	customer := GetCustomer(txn, cid, did, wid)
+	customer, _ := GetCustomer(txn, cid, did, wid)
 	res.C_BALANCE = customer.C_BALANCE
 	res.C_FIRST   = customer.C_FIRST
 	res.C_MIDDLE  = customer.C_MIDDLE

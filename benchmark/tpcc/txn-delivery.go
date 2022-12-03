@@ -21,7 +21,7 @@ func delivery(
 ) bool {
 	/* For each district, find the oldest in-progress order. */
 	for did := uint8(1); did <= 10; did ++ {
-		district := GetDistrict(txn, did, wid)
+		district, _ := GetDistrict(txn, did, wid)
 		oid := district.D_OLD_O_ID
 		district.IncrementOldestOrderId(txn)
 
@@ -58,7 +58,7 @@ func delivery(
 		DeleteNewOrder(txn, oid, did, wid)
 
 		/* Update the customer with  */
-		customer := GetCustomer(txn, cid, did, wid)
+		customer, _ := GetCustomer(txn, cid, did, wid)
 		customer.IncreaseBalance(txn, total)
 	}
 
