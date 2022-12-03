@@ -35,7 +35,7 @@ func delivery(
 		res.NO_RES = append(res.NO_RES, noid)
 
 		/* Get the customer id of this order. */
-		order := GetOrder(txn, oid, did, wid)
+		order, _ := GetOrder(txn, oid, did, wid)
 		cid := order.O_C_ID
 
 		/* Update the carrier id of this order. */

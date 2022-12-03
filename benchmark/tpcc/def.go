@@ -64,7 +64,7 @@ type Customer struct {
 /* History table. */
 type History struct {
 	/* Primary key: H_ID (no primary key required in the spec) */
-	H_ID     uint64
+	H_ID     uint64 /* the MSB, reserved for table ID, should not be used */
 	/* Data fields */
 	H_C_ID   uint32
 	H_C_D_ID uint8
@@ -117,6 +117,7 @@ type OrderLine struct {
 	OL_AMOUNT      float32
 	OL_DIST_INFO   [24]byte
 }
+const OL_DELIVERY_D_NULL uint32 = 0xffffffff
 
 /* Item table. */
 type Item struct {

@@ -276,21 +276,22 @@ func TestLoader(t *testing.T) {
 	txno := mgr.New()
 
 	var ok bool
-	// Takes about 110 seconds to load the standard size of an TPC-C database
 	// var nItems uint32 = N_ITEMS
 	// var nWarehouses uint8 = 10
 	// var nLocalDists uint8 = N_DISTRICTS_PER_WAREHOUSE
-	// var nLocalCustomers uint32 = N_CUSTOMERS_PER_DISTRICT
+	// var nLocalCusts uint32 = N_CUSTOMERS_PER_DISTRICT
 	// var nInitLocalNewOrders uint32 = N_INIT_NEW_ORDERS_PER_DISTRICT
-	var nItems uint32 = 50
-	var nWarehouses uint8 = 10
-	var nLocalDists uint8 = 10
-	var nLocalCustomers uint32 = 100
-	var nInitLocalNewOrders uint32 = 20
+	var nItems uint32 = 10
+	var nWarehouses uint8 = 2
+	var nLocalDists uint8 = 2
+	var nLocalCusts uint32 = 10
+	var nInitLocalNewOrders uint32 = 5
+	var nInitLocalOrders = nLocalCusts
+	assert.LessOrEqual(nInitLocalNewOrders, nInitLocalOrders)
 	body := func(txni *txn.Txn) bool {
 		LoadTPCC(
 			txni, nItems, nWarehouses,
-			nLocalDists, nLocalCustomers, nInitLocalNewOrders, 
+			nLocalDists, nLocalCusts, nInitLocalNewOrders, 
 		)
 		return true
 	}
@@ -326,7 +327,7 @@ func TestLoader(t *testing.T) {
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 
-	/* Testing warehouses. */
+	/* Testing Warehouse. */
 	body = func(txni *txn.Txn) bool {
 		var warehouse *Warehouse
 		var found bool
@@ -344,7 +345,7 @@ func TestLoader(t *testing.T) {
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 
-	/* Testing districts. */
+	/* Testing District. */
 	body = func(txni *txn.Txn) bool {
 		var district *District
 		var found bool
@@ -365,17 +366,17 @@ func TestLoader(t *testing.T) {
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 
-	/* Testing customers. */
+	/* Testing Customer. */
 	body = func(txni *txn.Txn) bool {
 		var customer *Customer
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
 			for did := uint8(0); did <= nLocalDists + 1; did++ {
-				for cid := uint32(0); cid <= nLocalCustomers + 1; cid++ {
+				for cid := uint32(0); cid <= nLocalCusts + 1; cid++ {
 					customer, found = GetCustomer(txni, cid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
 						did < 1 || did > nLocalDists ||
-						cid < 1 || cid > nLocalCustomers {
+						cid < 1 || cid > nLocalCusts {
 						assert.Equal(false, found)
 					} else {
 						assert.Equal(true, found)
@@ -393,17 +394,68 @@ func TestLoader(t *testing.T) {
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 
-	/* Testing neworders. */
+	/* Testing History. */
 	body = func(txni *txn.Txn) bool {
+		var history *History
+		var found bool
+		var nHistory uint64 = uint64(nWarehouses) * uint64(nLocalDists) * uint64(nLocalCusts)
+		for hid := uint64(0); hid <= nHistory + 1; hid++ {
+			history, found = GetHistory(txni, hid)
+			if hid < 1 || hid > nHistory {
+				assert.Equal(false, found)
+			} else {
+				assert.Equal(true, found)
+				assert.Equal(hid, history.H_ID)
+				assert.Less(uint8(0), history.H_W_ID)
+				assert.LessOrEqual(history.H_W_ID, nWarehouses)
+				assert.Less(uint8(0), history.H_D_ID)
+				assert.LessOrEqual(history.H_D_ID, nLocalDists)
+				assert.Less(uint32(0), history.H_C_ID)
+				assert.LessOrEqual(history.H_C_ID, nLocalCusts)
+			}
+		}
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Testing Order, NewOrder, and OrderLine. */
+	body = func(txni *txn.Txn) bool {
+		/* For testing distribution. */
+		var cntTotalItems uint64 = 0
+		var cntRemoteItems uint64 = 0
+
+		var order *Order
 		var neworder *NewOrder
+		var orderline *OrderLine
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
 			for did := uint8(0); did <= nLocalDists + 1; did++ {
-				for oid := uint32(0); oid <= nInitLocalNewOrders + 1; oid++ {
+				for oid := uint32(0); oid <= nInitLocalOrders + 1; oid++ {
+					/* Order. */
+					order, found = GetOrder(txni, oid, did, wid)
+					if wid < 1 || wid > nWarehouses ||
+						did < 1 || did > nLocalDists ||
+						oid < 1 || oid > nInitLocalOrders {
+						assert.Equal(false, found)
+					} else {
+						assert.Equal(true, found)
+						assert.Equal(oid, order.O_ID)
+						assert.Equal(did, order.O_D_ID)
+						assert.Equal(wid, order.O_W_ID)
+						assert.LessOrEqual(uint32(1), order.O_C_ID)
+						assert.LessOrEqual(order.O_C_ID, nLocalCusts)
+						assert.LessOrEqual(MIN_INIT_OL_CNT, order.O_OL_CNT)
+						assert.LessOrEqual(order.O_OL_CNT, MAX_INIT_OL_CNT)
+					}
+
+					/* NewOrder, (newoidlb, newoidub] are new orders. */
+					newoidlb := nInitLocalOrders - nInitLocalNewOrders
+					newoidub := nInitLocalOrders
 					neworder, found = GetNewOrder(txni, oid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
 						did < 1 || did > nLocalDists ||
-						oid < 1 || oid > nInitLocalNewOrders {
+						oid <= newoidlb || oid > newoidub {
 						assert.Equal(false, found)
 					} else {
 						assert.Equal(true, found)
@@ -411,9 +463,42 @@ func TestLoader(t *testing.T) {
 						assert.Equal(did, neworder.NO_D_ID)
 						assert.Equal(wid, neworder.NO_W_ID)
 					}
+
+					/* Orderline. */
+					olcnt := order.O_OL_CNT
+					for olnum := uint8(1); olnum <= olcnt + 1; olnum++ {
+						orderline, found = GetOrderLine(txni, oid, did, wid, olnum)
+						if wid < 1 || wid > nWarehouses ||
+							did < 1 || did > nLocalDists ||
+							oid < 1 || oid > nInitLocalOrders ||
+							olnum < 1 || olnum > olcnt {
+							assert.Equal(false, found)
+						} else {
+							assert.Equal(true, found)
+							assert.Equal(oid, orderline.OL_O_ID)
+							assert.Equal(did, orderline.OL_D_ID)
+							assert.Equal(wid, orderline.OL_W_ID)
+							assert.Equal(olnum, orderline.OL_NUMBER)
+							olamount := orderline.OL_AMOUNT
+							if orderline.OL_DELIVERY_D == OL_DELIVERY_D_NULL {
+								/* This is a new order. */
+								assert.LessOrEqual(float32(0.01), olamount)
+								assert.LessOrEqual(olamount, float32(9999.99))
+							} else {
+								assert.Equal(float32(0.0), olamount)
+							}
+							cntTotalItems++
+							if orderline.OL_W_ID != orderline.OL_SUPPLY_W_ID {
+								cntRemoteItems++
+							}
+						}
+					}
 				}
 			}
 		}
+		/* Check that the remote orderline is about ~1%. */
+		ratioRemoteItems := float64(cntRemoteItems) / float64(cntTotalItems) * 100.0
+		fmt.Printf("Ratio of remote items = %f%% (sholud be ~1%%).\n", ratioRemoteItems)
 		return true
 	}
 	ok = txno.DoTxn(body)

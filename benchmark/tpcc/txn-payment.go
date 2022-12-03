@@ -43,8 +43,11 @@ func payment(
 	exists := true
 	var hid uint64
 	for exists {
-		hid = rand.Uint64()
+		hid = rand.Uint64() % (1 << 56) /* MSB reserved for table ID */
 		_, exists = GetHistory(txn, hid)
+		if exists {
+			fmt.Printf("H_ID collides, regenerate a new one.")
+		}
 	}
 
 	/* Insert a history record. */

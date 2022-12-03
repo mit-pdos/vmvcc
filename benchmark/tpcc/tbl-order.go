@@ -8,15 +8,15 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) *Order {
+func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {
 	x := &Order {
 		O_ID   : oid,
 		O_D_ID : did,
 		O_W_ID : wid,
 	}
 	gkey := x.gkey()
-	readtbl(txn, gkey, x)
-	return x
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 func GetOrdersByIndex(
