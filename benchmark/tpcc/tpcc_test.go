@@ -262,7 +262,51 @@ func TestTableCustomer(t *testing.T) {
 
 
 /**
- * Tests for transactions.
+ * Tests for loader.
+ */
+func TestLoadItem(t *testing.T) {
+	assert := assert.New(t)
+	mgr := txn.MkTxnMgr()
+	txno := mgr.New()
+
+	var ok bool
+	body := func(txni *txn.Txn) bool {
+		loadItem(txni, 50)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	body = func(txni *txn.Txn) bool {
+		var item *Item
+		var found bool
+		item, found = GetItem(txni, 0)
+		assert.Equal(false, found)
+
+		item, found = GetItem(txni, 1)
+		assert.Equal(true, found)
+		assert.Equal(uint32(1), item.I_ID)
+		assert.Equal(float32(14.7), item.I_PRICE)
+
+		item, found = GetItem(txni, 17)
+		assert.Equal(true, found)
+		assert.Equal(uint32(17), item.I_ID)
+
+		item, found = GetItem(txni, 50)
+		assert.Equal(true, found)
+		assert.Equal(uint32(50), item.I_ID)
+
+		item, found = GetItem(txni, 51)
+		assert.Equal(false, found)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+}
+
+
+/**
+ * Tests for "business" transactions.
  */
 func TestPayment(t *testing.T) {
 	assert := assert.New(t)
