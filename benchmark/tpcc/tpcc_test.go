@@ -7,6 +7,9 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
+/**
+ * Tests for basic data layout/size and encoding primitives.
+ */
 func TestTableId(t *testing.T) {
 	fmt.Printf("%.15x\n", TBLID_WAREHOUSE)
 	fmt.Printf("%x\n", TBLID_DISTRICT)
@@ -17,6 +20,7 @@ func TestTableId(t *testing.T) {
 	fmt.Printf("%x\n", TBLID_ORDERLINE)
 	fmt.Printf("%x\n", TBLID_ITEM)
 	fmt.Printf("%x\n", TBLID_STOCK)
+	fmt.Printf("%x\n", IDXID_ORDER)
 }
 
 func TestGkey(t *testing.T) {
@@ -26,6 +30,18 @@ func TestGkey(t *testing.T) {
 	fmt.Printf("%x\n", district.gkey())
 	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
 	fmt.Printf("%x\n", customer.gkey())
+	history := History { H_ID : 1 }
+	fmt.Printf("%x\n", history.gkey())
+	neworder := NewOrder { NO_O_ID : 1, NO_D_ID : 1, NO_W_ID : 1 }
+	fmt.Printf("%x\n", neworder.gkey())
+	order := Order { O_ID : 1, O_D_ID : 1, O_W_ID : 1 }
+	fmt.Printf("%x\n", order.gkey())
+	orderline := OrderLine { OL_O_ID : 1, OL_D_ID : 1, OL_W_ID : 1, OL_NUMBER : 1 }
+	fmt.Printf("%x\n", orderline.gkey())
+	item := Item { I_ID : 1 }
+	fmt.Printf("%x\n", item.gkey())
+	stock := Stock { S_I_ID : 1, S_W_ID : 1 }
+	fmt.Printf("%x\n", stock.gkey())
 }
 
 func TestRecordSize(t *testing.T) {
@@ -39,6 +55,24 @@ func TestRecordSize(t *testing.T) {
 	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
 	s = customer.encode()
 	fmt.Printf("Customer record size = %d\n", len(s))
+	history := History { H_ID : 1 }
+	s = history.encode()
+	fmt.Printf("History record size = %d\n", len(s))
+	neworder := NewOrder { NO_O_ID : 1, NO_D_ID : 1, NO_W_ID : 1 }
+	s = neworder.encode()
+	fmt.Printf("NewOrder record size = %d\n", len(s))
+	order := Order { O_ID : 1, O_D_ID : 1, O_W_ID : 1 }
+	s = order.encode()
+	fmt.Printf("Order record size = %d\n", len(s))
+	orderline := OrderLine { OL_O_ID : 1, OL_D_ID : 1, OL_W_ID : 1, OL_NUMBER : 1 }
+	s = orderline.encode()
+	fmt.Printf("OrderLine record size = %d\n", len(s))
+	item := Item { I_ID : 1 }
+	s = item.encode()
+	fmt.Printf("Item record size = %d\n", len(s))
+	stock := Stock { S_I_ID : 1, S_W_ID : 1 }
+	s = stock.encode()
+	fmt.Printf("Stock record size = %d\n", len(s))
 }
 
 func TestEncodeDecodeCustomer(t *testing.T) {
@@ -62,7 +96,112 @@ func TestIndexEncodeDecode(t *testing.T) {
 	assert.Equal(gkeys, decodeidx(encodeidx(gkeys)))
 }
 
-func TestCustomerTxn(t *testing.T) {
+
+/**
+ * Test for table operations.
+ */
+func TestTableWarehouse(t *testing.T) {
+	assert := assert.New(t)
+	mgr := txn.MkTxnMgr()
+	txno := mgr.New()
+
+	/* Insert a Warehouse record. */
+	body := func(txn *txn.Txn) bool {
+		InsertWarehouse(
+			txn,
+			41,
+			"name", "street1", "street2", "city",
+			[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
+			6.25, 80.0,
+		)
+		return true
+	}
+	ok := txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Read it, update it, and read it again in one transaction. */
+	body = func(txn *txn.Txn) bool {
+		x := GetWarehouse(txn, 41)
+		assert.Equal(uint8(41), x.W_ID)
+		assert.Equal(float32(6.25), x.W_TAX)
+		assert.Equal(float32(80.0), x.W_YTD)
+
+		x.UpdateBalance(txn, 10.0)
+
+		x = GetWarehouse(txn, 41)
+		assert.Equal(float32(90.0), x.W_YTD)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Read it again. */
+	body = func(txn *txn.Txn) bool {
+		x := GetWarehouse(txn, 41)
+		assert.Equal(uint8(41), x.W_ID)
+		assert.Equal(float32(6.25), x.W_TAX)
+		assert.Equal(float32(90.0), x.W_YTD)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+}
+
+func TestTableDistrict(t *testing.T) {
+	assert := assert.New(t)
+	mgr := txn.MkTxnMgr()
+	txno := mgr.New()
+
+	/* Insert a District record. */
+	body := func(txn *txn.Txn) bool {
+		InsertDistrict(
+			txn,
+			95, 41,
+			"name", "street1", "street2", "city",
+			[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
+			6.25, 80.0, 1, 1,
+		)
+		return true
+	}
+	ok := txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Read it, update it, and read it again in one transaction. */
+	body = func(txn *txn.Txn) bool {
+		x := GetDistrict(txn, 95, 41)
+		assert.Equal(uint8(95), x.D_ID)
+		assert.Equal(uint8(41), x.D_W_ID)
+		assert.Equal(float32(6.25), x.D_TAX)
+		assert.Equal(float32(80.0), x.D_YTD)
+		assert.Equal(uint32(1), x.D_NEXT_O_ID)
+		assert.Equal(uint32(1), x.D_OLD_O_ID)
+
+		x.IncrementNextOrderId(txn)
+		x.IncrementOldestOrderId(txn)
+		x.UpdateBalance(txn, 10.0)
+
+		x = GetDistrict(txn, 95, 41)
+		assert.Equal(float32(90.0), x.D_YTD)
+		assert.Equal(uint32(2), x.D_NEXT_O_ID)
+		assert.Equal(uint32(2), x.D_OLD_O_ID)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+
+	/* Read it again. */
+	body = func(txn *txn.Txn) bool {
+		x := GetDistrict(txn, 95, 41)
+		assert.Equal(float32(90.0), x.D_YTD)
+		assert.Equal(uint32(2), x.D_NEXT_O_ID)
+		assert.Equal(uint32(2), x.D_OLD_O_ID)
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
+}
+
+func TestTableCustomer(t *testing.T) {
 	assert := assert.New(t)
 	mgr := txn.MkTxnMgr()
 	txno := mgr.New()
@@ -84,27 +223,22 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it, update it, and read it again in one transaction. */
 	body = func(txn *txn.Txn) bool {
-		c := GetCustomer(txn, 20, 95, 41)
-		assert.Equal(true, ok)
-		assert.Equal(uint32(20), c.C_ID)
-		assert.Equal(uint8(95), c.C_D_ID)
-		assert.Equal(uint8(41), c.C_W_ID)
-		assert.Equal(float32(60.0), c.C_BALANCE)
-		assert.Equal(float32(80.0), c.C_YTD_PAYMENT)
-		assert.Equal(uint16(3), c.C_PAYMENT_CNT)
-		assert.Equal("data", string(beforeNull(c.C_DATA[:])))
+		x := GetCustomer(txn, 20, 95, 41)
+		assert.Equal(uint32(20), x.C_ID)
+		assert.Equal(uint8(95), x.C_D_ID)
+		assert.Equal(uint8(41), x.C_W_ID)
+		assert.Equal(float32(60.0), x.C_BALANCE)
+		assert.Equal(float32(80.0), x.C_YTD_PAYMENT)
+		assert.Equal(uint16(3), x.C_PAYMENT_CNT)
+		assert.Equal("data", string(beforeNull(x.C_DATA[:])))
 
-		c.UpdateOnBadCredit(txn, 10.0, "Hello Customer")
+		x.UpdateOnBadCredit(txn, 10.0, "Hello Customer")
 
-		c = GetCustomer(txn, 20, 95, 41)
-		assert.Equal(true, ok)
-		assert.Equal(uint32(20), c.C_ID)
-		assert.Equal(uint8(95), c.C_D_ID)
-		assert.Equal(uint8(41), c.C_W_ID)
-		assert.Equal(float32(50.0), c.C_BALANCE)
-		assert.Equal(float32(90.0), c.C_YTD_PAYMENT)
-		assert.Equal(uint16(4), c.C_PAYMENT_CNT)
-		assert.Equal("Hello Customer", string(beforeNull(c.C_DATA[:])))
+		x = GetCustomer(txn, 20, 95, 41)
+		assert.Equal(float32(50.0), x.C_BALANCE)
+		assert.Equal(float32(90.0), x.C_YTD_PAYMENT)
+		assert.Equal(uint16(4), x.C_PAYMENT_CNT)
+		assert.Equal("Hello Customer", string(beforeNull(x.C_DATA[:])))
 		return true
 	}
 	ok = txno.DoTxn(body)
@@ -112,21 +246,24 @@ func TestCustomerTxn(t *testing.T) {
 
 	/* Read it again. */
 	body = func(txn *txn.Txn) bool {
-		c := GetCustomer(txn, 20, 95, 41)
-		assert.Equal(true, ok)
-		assert.Equal(uint32(20), c.C_ID)
-		assert.Equal(uint8(95), c.C_D_ID)
-		assert.Equal(uint8(41), c.C_W_ID)
-		assert.Equal(float32(50.0), c.C_BALANCE)
-		assert.Equal(float32(90.0), c.C_YTD_PAYMENT)
-		assert.Equal(uint16(4), c.C_PAYMENT_CNT)
-		assert.Equal("Hello Customer", string(beforeNull(c.C_DATA[:])))
+		x := GetCustomer(txn, 20, 95, 41)
+		assert.Equal(uint32(20), x.C_ID)
+		assert.Equal(uint8(95), x.C_D_ID)
+		assert.Equal(uint8(41), x.C_W_ID)
+		assert.Equal(float32(50.0), x.C_BALANCE)
+		assert.Equal(float32(90.0), x.C_YTD_PAYMENT)
+		assert.Equal(uint16(4), x.C_PAYMENT_CNT)
+		assert.Equal("Hello Customer", string(beforeNull(x.C_DATA[:])))
 		return true
 	}
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
 }
 
+
+/**
+ * Tests for transactions.
+ */
 func TestPayment(t *testing.T) {
 	assert := assert.New(t)
 	mgr := txn.MkTxnMgr()

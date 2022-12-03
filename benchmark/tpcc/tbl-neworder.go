@@ -47,7 +47,8 @@ func DeleteNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
  * Used by all both TableRead and TableWrite.
  */
 func (x *NewOrder) gkey() uint64 {
-	var gkey uint64 = uint64(x.NO_D_ID)
+	var gkey uint64 = uint64(x.NO_O_ID)
+	gkey = gkey << 8 + uint64(x.NO_D_ID)
 	gkey = gkey << 8 + uint64(x.NO_W_ID)
 	gkey += TBLID_NEWORDER
 	return gkey
