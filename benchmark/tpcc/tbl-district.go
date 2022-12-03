@@ -23,7 +23,7 @@ func InsertDistrict(
 	did uint8, wid uint8,
 	name, street1, street2, city string,
 	state [2]byte, zip [9]byte, tax, ytd float32,
-	nextoid uint32,
+	nextoid, oldestoid uint32,
 ) {
 	x := &District {
 		D_ID        : did,
@@ -33,6 +33,7 @@ func InsertDistrict(
 		D_TAX       : tax,
 		D_YTD       : ytd,
 		D_NEXT_O_ID : nextoid,
+		D_OLD_O_ID  : oldestoid,
 	}
 	copy(x.D_NAME[:], name)
 	copy(x.D_STREET_1[:], street1)
@@ -44,6 +45,12 @@ func InsertDistrict(
 
 func (x *District) IncrementNextOrderId(txn *txn.Txn) {
 	x.D_NEXT_O_ID++
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
+}
+
+func (x *District) IncrementOldestOrderId(txn *txn.Txn) {
+	x.D_OLD_O_ID++
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
 }

@@ -27,3 +27,7 @@ func writetbl(txn *txn.Txn, gkey uint64, r record) {
 	s := r.encode()
 	txn.Put(gkey, s)
 }
+
+func deletetbl(txn *txn.Txn, gkey uint64) {
+	txn.Delete(gkey)
+}

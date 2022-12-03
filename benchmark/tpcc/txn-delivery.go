@@ -21,18 +21,13 @@ func delivery(
 ) bool {
 	/* For each district, find the oldest in-progress order. */
 	for did := uint8(1); did <= 10; did ++ {
-		neworder := GetNewOrder(txn, did, wid)
-		oids := neworder.NO_O_IDS
-		if len(oids) == 0 {
-			continue
-		}
+		district := GetDistrict(txn, did, wid)
+		oid := district.D_OLD_O_ID
+		district.IncrementOldestOrderId(txn)
 
-		/* Find the order with the smallest O_ID (i.e., the oldest one). */
-		oid := oids[0]
-		for _, oidx := range oids {
-			if oidx < oid {
-				oid = oidx
-			}
+		_, found := GetNewOrder(txn, oid, did, wid)
+		if !found {
+			continue
 		}
 
 		/* Append to result. */
@@ -60,7 +55,7 @@ func delivery(
 		}
 
 		/* Delete this order from NewOrder. */
-		DeleteNewOrder(txn, did, wid, oid)
+		DeleteNewOrder(txn, oid, did, wid)
 
 		/* Update the customer with  */
 		customer := GetCustomer(txn, cid, did, wid)

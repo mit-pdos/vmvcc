@@ -8,65 +8,38 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetNewOrder(txn *txn.Txn, did uint8, wid uint8) *NewOrder {
+func GetNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*NewOrder, bool) {
 	x := &NewOrder {
+		NO_O_ID : oid,
 		NO_D_ID : did,
 		NO_W_ID : wid,
 	}
 	gkey := x.gkey()
-	readtbl(txn, gkey, x)
-	return x
+	found := readtbl(txn, gkey, x)
+	return x, found
 }
 
 /**
  * Table mutator methods.
  */
-func InsertNewOrder(txn *txn.Txn, did uint8, wid uint8, oid uint32) {
+func InsertNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
 	x := &NewOrder {
+		NO_O_ID : oid,
 		NO_D_ID : did,
 		NO_W_ID : wid,
 	}
 	gkey := x.gkey()
-	found := readtbl(txn, gkey, x)
-	if !found {
-		x.NO_O_IDS = make([]uint32, 0)
-	}
-
-	/* Check if `oid` does not alreay exist. */
-	for _, oidx := range x.NO_O_IDS {
-		if oidx == oid {
-			return
-		}
-	}
-
-	x.NO_O_IDS = append(x.NO_O_IDS, oid)
 	writetbl(txn, gkey, x)
 }
 
-func DeleteNewOrder(txn *txn.Txn, did uint8, wid uint8, oid uint32) {
+func DeleteNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
 	x := &NewOrder {
+		NO_O_ID : oid,
 		NO_D_ID : did,
 		NO_W_ID : wid,
 	}
 	gkey := x.gkey()
-	found := readtbl(txn, gkey, x)
-	if !found {
-		return
-	}
-
-	/* Check if `oid` does not alreay exist. */
-	var idx int
-	for idx = 0; idx < len(x.NO_O_IDS); idx++ {
-		if x.NO_O_IDS[idx] == oid {
-			break
-		}
-	}
-	if idx == len(x.NO_O_IDS) {
-		return
-	}
-
-	x.NO_O_IDS = append(x.NO_O_IDS[: idx], x.NO_O_IDS[idx + 1 :]...)
-	writetbl(txn, gkey, x)
+	deletetbl(txn, gkey)
 }
 
 /**
