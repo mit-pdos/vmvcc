@@ -12,72 +12,92 @@ import (
  * TODO: Initialize other performance-unrelated fields according to TPC-C spec.
  */
 
-func LoadTPCC(
+func LoadTPCCItems(txn *txn.Txn, nItems uint32) {
+	for iid := uint32(1); iid <= nItems; iid++ {
+		loadItem(txn, iid, true)
+	}
+}
+
+func LoadOneTPCCWarehouse(
+	txn *txn.Txn, wid uint8,
+	nItems uint32, nWarehouses uint8,
+	nLocalDists uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
+) {
+	hid := uint64(wid - 1) * uint64(nLocalDists) * uint64(nLocalCustomers) + 1
+
+	/* Load warehouse. */
+	loadWarehouse(txn, wid)
+	for did := uint8(1); did <= nLocalDists; did++ {
+		fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
+		/* Load district in each warehouse. */
+		loadDistrict(txn, did, wid, nInitLocalNewOrders + 1)
+
+		/* Make a permutation of cids to be used for making Order. */
+		cids := make([]uint32, nLocalCustomers)
+		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
+			/* Load customer in each pair of warehouse and district. */
+			loadCustomer(txn, cid, did, wid, true)
+			loadHistory(txn, hid, cid, did, wid)
+			hid++
+			cids[cid - 1] = cid
+		}
+
+		/* Shuffle `cids`. */
+		rand.Shuffle(len(cids), func(i, j int) {
+			cids[i], cids[j] = cids[j], cids[i]
+		})
+
+		/* Every customer has one initial order. */
+		for oid := uint32(1); oid <= nLocalCustomers; oid++ {
+			r := uint32(MAX_INIT_OL_CNT + 1 - MIN_INIT_OL_CNT)
+			nOrderLines := uint8(rand.Uint32() % r + uint32(MIN_INIT_OL_CNT))
+			isNewOrder := false
+			if oid > nLocalCustomers - nInitLocalNewOrders {
+				/* Load new order for the last `nInitLocalNewOrders`. */
+				loadNewOrder(txn, oid, did, wid)
+				isNewOrder = true
+			}
+			/* Load order in each pair of warehouse and district. */
+			/* TODO: get current time */
+			var entryd uint32 = 0
+			loadOrder(
+				txn, oid, did, wid, cids[oid - 1], entryd,
+				nOrderLines, isNewOrder,
+			)
+
+			/**
+			 * Load order line.
+			 * The reference implementation starts from 0, but I think it
+			 * should start from 1.
+			 * See our txn-neworder.go:L129, or their drivers/sqlitedriver.py:L276.
+			 */
+			for olnum := uint8(1); olnum <= nOrderLines; olnum++ {
+				/* Load order line in each order. */
+				loadOrderLine(
+					txn, oid, did, wid, olnum, entryd,
+					nWarehouses, nItems, isNewOrder,
+				)
+			}
+		}
+	}
+}
+
+
+/**
+ * Sequential loader, could be very slow. Exists for demo/testing.
+ */
+func LoadTPCCSeq(
 	txn *txn.Txn,
 	nItems uint32, nWarehouses uint8,
 	nLocalDists uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
 ) {
-	for iid := uint32(1); iid <= nItems; iid++ {
-		loadItem(txn, iid, true)
-	}
+	LoadTPCCItems(txn, nItems)
 
-	var hid uint64 = 1
 	for wid := uint8(1); wid <= nWarehouses; wid++ {
-		/* Load warehouse. */
-		loadWarehouse(txn, wid)
-		for did := uint8(1); did <= nLocalDists; did++ {
-			fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
-			/* Load district in each warehouse. */
-			loadDistrict(txn, did, wid, nInitLocalNewOrders + 1)
-
-			/* Make a permutation of cids to be used for making Order. */
-			cids := make([]uint32, nLocalCustomers)
-			for cid := uint32(1); cid <= nLocalCustomers; cid++ {
-				/* Load customer in each pair of warehouse and district. */
-				loadCustomer(txn, cid, did, wid, true)
-				loadHistory(txn, hid, cid, did, wid)
-				hid++
-				cids[cid - 1] = cid
-			}
-
-			/* Shuffle `cids`. */
-			rand.Shuffle(len(cids), func(i, j int) {
-				cids[i], cids[j] = cids[j], cids[i]
-			})
-
-			/* Every customer has one initial order. */
-			for oid := uint32(1); oid <= nLocalCustomers; oid++ {
-				r := uint32(MAX_INIT_OL_CNT + 1 - MIN_INIT_OL_CNT)
-				nOrderLines := uint8(rand.Uint32() % r + uint32(MIN_INIT_OL_CNT))
-				isNewOrder := false
-				if oid > nLocalCustomers - nInitLocalNewOrders {
-					/* Load new order for the last `nInitLocalNewOrders`. */
-					loadNewOrder(txn, oid, did, wid)
-					isNewOrder = true
-				}
-				/* Load order in each pair of warehouse and district. */
-				/* TODO: get current time */
-				var entryd uint32 = 0
-				loadOrder(
-					txn, oid, did, wid, cids[oid - 1], entryd,
-					nOrderLines, isNewOrder,
-				)
-
-				/**
-				 * Load order line.
-				 * The reference implementation starts from 0, but I think it
-				 * should start from 1.
-				 * See our txn-neworder.go:L129, or their drivers/sqlitedriver.py:L276.
-				 */
-				for olnum := uint8(1); olnum <= nOrderLines; olnum++ {
-					/* Load order line in each order. */
-					loadOrderLine(
-						txn, oid, did, wid, olnum, entryd,
-						nWarehouses, nItems, isNewOrder,
-					)
-				}
-			}
-		}
+		LoadOneTPCCWarehouse(
+			txn, wid, nItems, nWarehouses,
+			nLocalDists, nLocalCustomers, nInitLocalNewOrders,
+		)
 	}
 }
 
@@ -174,4 +194,14 @@ func loadHistory(txn *txn.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 	)
 }
 
-/* TODO: stock */
+func loadStock(txn *txn.Txn, iid uint32, wid uint8, original bool) {
+	var quantity uint16 = 20 // TODO
+	var dists [10][24]byte // TODO
+	var data string = "stockdata" // TODO: based on original
+	InsertStock(
+		txn,
+		iid, wid,
+		quantity, dists, 0, 0, 0, data,
+	)
+
+}

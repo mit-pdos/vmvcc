@@ -289,7 +289,7 @@ func TestLoader(t *testing.T) {
 	var nInitLocalOrders = nLocalCusts
 	assert.LessOrEqual(nInitLocalNewOrders, nInitLocalOrders)
 	body := func(txni *txn.Txn) bool {
-		LoadTPCC(
+		LoadTPCCSeq(
 			txni, nItems, nWarehouses,
 			nLocalDists, nLocalCusts, nInitLocalNewOrders, 
 		)
