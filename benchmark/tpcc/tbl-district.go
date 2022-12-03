@@ -8,14 +8,38 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
-func GetDistrict(txn *txn.Txn, did uint8, dwid uint8) *District {
+func GetDistrict(txn *txn.Txn, did uint8, wid uint8) *District {
 	x := &District {
 		D_ID   : did,
-		D_W_ID : dwid,
+		D_W_ID : wid,
 	}
 	gkey := x.gkey()
 	readtbl(txn, gkey, x)
 	return x
+}
+
+func InsertDistrict(
+	txn *txn.Txn,
+	did uint8, wid uint8,
+	name, street1, street2, city string,
+	state [2]byte, zip [9]byte, tax, ytd float32,
+	nextoid uint32,
+) {
+	x := &District {
+		D_ID        : did,
+		D_W_ID      : wid,
+		D_STATE     : state,
+		D_ZIP       : zip,
+		D_TAX       : tax,
+		D_YTD       : ytd,
+		D_NEXT_O_ID : nextoid,
+	}
+	copy(x.D_NAME[:], name)
+	copy(x.D_STREET_1[:], street1)
+	copy(x.D_STREET_2[:], street2)
+	copy(x.D_CITY[:], city)
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 func (x *District) IncrementNextOrderId(txn *txn.Txn) {

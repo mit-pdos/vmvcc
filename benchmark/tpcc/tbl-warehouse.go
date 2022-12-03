@@ -15,6 +15,27 @@ func GetWarehouse(txn *txn.Txn, wid uint8) *Warehouse {
 	return x
 }
 
+func InsertWarehouse(
+	txn *txn.Txn,
+	wid uint8,
+	name, street1, street2, city string,
+	state [2]byte, zip [9]byte, tax, ytd float32,
+) {
+	x := &Warehouse {
+		W_ID    : wid,
+		W_STATE : state,
+		W_ZIP   : zip,
+		W_TAX   : tax,
+		W_YTD   : ytd,
+	}
+	copy(x.W_NAME[:], name)
+	copy(x.W_STREET_1[:], street1)
+	copy(x.W_STREET_2[:], street2)
+	copy(x.W_CITY[:], city)
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
+}
+
 /**
  * Table mutator methods.
  */
