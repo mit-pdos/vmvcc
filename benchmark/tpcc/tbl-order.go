@@ -23,23 +23,26 @@ func GetOrdersByIndex(
 	txn *txn.Txn,
 	cid uint32, did uint8, wid uint8,
 ) []*Order {
-	records := make([]*Order, 0)
+	records := make([]*Order, 0, 10)
 
 	/* Read the index entry. */
-	// gkeyidx := tbl.gkeyidx()
-	// opaque, found := txn.Get(gkeyidx)
-	// if !found {
-	// 	return records
-	// }
-	// gkeys := decodeidx(opaque)
+	x := &Order {
+		O_C_ID : cid,
+		O_D_ID : did,
+		O_W_ID : wid,
+	}
+	gkeyidx := x.gkeyidx()
+	gkeys, found := readidx(txn, gkeyidx)
+	if !found {
+		return records
+	}
 
 	/* Read all the records. */
-	// for _, gkey := range gkeys {
-	// 	opaque, _ := txn.Get(gkey)
-	// 	record := new(IndexedTable)
-	// 	record.decode(opaque)
-	// 	records := append(records, record)
-	// }
+	for _, gkey := range gkeys {
+		r := new(Order)
+		readtbl(txn, gkey, r)
+		records = append(records, r)
+	}
 
 	return records
 }
@@ -64,6 +67,8 @@ func InsertOrder(
 	}
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
+
+	/* TODO: update index. */
 }
 
 /**

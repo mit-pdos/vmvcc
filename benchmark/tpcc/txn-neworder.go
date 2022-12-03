@@ -126,7 +126,7 @@ func neworder(
 		total += olamount
 
 		/* Insert an OrderLine record. */
-		olnum := uint8(i)
+		olnum := uint8(i) + 1
 		InsertOrderLine(
 			txn, oid, did, wid, olnum,
 			iid, iwid, oentryd, olquantity, olamount, sdist,

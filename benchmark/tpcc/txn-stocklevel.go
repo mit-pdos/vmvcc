@@ -31,7 +31,7 @@ func stocklevel(
 	/* Read the latest 20 orders from OrderLine. */
 	for oid := oidlb; oid < oidub; oid++ {
 		/* Read all the items in this order. */
-		for olnum := uint8(0); olnum < 15; olnum++ {
+		for olnum := uint8(1); olnum <= 15; olnum++ {
 			orderline, found := GetOrderLine(txn, oid, did, wid, olnum)
 			if !found {
 				break
