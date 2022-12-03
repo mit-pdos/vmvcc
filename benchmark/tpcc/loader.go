@@ -21,13 +21,14 @@ func LoadTPCCItems(txn *txn.Txn, nItems uint32) {
 func LoadOneTPCCWarehouse(
 	txn *txn.Txn, wid uint8,
 	nItems uint32, nWarehouses uint8,
-	nLocalDists uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
+	nLocalDistricts uint8, nLocalCustomers uint32,
+	nInitLocalNewOrders uint32,
 ) {
-	hid := uint64(wid - 1) * uint64(nLocalDists) * uint64(nLocalCustomers) + 1
+	hid := uint64(wid - 1) * uint64(nLocalDistricts) * uint64(nLocalCustomers) + 1
 
 	/* Load warehouse. */
 	loadWarehouse(txn, wid)
-	for did := uint8(1); did <= nLocalDists; did++ {
+	for did := uint8(1); did <= nLocalDistricts; did++ {
 		fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
 		/* Load district in each warehouse. */
 		loadDistrict(txn, did, wid, nInitLocalNewOrders + 1)
@@ -36,7 +37,8 @@ func LoadOneTPCCWarehouse(
 		cids := make([]uint32, nLocalCustomers)
 		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
 			/* Load customer in each pair of warehouse and district. */
-			loadCustomer(txn, cid, did, wid, true)
+			bc := rand.Uint32() % 10 < 1
+			loadCustomer(txn, cid, did, wid, bc)
 			loadHistory(txn, hid, cid, did, wid)
 			hid++
 			cids[cid - 1] = cid
@@ -93,14 +95,15 @@ func LoadOneTPCCWarehouse(
 func LoadTPCCSeq(
 	txn *txn.Txn,
 	nItems uint32, nWarehouses uint8,
-	nLocalDists uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
+	nLocalDistricts uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
 ) {
 	LoadTPCCItems(txn, nItems)
 
 	for wid := uint8(1); wid <= nWarehouses; wid++ {
 		LoadOneTPCCWarehouse(
 			txn, wid, nItems, nWarehouses,
-			nLocalDists, nLocalCustomers, nInitLocalNewOrders,
+			nLocalDistricts, nLocalCustomers,
+			nInitLocalNewOrders,
 		)
 	}
 }
@@ -132,12 +135,18 @@ func loadDistrict(txn *txn.Txn, did uint8, wid uint8, nextoid uint32) {
 }
 
 func loadCustomer(txn *txn.Txn, cid uint32, did uint8, wid uint8, bc bool) {
+	var credit [2]byte
+	if bc {
+		credit = [2]byte{ 'B', 'C' }
+	} else {
+		credit = [2]byte{ 'G', 'C' }
+	}
 	InsertCustomer(
 		txn,
 		cid, did, wid,
 		"first", [2]byte{'O', 'S'}, "last", "street1", "street2", "city",
 		[2]byte{ 'M', 'A' }, [9]byte{ '0', '2', '1', '3', '9' },
-		[16]byte{'0', '1'}, 1994, [2]byte{'B', 'C'}, 12.3, 43.1, 60.0, 80.0,
+		[16]byte{ '0', '1' }, 1994, credit, 12.3, 43.1, 60.0, 80.0,
 		3, 9, "data",
 	)
 }

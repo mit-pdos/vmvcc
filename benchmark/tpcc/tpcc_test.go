@@ -278,20 +278,22 @@ func TestLoader(t *testing.T) {
 	var ok bool
 	// var nItems uint32 = N_ITEMS
 	// var nWarehouses uint8 = 10
-	// var nLocalDists uint8 = N_DISTRICTS_PER_WAREHOUSE
-	// var nLocalCusts uint32 = N_CUSTOMERS_PER_DISTRICT
+	// var nLocalDistricts uint8 = N_DISTRICTS_PER_WAREHOUSE
+	// var nLocalCustomers uint32 = N_CUSTOMERS_PER_DISTRICT
 	// var nInitLocalNewOrders uint32 = N_INIT_NEW_ORDERS_PER_DISTRICT
 	var nItems uint32 = 10
 	var nWarehouses uint8 = 2
-	var nLocalDists uint8 = 2
-	var nLocalCusts uint32 = 10
+	var nLocalDistricts uint8 = 2
+	var nLocalCustomers uint32 = 100
 	var nInitLocalNewOrders uint32 = 5
-	var nInitLocalOrders = nLocalCusts
+	var nInitLocalOrders = nLocalCustomers
 	assert.LessOrEqual(nInitLocalNewOrders, nInitLocalOrders)
 	body := func(txni *txn.Txn) bool {
 		LoadTPCCSeq(
-			txni, nItems, nWarehouses,
-			nLocalDists, nLocalCusts, nInitLocalNewOrders, 
+			txni,
+			nItems, nWarehouses,
+			nLocalDistricts, nLocalCustomers,
+			nInitLocalNewOrders, 
 		)
 		return true
 	}
@@ -350,9 +352,9 @@ func TestLoader(t *testing.T) {
 		var district *District
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDists + 1; did++ {
+			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
 				district, found = GetDistrict(txni, did, wid)
-				if wid < 1 || wid > nWarehouses || did < 1 || did > nLocalDists {
+				if wid < 1 || wid > nWarehouses || did < 1 || did > nLocalDistricts {
 					assert.Equal(false, found)
 				} else {
 					assert.Equal(true, found)
@@ -368,27 +370,37 @@ func TestLoader(t *testing.T) {
 
 	/* Testing Customer. */
 	body = func(txni *txn.Txn) bool {
+		/* For testing distribution. */
+		var cntBCCustomers uint64 = 0
+		var cntTotalCustomers uint64 = 0
+
 		var customer *Customer
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDists + 1; did++ {
-				for cid := uint32(0); cid <= nLocalCusts + 1; cid++ {
+			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
+				for cid := uint32(0); cid <= nLocalCustomers + 1; cid++ {
 					customer, found = GetCustomer(txni, cid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
-						did < 1 || did > nLocalDists ||
-						cid < 1 || cid > nLocalCusts {
+						did < 1 || did > nLocalDistricts ||
+						cid < 1 || cid > nLocalCustomers {
 						assert.Equal(false, found)
 					} else {
 						assert.Equal(true, found)
 						assert.Equal(cid, customer.C_ID)
 						assert.Equal(did, customer.C_D_ID)
 						assert.Equal(wid, customer.C_W_ID)
+						cntTotalCustomers++
+						if customer.C_CREDIT == [2]byte{ 'B', 'C' } {
+							cntBCCustomers++
+						}
 					}
 				}
 			}
 		}
 
-		/* TODO: Testing whehther ~10% of customers have a bad credit. */
+		/* Check that ~10% of customers have a bad credit. */
+		ratioBC := float64(cntBCCustomers) / float64(cntTotalCustomers) * 100.0
+		fmt.Printf("Ratio of customers with bad credits = %f%% (sholud be ~10%%).\n", ratioBC)
 		return true
 	}
 	ok = txno.DoTxn(body)
@@ -398,7 +410,7 @@ func TestLoader(t *testing.T) {
 	body = func(txni *txn.Txn) bool {
 		var history *History
 		var found bool
-		var nHistory uint64 = uint64(nWarehouses) * uint64(nLocalDists) * uint64(nLocalCusts)
+		var nHistory uint64 = uint64(nWarehouses) * uint64(nLocalDistricts) * uint64(nLocalCustomers)
 		for hid := uint64(0); hid <= nHistory + 1; hid++ {
 			history, found = GetHistory(txni, hid)
 			if hid < 1 || hid > nHistory {
@@ -409,9 +421,9 @@ func TestLoader(t *testing.T) {
 				assert.Less(uint8(0), history.H_W_ID)
 				assert.LessOrEqual(history.H_W_ID, nWarehouses)
 				assert.Less(uint8(0), history.H_D_ID)
-				assert.LessOrEqual(history.H_D_ID, nLocalDists)
+				assert.LessOrEqual(history.H_D_ID, nLocalDistricts)
 				assert.Less(uint32(0), history.H_C_ID)
-				assert.LessOrEqual(history.H_C_ID, nLocalCusts)
+				assert.LessOrEqual(history.H_C_ID, nLocalCustomers)
 			}
 		}
 		return true
@@ -430,12 +442,12 @@ func TestLoader(t *testing.T) {
 		var orderline *OrderLine
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDists + 1; did++ {
+			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
 				for oid := uint32(0); oid <= nInitLocalOrders + 1; oid++ {
 					/* Order. */
 					order, found = GetOrder(txni, oid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
-						did < 1 || did > nLocalDists ||
+						did < 1 || did > nLocalDistricts ||
 						oid < 1 || oid > nInitLocalOrders {
 						assert.Equal(false, found)
 					} else {
@@ -444,7 +456,7 @@ func TestLoader(t *testing.T) {
 						assert.Equal(did, order.O_D_ID)
 						assert.Equal(wid, order.O_W_ID)
 						assert.LessOrEqual(uint32(1), order.O_C_ID)
-						assert.LessOrEqual(order.O_C_ID, nLocalCusts)
+						assert.LessOrEqual(order.O_C_ID, nLocalCustomers)
 						assert.LessOrEqual(MIN_INIT_OL_CNT, order.O_OL_CNT)
 						assert.LessOrEqual(order.O_OL_CNT, MAX_INIT_OL_CNT)
 					}
@@ -454,7 +466,7 @@ func TestLoader(t *testing.T) {
 					newoidub := nInitLocalOrders
 					neworder, found = GetNewOrder(txni, oid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
-						did < 1 || did > nLocalDists ||
+						did < 1 || did > nLocalDistricts ||
 						oid <= newoidlb || oid > newoidub {
 						assert.Equal(false, found)
 					} else {
@@ -469,7 +481,7 @@ func TestLoader(t *testing.T) {
 					for olnum := uint8(1); olnum <= olcnt + 1; olnum++ {
 						orderline, found = GetOrderLine(txni, oid, did, wid, olnum)
 						if wid < 1 || wid > nWarehouses ||
-							did < 1 || did > nLocalDists ||
+							did < 1 || did > nLocalDistricts ||
 							oid < 1 || oid > nInitLocalOrders ||
 							olnum < 1 || olnum > olcnt {
 							assert.Equal(false, found)
@@ -529,7 +541,7 @@ func TestLoader(t *testing.T) {
 
 
 /**
- * Tests for "business" transactions.
+ * Tests for TPC-C "business" transactions.
  */
 func TestPayment(t *testing.T) {
 	assert := assert.New(t)
