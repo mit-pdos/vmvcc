@@ -503,6 +503,28 @@ func TestLoader(t *testing.T) {
 	}
 	ok = txno.DoTxn(body)
 	assert.Equal(true, ok)
+
+	/* Testing Stock. */
+	body = func(txni *txn.Txn) bool {
+		var stock *Stock
+		var found bool
+		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+			for iid := uint32(0); iid <= nItems + 1; iid++ {
+				stock, found = GetStock(txni, iid, wid)
+				if wid < 1 || wid > nWarehouses || iid < 1 || iid > nItems {
+					assert.Equal(false, found)
+				} else {
+					assert.Equal(true, found)
+					assert.Equal(iid, stock.S_I_ID)
+					assert.Equal(wid, stock.S_W_ID)
+				}
+			}
+		}
+
+		return true
+	}
+	ok = txno.DoTxn(body)
+	assert.Equal(true, ok)
 }
 
 

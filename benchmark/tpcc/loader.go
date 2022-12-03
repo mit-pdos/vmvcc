@@ -80,6 +80,10 @@ func LoadOneTPCCWarehouse(
 			}
 		}
 	}
+	for iid := uint32(1); iid <= nItems; iid++ {
+		/* Load stock. */
+		loadStock(txn, iid, wid, false) // TODO: original
+	}
 }
 
 
