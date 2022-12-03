@@ -478,7 +478,7 @@ func TestLoader(t *testing.T) {
 
 					/* Orderline. */
 					olcnt := order.O_OL_CNT
-					for olnum := uint8(1); olnum <= olcnt + 1; olnum++ {
+					for olnum := uint8(0); olnum <= olcnt + 1; olnum++ {
 						orderline, found = GetOrderLine(txni, oid, did, wid, olnum)
 						if wid < 1 || wid > nWarehouses ||
 							did < 1 || did > nLocalDistricts ||
