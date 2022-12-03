@@ -48,6 +48,12 @@ func InsertOrderLine(
 	writetbl(txn, gkey, x)
 }
 
+func (x *OrderLine) UpdateDeliveryDate(txn *txn.Txn, deliveryd uint32) {
+	x.OL_DELIVERY_D = deliveryd
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
+}
+
 /**
  * Convert primary keys of table OrderLine to a global key.
  * Used by all both TableRead and TableWrite.

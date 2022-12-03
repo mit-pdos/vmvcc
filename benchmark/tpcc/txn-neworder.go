@@ -76,7 +76,7 @@ func neworder(
 	)
 
 	/* Insert a NewOrder record. */
-	InsertNewOrder(txn, oid, did, wid)
+	InsertNewOrder(txn, did, wid, oid)
 
 	/* For each item, read and update stock, create an order line. */
 	var total float32 = 0

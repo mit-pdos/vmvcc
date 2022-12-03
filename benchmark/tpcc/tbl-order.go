@@ -69,6 +69,19 @@ func InsertOrder(
 	writetbl(txn, gkey, x)
 
 	/* TODO: update index. */
+	gkeyidx := x.gkeyidx()
+	ents, found := readidx(txn, gkeyidx)
+	if !found {
+		ents = make([]uint64, 0)
+	}
+	ents = append(ents, gkey)
+	writeidx(txn, gkeyidx, ents)
+}
+
+func (x *Order) UpdateCarrier(txn *txn.Txn, ocarrierid uint8) {
+	x.O_CARRIER_ID = ocarrierid
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
 }
 
 /**

@@ -77,6 +77,12 @@ func (x *Customer) UpdateOnGoodCredit(txn *txn.Txn, hamount float32) {
 	writetbl(txn, gkey, x)
 }
 
+func (x *Customer) IncreaseBalance(txn *txn.Txn, total float32) {
+	x.C_BALANCE += total
+	gkey := x.gkey()
+	writetbl(txn, gkey, x)
+}
+
 /**
  * Convert primary keys of table Customer to a global key.
  * Used by all both TableRead and TableWrite.

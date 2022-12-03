@@ -74,13 +74,17 @@ type History struct {
 	H_DATA   [25]byte
 }
 
-/* NewOrder table. */
+/**
+ * NewOrder table. 
+ * We diverge from TPC-C which uses (NO_O_ID, NO_D_ID, NO_W_ID) as primary key.
+ * We use a more efficient representation that stores a slice of NO_O_ID.
+ */
 type NewOrder struct {
-	/* Primary key: (NO_O_ID, NO_D_ID, NO_W_ID) */
-	NO_O_ID uint32
-	NO_D_ID uint8
-	NO_W_ID uint8
-	/* No data fields */
+	/* Primary key: (NO_D_ID, NO_W_ID) */
+	NO_D_ID  uint8
+	NO_W_ID  uint8
+	/* Data fields */
+	NO_O_IDS []uint32
 }
 
 /* Order table. */
