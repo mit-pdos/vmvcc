@@ -54,6 +54,14 @@ func TestEncodeDecodeCustomer(t *testing.T) {
 	assert.Equal(*c, *d)
 }
 
+func TestIndexEncodeDecode(t *testing.T) {
+	assert := assert.New(t)
+	gkeys := []uint64{ 4, 7, 2, 1, 81 }
+	fmt.Printf("len(encodeidx(gkeys)) = %d\n", len(encodeidx(gkeys)))
+	fmt.Printf("%v\n", decodeidx(encodeidx(gkeys)))
+	assert.Equal(gkeys, decodeidx(encodeidx(gkeys)))
+}
+
 func TestCustomerTxn(t *testing.T) {
 	assert := assert.New(t)
 	mgr := txn.MkTxnMgr()
@@ -69,17 +77,12 @@ func TestCustomerTxn(t *testing.T) {
 			[16]byte{'0', '1'}, 1994, [2]byte{'B', 'C'}, 12.3, 43.1, 60.0, 80.0,
 			3, 9, "data",
 		)
-		// c := NewCustomer(20, 95, 41)
-		// c.C_BALANCE = 60.0
-		// c.C_YTD_PAYMENT = 80.0
-		// c.C_PAYMENT_CNT = 3
-		// c.C_DATA = ""
 		return true
 	}
 	ok := txno.DoTxn(body)
 	assert.Equal(true, ok)
 
-	/* Read it and update it. */
+	/* Read it, update it, and read it again in one transaction. */
 	body = func(txn *txn.Txn) bool {
 		c := GetCustomer(txn, 20, 95, 41)
 		assert.Equal(true, ok)
@@ -89,9 +92,19 @@ func TestCustomerTxn(t *testing.T) {
 		assert.Equal(float32(60.0), c.C_BALANCE)
 		assert.Equal(float32(80.0), c.C_YTD_PAYMENT)
 		assert.Equal(uint16(3), c.C_PAYMENT_CNT)
-		// assert.Equal("", c.C_DATA)
+		assert.Equal("data", string(beforeNull(c.C_DATA[:])))
 
 		c.UpdateOnBadCredit(txn, 10.0, "Hello Customer")
+
+		c = GetCustomer(txn, 20, 95, 41)
+		assert.Equal(true, ok)
+		assert.Equal(uint32(20), c.C_ID)
+		assert.Equal(uint8(95), c.C_D_ID)
+		assert.Equal(uint8(41), c.C_W_ID)
+		assert.Equal(float32(50.0), c.C_BALANCE)
+		assert.Equal(float32(90.0), c.C_YTD_PAYMENT)
+		assert.Equal(uint16(4), c.C_PAYMENT_CNT)
+		assert.Equal("Hello Customer", string(beforeNull(c.C_DATA[:])))
 		return true
 	}
 	ok = txno.DoTxn(body)
@@ -107,7 +120,7 @@ func TestCustomerTxn(t *testing.T) {
 		assert.Equal(float32(50.0), c.C_BALANCE)
 		assert.Equal(float32(90.0), c.C_YTD_PAYMENT)
 		assert.Equal(uint16(4), c.C_PAYMENT_CNT)
-		// assert.Equal("1 2 3 4 5|", c.C_DATA)
+		assert.Equal("Hello Customer", string(beforeNull(c.C_DATA[:])))
 		return true
 	}
 	ok = txno.DoTxn(body)
@@ -130,10 +143,6 @@ func TestPayment(t *testing.T) {
 	/* Insert a Customer record. */
 	var ok bool
 	body := func(txn *txn.Txn) bool {
-		// c.C_BALANCE = 60.0
-		// c.C_YTD_PAYMENT = 80.0
-		// c.C_PAYMENT_CNT = 3
-		// c.C_CREDIT = [2]byte{'B', 'C'}
 		InsertCustomer(
 			txn,
 			20, 95, 41,

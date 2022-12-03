@@ -26,6 +26,7 @@ func writeidx(txn *txn.Txn, gkey uint64, ents []uint64) {
  */
 func encodeidx(gkeys []uint64) string {
 	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, uint64(len(gkeys)))
 	binary.Write(buf, binary.LittleEndian, gkeys)
 	return buf.String()
 }
@@ -34,8 +35,10 @@ func encodeidx(gkeys []uint64) string {
  * Decode an opaque string to a slice of global keys pointing to table records.
  */
 func decodeidx(opaque string) []uint64 {
-	// TODO: preallocate
-	gkeys := make([]uint64, 0)
-	binary.Read(strings.NewReader(opaque), binary.LittleEndian, &gkeys)
+	var n uint64
+	reader := strings.NewReader(opaque)
+	binary.Read(reader, binary.LittleEndian, &n)
+	gkeys := make([]uint64, n)
+	binary.Read(reader, binary.LittleEndian, gkeys)
 	return gkeys
 }
