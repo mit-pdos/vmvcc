@@ -1,6 +1,8 @@
 package tpcc
 
-/* Warehouse table. */
+/**
+ * Table definitions.
+ */
 type Warehouse struct {
 	/* Primary key: W_ID */
 	W_ID       uint8
@@ -15,7 +17,6 @@ type Warehouse struct {
 	W_YTD      float32
 }
 
-/* District table. */
 type District struct {
 	/* Primary key: (D_W_ID, D_ID) */
 	D_ID        uint8
@@ -34,7 +35,6 @@ type District struct {
 	D_OLD_O_ID  uint32
 }
 
-/* Customer table. */
 type Customer struct {
 	/* Primary key: (C_ID, C_D_ID, C_W_ID) */
 	C_ID           uint32
@@ -61,7 +61,6 @@ type Customer struct {
 	C_DATA         [500]byte
 }
 
-/* History table. */
 type History struct {
 	/* Primary key: H_ID (no primary key required in the spec) */
 	H_ID     uint64 /* the MSB, reserved for table ID, should not be used */
@@ -76,9 +75,6 @@ type History struct {
 	H_DATA   [25]byte
 }
 
-/**
- * NewOrder table. 
- */
 type NewOrder struct {
 	/* Primary key: (NO_O_ID, NO_D_ID, NO_W_ID) */
 	NO_O_ID uint32
@@ -87,7 +83,6 @@ type NewOrder struct {
 	/* No data fields */
 }
 
-/* Order table. */
 type Order struct {
 	/* Primary key: (O_W_ID, O_D_ID, O_ID) */
 	O_ID         uint32
@@ -102,7 +97,6 @@ type Order struct {
 }
 const O_CARRIER_ID_NULL uint8 = 255
 
-/* OrderLine table. */
 type OrderLine struct {
 	/* Primary key: (OL_W_ID, OL_D_ID, OL_W_ID, OL_NUMBER) */
 	OL_O_ID        uint32
@@ -119,7 +113,6 @@ type OrderLine struct {
 }
 const OL_DELIVERY_D_NULL uint32 = 0xffffffff
 
-/* Item table. */
 type Item struct {
 	/* Primary key: I_ID */
 	I_ID    uint32
@@ -130,7 +123,6 @@ type Item struct {
 	I_DATA  [50]byte
 }
 
-/* Stock table. */
 type Stock struct {
 	/* Primary key: (S_W_ID, S_I_ID) */
 	S_I_ID       uint32
@@ -159,3 +151,43 @@ const (
 	/* ORDER index on (O_W_ID, O_D_ID, O_C_ID). */
 	IDXID_ORDER
 )
+
+/**
+ * Input definitions.
+ */
+type NewOrderInput struct {
+	W_ID      uint8
+	D_ID      uint8
+	C_ID      uint32
+	O_ENTRY_D uint32
+	I_IDS     []uint32
+	I_W_IDS   []uint8
+	I_QTYS    []uint8
+}
+
+type PaymentInput struct {
+	W_ID     uint8
+	D_ID     uint8
+	H_AMOUNT float32
+	C_W_ID   uint8
+	C_D_ID   uint8
+	C_ID     uint32
+}
+
+type OrderStatusInput struct {
+	W_ID uint8
+	D_ID uint8
+	C_ID uint32
+}
+
+type DeliveryInput struct {
+	W_ID          uint8
+	O_CARRIER_ID  uint8
+	OL_DELIVERY_D uint32
+}
+
+type StockLevelInput struct {
+	W_ID      uint8
+	D_ID      uint8
+	THRESHOLD uint16
+}

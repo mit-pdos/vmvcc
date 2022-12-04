@@ -51,11 +51,13 @@ func stocklevel(
 	return true
 }
 
-func TxnStockLevel(
-	txno *txn.Txn,
-	wid uint8, did uint8, threshold uint16,
-) (uint32, bool) {
+func TxnStockLevel(txno *txn.Txn, p *StockLevelInput) (uint32, bool) {
+	/* prepare output */
 	var cnt uint32 = 0
+	/* prepare input */
+	wid := p.W_ID
+	did := p.D_ID
+	threshold := p.THRESHOLD
 	body := func(txni *txn.Txn) bool {
 		return stocklevel(txni, wid, did, threshold, &cnt)
 	}

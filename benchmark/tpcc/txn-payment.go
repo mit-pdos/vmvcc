@@ -64,7 +64,7 @@ func payment(
 func TxnPayment(txno *txn.Txn, p *PaymentInput) bool {
 	wid := p.W_ID
 	did := p.D_ID
-	hamount := p.HAMOUNT
+	hamount := p.H_AMOUNT
 	cwid := p.C_W_ID
 	cdid := p.C_D_ID
 	cid := p.C_ID

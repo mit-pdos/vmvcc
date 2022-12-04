@@ -89,11 +89,13 @@ func orderstatus(
 	return true
 }
 
-func TxnOrderStatus(
-	txno *txn.Txn,
-	wid uint8, did uint8, cid uint32,
-) (*OrderStatusResult, bool) {
+func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput) (*OrderStatusResult, bool) {
+	/* prepare output */
 	res := new(OrderStatusResult)
+	/* prepare input */
+	wid := p.W_ID
+	did := p.D_ID
+	cid := p.C_ID
 	body := func(txni *txn.Txn) bool {
 		return orderstatus(txni, wid, did, cid, res)
 	}

@@ -571,7 +571,7 @@ func TestPayment(t *testing.T) {
 	p := &PaymentInput{
 		W_ID : wid,
 		D_ID : did,
-		HAMOUNT : hamount,
+		H_AMOUNT : hamount,
 		C_W_ID : cwid,
 		C_D_ID : cdid,
 		C_ID: cid,

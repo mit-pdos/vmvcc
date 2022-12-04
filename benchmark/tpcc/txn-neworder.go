@@ -147,14 +147,19 @@ func neworder(
 	return true
 }
 
-func TxnNewOrder(
-	txno *txn.Txn,
-	wid uint8, did uint8, cid uint32, oentryd uint32,
-	iids []uint32, iwids []uint8, iqtys []uint8,
-) (*Customer, *NewOrderResult, []ItemInfo, bool) {
+func TxnNewOrder(txno *txn.Txn, p *NewOrderInput) (*Customer, *NewOrderResult, []ItemInfo, bool) {
+	/* prepare output */
 	customer := new(Customer)
 	res := new(NewOrderResult)
 	iinfos := make([]ItemInfo, 0)
+	/* prepare input */
+	wid := p.W_ID
+	did := p.D_ID
+	cid := p.C_ID
+	oentryd := p.O_ENTRY_D
+	iids := p.I_IDS
+	iwids:= p.I_W_IDS
+	iqtys := p.I_QTYS
 	body := func(txni *txn.Txn) bool {
 		return neworder(
 			txni, wid, did, cid, oentryd, iids, iwids, iqtys, 

@@ -13,15 +13,6 @@ type Generator struct {
 	nLocalCustomers uint32
 }
 
-type PaymentInput struct {
-	W_ID    uint8
-	D_ID    uint8
-	HAMOUNT float32
-	C_W_ID  uint8
-	C_D_ID  uint8
-	C_ID    uint32
-}
-
 func NewGenerator(
 	src rand.Source,
 	wid uint8,
@@ -46,10 +37,17 @@ func (g *Generator) GetPaymentInput() *PaymentInput {
 	p := &PaymentInput {
 		W_ID : g.wid,
 		D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)) + 1,
-		HAMOUNT : 2.5,
+		H_AMOUNT : 2.5,
 		C_W_ID : uint8(g.rd.Uint32() % uint32(g.nWarehouses)) + 1,
 		C_D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)) + 1,
 		C_ID : g.rd.Uint32() % uint32(g.nLocalCustomers) + 1,
+	}
+	return p
+}
+
+func (g *Generator) GetNewOrderInput() *NewOrderInput {
+	p := &NewOrderInput {
+		W_ID : g.wid,
 	}
 	return p
 }

@@ -65,11 +65,13 @@ func delivery(
 	return true
 }
 
-func TxnDelivery(
-	txno *txn.Txn,
-	wid uint8, ocarrierid uint8, oldeliveryd uint32,
-) (*DeliveryResult, bool) {
+func TxnDelivery(txno *txn.Txn, p *DeliveryInput) (*DeliveryResult, bool) {
+	/* prepare output */
 	res := new(DeliveryResult)
+	/* prepare input */
+	wid := p.W_ID
+	ocarrierid := p.O_CARRIER_ID
+	oldeliveryd := p.OL_DELIVERY_D
 	body := func(txni *txn.Txn) bool {
 		return delivery(txni, wid, ocarrierid, oldeliveryd, res)
 	}

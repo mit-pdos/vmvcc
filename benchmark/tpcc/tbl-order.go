@@ -68,7 +68,7 @@ func InsertOrder(
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
 
-	/* TODO: update index. */
+	/* Update index. */
 	gkeyidx := x.gkeyidx()
 	ents, found := readidx(txn, gkeyidx)
 	if !found {
