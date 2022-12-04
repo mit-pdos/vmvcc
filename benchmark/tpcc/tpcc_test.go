@@ -283,9 +283,9 @@ func TestLoader(t *testing.T) {
 	// var nInitLocalNewOrders uint32 = N_INIT_NEW_ORDERS_PER_DISTRICT
 	var nItems uint32 = 10
 	var nWarehouses uint8 = 2
-	var nLocalDistricts uint8 = 2
+	var nLocalDistricts uint8 = 10
 	var nLocalCustomers uint32 = 100
-	var nInitLocalNewOrders uint32 = 5
+	var nInitLocalNewOrders uint32 = 30
 	var nInitLocalOrders = nLocalCustomers
 	assert.LessOrEqual(nInitLocalNewOrders, nInitLocalOrders)
 	LoadTPCCSeq(
@@ -452,8 +452,8 @@ func TestLoader(t *testing.T) {
 						assert.Equal(wid, order.O_W_ID)
 						assert.LessOrEqual(uint32(1), order.O_C_ID)
 						assert.LessOrEqual(order.O_C_ID, nLocalCustomers)
-						assert.LessOrEqual(MIN_INIT_OL_CNT, order.O_OL_CNT)
-						assert.LessOrEqual(order.O_OL_CNT, MAX_INIT_OL_CNT)
+						assert.LessOrEqual(OL_MIN_CNT, order.O_OL_CNT)
+						assert.LessOrEqual(order.O_OL_CNT, OL_MAX_CNT)
 					}
 
 					/* NewOrder, (newoidlb, newoidub] are new orders. */

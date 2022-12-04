@@ -35,6 +35,9 @@ func LoadOneTPCCWarehouse(
 	nLocalDistricts uint8, nLocalCustomers uint32,
 	nInitLocalNewOrders uint32,
 ) {
+	rd := rand.New(rand.NewSource(int64(wid)))
+
+	/* Compute the start of history id of each pair of warehouse and district */
 	hid := uint64(wid - 1) * uint64(nLocalDistricts) * uint64(nLocalCustomers) + 1
 
 	/* Load warehouse. */
@@ -60,7 +63,7 @@ func LoadOneTPCCWarehouse(
 		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
 			body = func(txni *txn.Txn) bool {
 				/* Load customer in each pair of warehouse and district. */
-				bc := rand.Uint32() % 10 < 1
+				bc := rd.Uint32() % 10 < 1
 				loadCustomer(txni, cid, did, wid, bc)
 				loadHistory(txni, hid, cid, did, wid)
 				hid++
@@ -71,15 +74,15 @@ func LoadOneTPCCWarehouse(
 		}
 
 		/* Shuffle `cids`. */
-		rand.Shuffle(len(cids), func(i, j int) {
+		rd.Shuffle(len(cids), func(i, j int) {
 			cids[i], cids[j] = cids[j], cids[i]
 		})
 
 		/* Every customer has one initial order. */
 		for oid := uint32(1); oid <= nLocalCustomers; oid++ {
 			body = func(txni *txn.Txn) bool {
-				r := uint32(MAX_INIT_OL_CNT + 1 - MIN_INIT_OL_CNT)
-				nOrderLines := uint8(rand.Uint32() % r + uint32(MIN_INIT_OL_CNT))
+				r := uint32(OL_MAX_CNT + 1 - OL_MIN_CNT)
+				nOrderLines := uint8(rd.Uint32() % r + uint32(OL_MIN_CNT))
 				isNewOrder := false
 				if oid > nLocalCustomers - nInitLocalNewOrders {
 					/* Load new order for the last `nInitLocalNewOrders`. */
@@ -103,7 +106,7 @@ func LoadOneTPCCWarehouse(
 				for olnum := uint8(1); olnum <= nOrderLines; olnum++ {
 					/* Load order line in each order. */
 					loadOrderLine(
-						txni, oid, did, wid, olnum, entryd,
+						txni, rd, oid, did, wid, olnum, entryd,
 						nWarehouses, nItems, isNewOrder,
 					)
 				}
@@ -202,22 +205,23 @@ func loadNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
 }
 
 func loadOrderLine(
-	txn *txn.Txn, oid uint32, did uint8, wid uint8, olnum uint8,
+	txn *txn.Txn, rd *rand.Rand,
+	oid uint32, did uint8, wid uint8, olnum uint8,
 	entryd uint32, nwarehouses uint8, nitems uint32, isnew bool,
 ) {
 	/* Randomly pick one item. */
-	iid := rand.Uint32() % nitems + 1
+	iid := pickBetween(rd, 1, nitems)
 
 	/* ~1% of items are from remote warehouses. */
 	supplywid := wid
-	if rand.Intn(100) < 1 {
-		supplywid = pickWarehouseIdExcept(nwarehouses, wid)
+	if trueWithProb(rd, 1) {
+		supplywid = pickWarehouseIdExcept(rd, nwarehouses, wid)
 	}
 
 	var deliveryd uint32 = entryd
 	var olamount float32 = 0.0
 	if isnew {
-		olamount = float32(rand.Uint32() % 999999 + 1) / 100
+		olamount = float32(rd.Uint32() % 999999 + 1) / 100
 		deliveryd = OL_DELIVERY_D_NULL
 	}
 
@@ -225,7 +229,7 @@ func loadOrderLine(
 		txn,
 		oid, did, wid, olnum,
 		iid, supplywid, deliveryd,
-		ORDERLINE_INIT_QUANTITY, olamount,
+		OL_INIT_QUANTITY, olamount,
 		[24]byte{} /* TODO: OL_DIST_INFO */,
 	)
 }
@@ -235,7 +239,7 @@ func loadHistory(txn *txn.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 		txn,
 		hid,
 		cid, did, wid, did, wid, /* customer making orders to local district */
-		12, HISTORY_INIT_AMOUNT, "",
+		12, H_INIT_AMOUNT, "",
 	)
 }
 
