@@ -94,6 +94,8 @@ func (g *Generator) GetPaymentInput() *PaymentInput {
 func (g *Generator) GetOrderStatusInput() *OrderStatusInput {
 	p := &OrderStatusInput {
 		W_ID : g.wid,
+		D_ID : g.did(),
+		C_ID : g.cid(),
 	}
 	return p
 }
@@ -101,6 +103,8 @@ func (g *Generator) GetOrderStatusInput() *OrderStatusInput {
 func (g *Generator) GetDeliveryInput() *DeliveryInput {
 	p := &DeliveryInput {
 		W_ID : g.wid,
+		O_CARRIER_ID : uint8(pickBetween(g.rd, 1, 10)),
+		OL_DELIVERY_D : getTime(),
 	}
 	return p
 }
@@ -108,6 +112,8 @@ func (g *Generator) GetDeliveryInput() *DeliveryInput {
 func (g *Generator) GetStockLevelInput() *StockLevelInput {
 	p := &StockLevelInput {
 		W_ID : g.wid,
+		D_ID : g.did(),
+		THRESHOLD : uint16(pickBetween(g.rd, 10, 20)),
 	}
 	return p
 }
