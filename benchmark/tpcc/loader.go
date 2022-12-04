@@ -207,13 +207,11 @@ func loadOrderLine(
 ) {
 	/* Randomly pick one item. */
 	iid := rand.Uint32() % nitems + 1
-	supplywid := wid
 
 	/* ~1% of items are from remote warehouses. */
+	supplywid := wid
 	if rand.Intn(100) < 1 {
-		for supplywid == wid {
-			supplywid = uint8(rand.Uint32() % uint32(nwarehouses))
-		}
+		supplywid = pickWarehouseIdExcept(nwarehouses, wid)
 	}
 
 	var deliveryd uint32 = entryd

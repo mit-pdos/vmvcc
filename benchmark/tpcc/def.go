@@ -172,6 +172,7 @@ type PaymentInput struct {
 	C_W_ID   uint8
 	C_D_ID   uint8
 	C_ID     uint32
+	H_DATE   uint32
 }
 
 type OrderStatusInput struct {
