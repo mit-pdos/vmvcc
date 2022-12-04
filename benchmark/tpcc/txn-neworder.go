@@ -98,7 +98,7 @@ func neworder(
 		sytd       := stock.S_YTD
 		sordercnt  := stock.S_ORDER_CNT
 		sremotecnt := stock.S_REMOTE_CNT
-		sdist      := stock.S_DISTS[did]
+		sdist      := stock.S_DISTS[did - 1]
 		sdata      := stock.S_DATA
 
 		/* Compute new stock values. */

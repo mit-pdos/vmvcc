@@ -9,8 +9,17 @@ import (
 	"math/rand"
 )
 
+const (
+	TXN_NEWORDER = iota
+	TXN_PAYMENT
+	TXN_ORDERSTATUS
+	TXN_DELIVERY
+	TXN_STOCKLEVEL
+)
+
 type Generator struct {
 	rd              *rand.Rand
+	wvec            []uint64
 	wid             uint8
 	nItems          uint32
 	nWarehouses     uint8
@@ -19,15 +28,23 @@ type Generator struct {
 }
 
 func NewGenerator(
-	src rand.Source,
 	wid uint8,
+	workloads []uint64,
 	nItems uint32,
 	nWarehouses uint8,
 	nLocalDistricts uint8,
 	nLocalCustomers uint32,
 ) *Generator {
+	wvec := make([]uint64, 5)
+	var accu uint64 = 0
+	for i, x := range workloads {
+		wvec[i] = accu + x
+		accu += x
+	}
+	rd := rand.New(rand.NewSource(int64(wid)))
 	gen := &Generator {
-		rd  : rand.New(src),
+		rd  : rd,
+		wvec : wvec,
 		wid : wid,
 		nItems : nItems,
 		nWarehouses : nWarehouses,
@@ -36,6 +53,21 @@ func NewGenerator(
 	}
 
 	return gen
+}
+
+func (g *Generator) PickTxn() int {
+	x := g.rd.Uint64() % 100
+	if x < g.wvec[0] {
+		return TXN_NEWORDER
+	} else if x < g.wvec[1] {
+		return TXN_PAYMENT
+	} else if x < g.wvec[2] {
+		return TXN_ORDERSTATUS
+	} else if x < g.wvec[3] {
+		return TXN_DELIVERY
+	} else {
+		return TXN_STOCKLEVEL
+	}
 }
 
 func (g *Generator) GetNewOrderInput() *NewOrderInput {
