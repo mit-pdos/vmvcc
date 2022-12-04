@@ -30,7 +30,7 @@ func payment(
 		/* Also update the data field if the customer has bad credit. */
 		cdata := fmt.Sprintf("%d %d %d %d %d %.2f|%s",
 			cid, cdid, cwid, did, wid, hamount, beforeNull(customer.C_DATA[:]))
-		fmt.Printf("cdata = %s len(cdata) = %d\n", cdata, len(cdata))
+		// fmt.Printf("cdata = %s len(cdata) = %d\n", cdata, len(cdata))
 		if len(cdata) > 500 {
 			cdata = cdata[: 500]
 		}

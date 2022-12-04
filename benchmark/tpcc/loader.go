@@ -1,7 +1,8 @@
 package tpcc
 
 import (
-	"fmt"
+	// "fmt"
+	// "time"
 	"math/rand"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
@@ -12,14 +13,24 @@ import (
  * TODO: Initialize other performance-unrelated fields according to TPC-C spec.
  */
 
-func LoadTPCCItems(txn *txn.Txn, nItems uint32) {
+func panicf(ok bool) {
+	if !ok {
+		panic("txn.DoTxn should never fail here.")
+	}
+}
+
+func LoadTPCCItems(txno *txn.Txn, nItems uint32) {
 	for iid := uint32(1); iid <= nItems; iid++ {
-		loadItem(txn, iid, true)
+		body := func(txni *txn.Txn) bool {
+			loadItem(txni, iid, true)
+			return true
+		}
+		panicf(txno.DoTxn(body))
 	}
 }
 
 func LoadOneTPCCWarehouse(
-	txn *txn.Txn, wid uint8,
+	txno *txn.Txn, wid uint8,
 	nItems uint32, nWarehouses uint8,
 	nLocalDistricts uint8, nLocalCustomers uint32,
 	nInitLocalNewOrders uint32,
@@ -27,21 +38,36 @@ func LoadOneTPCCWarehouse(
 	hid := uint64(wid - 1) * uint64(nLocalDistricts) * uint64(nLocalCustomers) + 1
 
 	/* Load warehouse. */
-	loadWarehouse(txn, wid)
+	body := func(txni *txn.Txn) bool {
+		loadWarehouse(txni, wid)
+		return true
+	}
+	panicf(txno.DoTxn(body))
+
 	for did := uint8(1); did <= nLocalDistricts; did++ {
-		fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
+		// fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
+
 		/* Load district in each warehouse. */
-		loadDistrict(txn, did, wid, nInitLocalNewOrders + 1)
+		body = func(txni *txn.Txn) bool {
+			loadDistrict(txni, did, wid, nInitLocalNewOrders + 1)
+			return true
+		}
+		panicf(txno.DoTxn(body))
 
 		/* Make a permutation of cids to be used for making Order. */
 		cids := make([]uint32, nLocalCustomers)
+		/* Load customer and history. */
 		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
-			/* Load customer in each pair of warehouse and district. */
-			bc := rand.Uint32() % 10 < 1
-			loadCustomer(txn, cid, did, wid, bc)
-			loadHistory(txn, hid, cid, did, wid)
-			hid++
-			cids[cid - 1] = cid
+			body = func(txni *txn.Txn) bool {
+				/* Load customer in each pair of warehouse and district. */
+				bc := rand.Uint32() % 10 < 1
+				loadCustomer(txni, cid, did, wid, bc)
+				loadHistory(txni, hid, cid, did, wid)
+				hid++
+				cids[cid - 1] = cid
+				return true
+			}
+			panicf(txno.DoTxn(body))
 		}
 
 		/* Shuffle `cids`. */
@@ -51,40 +77,48 @@ func LoadOneTPCCWarehouse(
 
 		/* Every customer has one initial order. */
 		for oid := uint32(1); oid <= nLocalCustomers; oid++ {
-			r := uint32(MAX_INIT_OL_CNT + 1 - MIN_INIT_OL_CNT)
-			nOrderLines := uint8(rand.Uint32() % r + uint32(MIN_INIT_OL_CNT))
-			isNewOrder := false
-			if oid > nLocalCustomers - nInitLocalNewOrders {
-				/* Load new order for the last `nInitLocalNewOrders`. */
-				loadNewOrder(txn, oid, did, wid)
-				isNewOrder = true
-			}
-			/* Load order in each pair of warehouse and district. */
-			/* TODO: get current time */
-			var entryd uint32 = 0
-			loadOrder(
-				txn, oid, did, wid, cids[oid - 1], entryd,
-				nOrderLines, isNewOrder,
-			)
-
-			/**
-			 * Load order line.
-			 * The reference implementation starts from 0, but I think it
-			 * should start from 1.
-			 * See our txn-neworder.go:L129, or their drivers/sqlitedriver.py:L276.
-			 */
-			for olnum := uint8(1); olnum <= nOrderLines; olnum++ {
-				/* Load order line in each order. */
-				loadOrderLine(
-					txn, oid, did, wid, olnum, entryd,
-					nWarehouses, nItems, isNewOrder,
+			body = func(txni *txn.Txn) bool {
+				r := uint32(MAX_INIT_OL_CNT + 1 - MIN_INIT_OL_CNT)
+				nOrderLines := uint8(rand.Uint32() % r + uint32(MIN_INIT_OL_CNT))
+				isNewOrder := false
+				if oid > nLocalCustomers - nInitLocalNewOrders {
+					/* Load new order for the last `nInitLocalNewOrders`. */
+					loadNewOrder(txni, oid, did, wid)
+					isNewOrder = true
+				}
+				/* Load order in each pair of warehouse and district. */
+				/* TODO: get current time */
+				var entryd uint32 = 0
+				loadOrder(
+					txni, oid, did, wid, cids[oid - 1], entryd,
+					nOrderLines, isNewOrder,
 				)
+
+				/**
+				 * Load order line.
+				 * The reference implementation starts from 0, but I think it
+				 * should start from 1.
+				 * See our txn-neworder.go:L129, or their drivers/sqlitedriver.py:L276.
+				 */
+				for olnum := uint8(1); olnum <= nOrderLines; olnum++ {
+					/* Load order line in each order. */
+					loadOrderLine(
+						txni, oid, did, wid, olnum, entryd,
+						nWarehouses, nItems, isNewOrder,
+					)
+				}
+				return true
 			}
+			panicf(txno.DoTxn(body))
 		}
 	}
 	for iid := uint32(1); iid <= nItems; iid++ {
-		/* Load stock. */
-		loadStock(txn, iid, wid, false) // TODO: original
+		body = func(txni *txn.Txn) bool {
+			/* Load stock. */
+			loadStock(txni, iid, wid, false) // TODO: original
+			return true
+		}
+		panicf(txno.DoTxn(body))
 	}
 }
 

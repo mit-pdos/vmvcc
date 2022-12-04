@@ -48,7 +48,7 @@ func main() {
 	var debug bool
 	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
-	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
+	flag.StringVar(&cpuprof, "cpuprof", "", "write cpu profile to cpuprof")
 	flag.BoolVar(&debug, "debug", true, "print debug info")
 	flag.Parse()
 
@@ -75,32 +75,36 @@ func main() {
 	db := txn.MkTxnMgr()
 	db.ActivateGC()
 
-	var nItems uint32 = 100
-	var nLocalDistricts uint8 = 2
-	var nLocalCustomers uint32 = 10
-	var nInitLocalNewOrders uint32 = 5
+	var nItems uint32 = tpcc.N_ITEMS
+	var nLocalDistricts uint8 = tpcc.N_DISTRICTS_PER_WAREHOUSE
+	var nLocalCustomers uint32 = tpcc.N_CUSTOMERS_PER_DISTRICT
+	var nInitLocalNewOrders uint32 = tpcc.N_INIT_NEW_ORDERS_PER_DISTRICT
 
+	start := time.Now()
 	dprintf(debug, "Loading items...")
 	txnitem := db.New()
 	tpcc.LoadTPCCItems(txnitem, nItems)
-	dprintf(debug, "done\n")
+	elapsed := time.Since(start)
+	dprintf(debug, "Done (%s).\n", elapsed)
 
 	var wg sync.WaitGroup
+	start = time.Now()
 	dprintf(debug, "Loading %d warehouses...", nWarehouses)
 	for wid := uint8(1); wid <= nWarehouses; wid++ {
 		txnwh := db.New()
 		wg.Add(1)
-		go func() {
+		go func(wid uint8) {
 			defer wg.Done()
 			tpcc.LoadOneTPCCWarehouse(
 				txnwh, wid,
 				nItems, nWarehouses,
 				nLocalDistricts, nLocalCustomers, nInitLocalNewOrders,
 			)
-		}()
+		}(wid)
 	}
 	wg.Wait()
-	dprintf(debug, "done\n")
+	elapsed = time.Since(start)
+	dprintf(debug, "Done (%s).\n", elapsed)
 
 	dprintf(debug, "Running benchmark...")
 	done = false
@@ -111,7 +115,7 @@ func main() {
 	}
 	time.Sleep(time.Duration(duration) * time.Second)
 	done = true
-	dprintf(debug, "done\n")
+	dprintf(debug, "Done.\n")
 
 	var c uint64 = 0
 	var t uint64 = 0
@@ -120,10 +124,10 @@ func main() {
 		t += <-chTotal
 	}
 	rate := float64(c) / float64(t)
-	tp := float64(c) / float64(duration) / 1000000.0
+	tp := float64(c) / float64(duration) / 1000.0
 
 	dprintf(debug, "committed / total = %d / %d (%f).\n", c, t, rate)
-	dprintf(debug, "tp = %f (M txns/s).\n", tp)
+	dprintf(debug, "tp = %f (K txns/s).\n", tp)
 
 	fmt.Printf("%d, %d, %d, %d, %f, %f\n",
 		nthrds, duration, c, t, tp, rate)

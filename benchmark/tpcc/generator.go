@@ -45,11 +45,11 @@ func NewGenerator(
 func (g *Generator) GetPaymentInput() *PaymentInput {
 	p := &PaymentInput {
 		W_ID : g.wid,
-		D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)),
+		D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)) + 1,
 		HAMOUNT : 2.5,
-		C_W_ID : uint8(g.rd.Uint32() % uint32(g.nWarehouses)),
-		C_D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)),
-		C_ID : g.rd.Uint32() % uint32(g.nLocalCustomers),
+		C_W_ID : uint8(g.rd.Uint32() % uint32(g.nWarehouses)) + 1,
+		C_D_ID : uint8(g.rd.Uint32() % uint32(g.nLocalDistricts)) + 1,
+		C_ID : g.rd.Uint32() % uint32(g.nLocalCustomers) + 1,
 	}
 	return p
 }

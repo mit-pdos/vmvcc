@@ -288,20 +288,15 @@ func TestLoader(t *testing.T) {
 	var nInitLocalNewOrders uint32 = 5
 	var nInitLocalOrders = nLocalCustomers
 	assert.LessOrEqual(nInitLocalNewOrders, nInitLocalOrders)
-	body := func(txni *txn.Txn) bool {
-		LoadTPCCSeq(
-			txni,
-			nItems, nWarehouses,
-			nLocalDistricts, nLocalCustomers,
-			nInitLocalNewOrders, 
-		)
-		return true
-	}
-	ok = txno.DoTxn(body)
-	assert.Equal(true, ok)
+	LoadTPCCSeq(
+		txno,
+		nItems, nWarehouses,
+		nLocalDistricts, nLocalCustomers,
+		nInitLocalNewOrders, 
+	)
 
 	/* Testing items. */
-	body = func(txni *txn.Txn) bool {
+	body := func(txni *txn.Txn) bool {
 		var item *Item
 		var found bool
 		item, found = GetItem(txni, 0)
@@ -573,8 +568,16 @@ func TestPayment(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Run Payment transaction twice. */
-	ok = TxnPayment(txno, wid, did, hamount, cwid, cdid, cid)
+	p := &PaymentInput{
+		W_ID : wid,
+		D_ID : did,
+		HAMOUNT : hamount,
+		C_W_ID : cwid,
+		C_D_ID : cdid,
+		C_ID: cid,
+	}
+	ok = TxnPayment(txno, p)
 	assert.Equal(true, ok)
-	ok = TxnPayment(txno, wid, did, hamount, cwid, cdid, cid)
+	ok = TxnPayment(txno, p)
 	assert.Equal(true, ok)
 }
