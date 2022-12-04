@@ -55,7 +55,7 @@ func pickWarehouseIdExcept(rd *rand.Rand, nwh, wid uint8) uint8 {
 }
 
 func pickNOrderLines(rd *rand.Rand) uint8 {
-	n := uint8(pickBetween(rd, uint32(OL_MAX_CNT), uint32(OL_MIN_CNT)))
+	n := uint8(pickBetween(rd, uint32(OL_MIN_CNT), uint32(OL_MAX_CNT)))
 	return n
 }
 
