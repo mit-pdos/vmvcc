@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -50,13 +47,17 @@ func (x *History) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *History) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_H_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_H_LEN)
+	encodeU64(buf, x.H_ID, X_H_ID)
+	encodeU32(buf, x.H_C_ID, X_H_C_ID)
+	encodeU8(buf, x.H_C_D_ID, X_H_C_D_ID)
+	encodeU8(buf, x.H_C_W_ID, X_H_C_W_ID)
+	encodeU8(buf, x.H_D_ID, X_H_D_ID)
+	encodeU8(buf, x.H_W_ID, X_H_W_ID)
+	encodeU32(buf, x.H_DATE, X_H_DATE)
+	encodeF32(buf, x.H_AMOUNT, X_H_AMOUNT)
+	encodeBytes(buf, x.H_DATA[:], X_H_DATA)
+	return string(buf)
 }
 
 /**
@@ -64,8 +65,13 @@ func (x *History) encode() string {
  * Used by TableRead.
  */
 func (x *History) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU64(&x.H_ID, opaque, X_H_ID)
+	decodeU32(&x.H_C_ID, opaque, X_H_C_ID)
+	decodeU8(&x.H_C_D_ID, opaque, X_H_C_D_ID)
+	decodeU8(&x.H_C_W_ID, opaque, X_H_C_W_ID)
+	decodeU8(&x.H_D_ID, opaque, X_H_D_ID)
+	decodeU8(&x.H_W_ID, opaque, X_H_W_ID)
+	decodeU32(&x.H_DATE, opaque, X_H_DATE)
+	decodeF32(&x.H_AMOUNT, opaque, X_H_AMOUNT)
+	decodeString(x.H_DATA[:], opaque, X_H_DATA)
 }

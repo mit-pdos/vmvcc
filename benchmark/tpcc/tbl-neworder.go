@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -58,13 +55,11 @@ func (x *NewOrder) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *NewOrder) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_NO_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_NO_LEN)
+	encodeU32(buf, x.NO_O_ID, X_NO_O_ID)
+	encodeU8(buf, x.NO_D_ID, X_NO_D_ID)
+	encodeU8(buf, x.NO_W_ID, X_NO_W_ID)
+	return string(buf)
 }
 
 /**
@@ -72,8 +67,7 @@ func (x *NewOrder) encode() string {
  * Used by TableRead.
  */
 func (x *NewOrder) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU32(&x.NO_O_ID, opaque, X_NO_O_ID)
+	decodeU8(&x.NO_D_ID, opaque, X_NO_D_ID)
+	decodeU8(&x.NO_W_ID, opaque, X_NO_W_ID)
 }

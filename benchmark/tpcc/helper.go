@@ -70,6 +70,14 @@ func getTime() uint32 {
 	return 0
 }
 
+func encodeBool(buf []byte, b bool, offset uint64) {
+	if b {
+		buf[offset] = 1
+	} else {
+		buf[offset] = 0
+	}
+}
+
 func encodeU8(buf []byte, n uint8, offset uint64) {
 	buf[offset] = n
 }
@@ -95,6 +103,14 @@ func encodeF32(buf []byte, n float32, offset uint64) {
 
 func encodeBytes(buf []byte, src []byte, offset uint64) {
 	copy(buf[offset :], src)
+}
+
+func decodeBool(ptr *bool, s string, offset uint64) {
+	if s[offset] == 1 {
+		*ptr = true
+	} else {
+		*ptr = false
+	}
 }
 
 func decodeU8(ptr *uint8, s string, offset uint64) {

@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -59,13 +56,17 @@ func (x *Warehouse) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *Warehouse) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_W_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_W_LEN)
+	encodeU8(buf, x.W_ID, X_W_ID)
+	encodeBytes(buf, x.W_NAME[:], X_W_NAME)
+	encodeBytes(buf, x.W_STREET_1[:], X_W_STREET_1)
+	encodeBytes(buf, x.W_STREET_2[:], X_W_STREET_2)
+	encodeBytes(buf, x.W_CITY[:], X_W_CITY)
+	encodeBytes(buf, x.W_STATE[:], X_W_STATE)
+	encodeBytes(buf, x.W_ZIP[:], X_W_ZIP)
+	encodeF32(buf, x.W_TAX, X_W_TAX)
+	encodeF32(buf, x.W_YTD, X_W_YTD)
+	return string(buf)
 }
 
 /**
@@ -73,8 +74,13 @@ func (x *Warehouse) encode() string {
  * Used by TableRead.
  */
 func (x *Warehouse) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU8(&x.W_ID, opaque, X_W_ID)
+	decodeString(x.W_NAME[:], opaque, X_W_NAME)
+	decodeString(x.W_STREET_1[:], opaque, X_W_STREET_1)
+	decodeString(x.W_STREET_2[:], opaque, X_W_STREET_2)
+	decodeString(x.W_CITY[:], opaque, X_W_CITY)
+	decodeString(x.W_STATE[:], opaque, X_W_STATE)
+	decodeString(x.W_ZIP[:], opaque, X_W_ZIP)
+	decodeF32(&x.W_TAX, opaque, X_W_TAX)
+	decodeF32(&x.W_YTD, opaque, X_W_YTD)
 }
