@@ -1,7 +1,6 @@
 package tpcc
 
 import (
-	"bytes"
 	"strings"
 	"encoding/binary"
 	"log"
@@ -59,7 +58,8 @@ func (x *NewOrder) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *NewOrder) encode() string {
-	buf := new(bytes.Buffer)
+	buf := new(strings.Builder)
+	buf.Grow(int(X_NO_LEN))
 	err := binary.Write(buf, binary.LittleEndian, x)
 	if err != nil {
 		log.Fatal("Encode error: ", err)
