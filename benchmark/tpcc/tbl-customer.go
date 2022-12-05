@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -102,13 +99,29 @@ func (x *Customer) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *Customer) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_C_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_C_LEN)
+	encodeU32(buf, x.C_ID, X_C_ID)
+	encodeU8(buf, x.C_D_ID, X_C_D_ID)
+	encodeU8(buf, x.C_W_ID, X_C_W_ID)
+	encodeBytes(buf, x.C_FIRST[:], X_C_FIRST)
+	encodeBytes(buf, x.C_MIDDLE[:], X_C_MIDDLE)
+	encodeBytes(buf, x.C_LAST[:], X_C_LAST)
+	encodeBytes(buf, x.C_STREET_1[:], X_C_STREET_1)
+	encodeBytes(buf, x.C_STREET_2[:], X_C_STREET_2)
+	encodeBytes(buf, x.C_CITY[:], X_C_CITY)
+	encodeBytes(buf, x.C_STATE[:], X_C_STATE)
+	encodeBytes(buf, x.C_ZIP[:], X_C_ZIP)
+	encodeBytes(buf, x.C_PHONE[:], X_C_PHONE)
+	encodeU32(buf, x.C_SINCE, X_C_SINCE)
+	encodeBytes(buf, x.C_CREDIT[:], X_C_CREDIT)
+	encodeF32(buf, x.C_CREDIT_LIM, X_C_CREDIT_LIM)
+	encodeF32(buf, x.C_DISCOUNT, X_C_DISCOUNT)
+	encodeF32(buf, x.C_BALANCE, X_C_BALANCE)
+	encodeF32(buf, x.C_YTD_PAYMENT, X_C_YTD_PAYMENT)
+	encodeU16(buf, x.C_PAYMENT_CNT, X_C_PAYMENT_CNT)
+	encodeU16(buf, x.C_DELIVERY_CNT, X_C_DELIVERY_CNT)
+	encodeBytes(buf, x.C_DATA[:], X_C_DATA)
+	return string(buf)
 }
 
 /**
@@ -116,8 +129,25 @@ func (x *Customer) encode() string {
  * Used by TableRead.
  */
 func (x *Customer) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU32(&x.C_ID, opaque, X_C_ID)
+	decodeU8(&x.C_D_ID, opaque, X_C_D_ID)
+	decodeU8(&x.C_W_ID, opaque, X_C_W_ID)
+	decodeString(x.C_FIRST[:], opaque, X_C_FIRST)
+	decodeString(x.C_MIDDLE[:], opaque, X_C_MIDDLE)
+	decodeString(x.C_LAST[:], opaque, X_C_LAST)
+	decodeString(x.C_STREET_1[:], opaque, X_C_STREET_1)
+	decodeString(x.C_STREET_2[:], opaque, X_C_STREET_2)
+	decodeString(x.C_CITY[:], opaque, X_C_CITY)
+	decodeString(x.C_STATE[:], opaque, X_C_STATE)
+	decodeString(x.C_ZIP[:], opaque, X_C_ZIP)
+	decodeString(x.C_PHONE[:], opaque, X_C_PHONE)
+	decodeU32(&x.C_SINCE, opaque, X_C_SINCE)
+	decodeString(x.C_CREDIT[:], opaque, X_C_CREDIT)
+	decodeF32(&x.C_CREDIT_LIM, opaque, X_C_CREDIT_LIM)
+	decodeF32(&x.C_DISCOUNT, opaque, X_C_DISCOUNT)
+	decodeF32(&x.C_BALANCE, opaque, X_C_BALANCE)
+	decodeF32(&x.C_YTD_PAYMENT, opaque, X_C_YTD_PAYMENT)
+	decodeU16(&x.C_PAYMENT_CNT, opaque, X_C_PAYMENT_CNT)
+	decodeU16(&x.C_DELIVERY_CNT, opaque, X_C_DELIVERY_CNT)
+	decodeString(x.C_DATA[:], opaque, X_C_DATA)
 }

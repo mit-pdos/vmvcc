@@ -523,6 +523,7 @@ func TestLoader(t *testing.T) {
 					assert.Equal(true, found)
 					assert.Equal(iid, stock.S_I_ID)
 					assert.Equal(wid, stock.S_W_ID)
+					assert.Equal(uint16(20), stock.S_QUANTITY)
 				}
 			}
 		}

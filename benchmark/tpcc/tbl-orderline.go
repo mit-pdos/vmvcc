@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -70,13 +67,18 @@ func (x *OrderLine) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *OrderLine) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_OL_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_OL_LEN)
+	encodeU32(buf, x.OL_O_ID, X_OL_O_ID)
+	encodeU8(buf, x.OL_D_ID, X_OL_D_ID)
+	encodeU8(buf, x.OL_W_ID, X_OL_W_ID)
+	encodeU8(buf, x.OL_NUMBER, X_OL_NUMBER)
+	encodeU32(buf, x.OL_I_ID, X_OL_I_ID)
+	encodeU8(buf, x.OL_SUPPLY_W_ID, X_OL_SUPPLY_W_ID)
+	encodeU32(buf, x.OL_DELIVERY_D, X_OL_DELIVERY_D)
+	encodeU8(buf, x.OL_QUANTITY, X_OL_QUANTITY)
+	encodeF32(buf, x.OL_AMOUNT, X_OL_AMOUNT)
+	/* this still creates a copy, but anyway*/
+	return string(buf)
 }
 
 /**
@@ -84,8 +86,13 @@ func (x *OrderLine) encode() string {
  * Used by TableRead.
  */
 func (x *OrderLine) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU32(&x.OL_O_ID, opaque, X_OL_O_ID)
+	decodeU8(&x.OL_D_ID, opaque, X_OL_D_ID)
+	decodeU8(&x.OL_W_ID, opaque, X_OL_W_ID)
+	decodeU8(&x.OL_NUMBER, opaque, X_OL_NUMBER)
+	decodeU32(&x.OL_I_ID, opaque, X_OL_I_ID)
+	decodeU8(&x.OL_SUPPLY_W_ID, opaque, X_OL_SUPPLY_W_ID)
+	decodeU32(&x.OL_DELIVERY_D, opaque, X_OL_DELIVERY_D)
+	decodeU8(&x.OL_QUANTITY, opaque, X_OL_QUANTITY)
+	decodeF32(&x.OL_AMOUNT, opaque, X_OL_AMOUNT)
 }

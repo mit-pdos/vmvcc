@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -64,13 +61,15 @@ func (x *Stock) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *Stock) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_S_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_S_LEN)
+	encodeU32(buf, x.S_I_ID, X_S_I_ID)
+	encodeU8(buf, x.S_W_ID, X_S_W_ID)
+	encodeU16(buf, x.S_QUANTITY, X_S_QUANTITY)
+	encodeU32(buf, x.S_YTD, X_S_YTD)
+	encodeU16(buf, x.S_ORDER_CNT, X_S_ORDER_CNT)
+	encodeU16(buf, x.S_REMOTE_CNT, X_S_REMOTE_CNT)
+	encodeBytes(buf, x.S_DATA[:], X_S_DATA)
+	return string(buf)
 }
 
 /**
@@ -78,8 +77,11 @@ func (x *Stock) encode() string {
  * Used by TableRead.
  */
 func (x *Stock) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU32(&x.S_I_ID, opaque, X_S_I_ID)
+	decodeU8(&x.S_W_ID, opaque, X_S_W_ID)
+	decodeU16(&x.S_QUANTITY, opaque, X_S_QUANTITY)
+	decodeU32(&x.S_YTD, opaque, X_S_YTD)
+	decodeU16(&x.S_ORDER_CNT, opaque, X_S_ORDER_CNT)
+	decodeU16(&x.S_REMOTE_CNT, opaque, X_S_REMOTE_CNT)
+	decodeString(x.S_DATA[:], opaque, X_S_DATA)
 }

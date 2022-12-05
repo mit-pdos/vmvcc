@@ -2,6 +2,7 @@ package tpcc
 
 import (
 	"bytes"
+	"unsafe"
 	"math/rand"
 )
 
@@ -67,4 +68,55 @@ func pickQuantity(rd *rand.Rand) uint8 {
 /* TODO */
 func getTime() uint32 {
 	return 0
+}
+
+func encodeU8(buf []byte, n uint8, offset uint64) {
+	buf[offset] = n
+}
+
+func encodeU16(buf []byte, n uint16, offset uint64) {
+	//binary.LittleEndian.PutUint16(buf[offset :], n)
+	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 2))
+}
+
+func encodeU32(buf []byte, n uint32, offset uint64) {
+	//binary.LittleEndian.PutUint32(buf[offset :], n)
+	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 4))
+}
+
+func encodeU64(buf []byte, n uint64, offset uint64) {
+	//binary.LittleEndian.PutUint64(buf[offset :], n)
+	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 8))
+}
+
+func encodeF32(buf []byte, n float32, offset uint64) {
+	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 4))
+}
+
+func encodeBytes(buf []byte, src []byte, offset uint64) {
+	copy(buf[offset :], src)
+}
+
+func decodeU8(ptr *uint8, s string, offset uint64) {
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 1), s[offset :])
+}
+
+func decodeU16(ptr *uint16, s string, offset uint64) {
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 2), s[offset :])
+}
+
+func decodeU32(ptr *uint32, s string, offset uint64) {
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 4), s[offset :])
+}
+
+func decodeU64(ptr *uint64, s string, offset uint64) {
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 8), s[offset :])
+}
+
+func decodeString(buf []byte, s string, offset uint64) {
+	copy(buf, s[offset :])
+}
+
+func decodeF32(ptr *float32, s string, offset uint64) {
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 4), s[offset :])
 }

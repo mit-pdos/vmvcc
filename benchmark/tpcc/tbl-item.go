@@ -1,9 +1,6 @@
 package tpcc
 
 import (
-	"strings"
-	"encoding/binary"
-	"log"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -48,13 +45,13 @@ func (x *Item) gkey() uint64 {
  * Used by TableWrite.
  */
 func (x *Item) encode() string {
-	buf := new(strings.Builder)
-	buf.Grow(int(X_I_LEN))
-	err := binary.Write(buf, binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Encode error: ", err)
-	}
-	return buf.String()
+	buf := make([]byte, X_I_LEN)
+	encodeU32(buf, x.I_ID, X_I_ID)
+	encodeU32(buf, x.I_IM_ID, X_I_IM_ID)
+	encodeBytes(buf, x.I_NAME[:], X_I_NAME)
+	encodeF32(buf, x.I_PRICE, X_I_PRICE)
+	encodeBytes(buf, x.I_DATA[:], X_I_DATA)
+	return string(buf)
 }
 
 /**
@@ -62,8 +59,9 @@ func (x *Item) encode() string {
  * Used by TableRead.
  */
 func (x *Item) decode(opaque string) {
-	err := binary.Read(strings.NewReader(opaque), binary.LittleEndian, x)
-	if err != nil {
-		log.Fatal("Decode error: ", err)
-	}
+	decodeU32(&x.I_ID, opaque, X_I_ID)
+	decodeU32(&x.I_IM_ID, opaque, X_I_IM_ID)
+	decodeString(x.I_NAME[:], opaque, X_I_NAME)
+	decodeF32(&x.I_PRICE, opaque, X_I_PRICE)
+	decodeString(x.I_DATA[:], opaque, X_I_DATA)
 }
