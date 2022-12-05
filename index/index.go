@@ -28,6 +28,7 @@ func MkIndex() *Index {
 }
 
 func getBucket(key uint64) uint64 {
+	// return (key >> 48 + (key & 0xff) >> 4 + (key & 0xf)) % config.N_IDX_BUCKET
 	return key % config.N_IDX_BUCKET
 }
 

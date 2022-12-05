@@ -30,7 +30,7 @@ func InsertOrderLine(
 	txn *txn.Txn,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 	iid uint32, iwid uint8, deliveryd uint32, quantity uint8,
-	amount float32, distinfo [24]byte,
+	amount float32,
 ) {
 	x := &OrderLine {
 		OL_O_ID        : oid,
@@ -42,7 +42,6 @@ func InsertOrderLine(
 		OL_DELIVERY_D  : deliveryd,
 		OL_QUANTITY    : quantity,
 		OL_AMOUNT      : amount,
-		OL_DIST_INFO   : distinfo,
 	}
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

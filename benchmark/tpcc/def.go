@@ -109,7 +109,6 @@ type OrderLine struct {
 	OL_DELIVERY_D  uint32
 	OL_QUANTITY    uint8
 	OL_AMOUNT      float32
-	OL_DIST_INFO   [24]byte
 }
 const OL_DELIVERY_D_NULL uint32 = 0xffffffff
 
@@ -129,7 +128,6 @@ type Stock struct {
 	S_W_ID       uint8
 	/* Data fields */
 	S_QUANTITY   uint16
-	S_DISTS      [10][24]byte
 	S_YTD        uint32
 	S_ORDER_CNT  uint16
 	S_REMOTE_CNT uint16

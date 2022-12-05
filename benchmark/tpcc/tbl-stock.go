@@ -21,14 +21,13 @@ func GetStock(txn *txn.Txn, iid uint32, wid uint8) (*Stock, bool) {
 func InsertStock(
 	txn *txn.Txn,
 	iid uint32, wid uint8,
-	quantity uint16, dists [10][24]byte, ytd uint32,
+	quantity uint16, ytd uint32,
 	ordercnt, remotecnt uint16, data string,
 ) {
 	x := &Stock {
 		S_I_ID       : iid,
 		S_W_ID       : wid,
 		S_QUANTITY   : quantity,
-		S_DISTS      : dists,
 		S_YTD        : ytd,
 		S_ORDER_CNT  : ordercnt,
 		S_REMOTE_CNT : remotecnt,

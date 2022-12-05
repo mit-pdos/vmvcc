@@ -230,7 +230,6 @@ func loadOrderLine(
 		oid, did, wid, olnum,
 		iid, supplywid, deliveryd,
 		OL_INIT_QUANTITY, olamount,
-		[24]byte{} /* TODO: OL_DIST_INFO */,
 	)
 }
 
@@ -245,12 +244,11 @@ func loadHistory(txn *txn.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 
 func loadStock(txn *txn.Txn, iid uint32, wid uint8, original bool) {
 	var quantity uint16 = 20 // TODO
-	var dists [10][24]byte // TODO
 	var data string = "stockdata" // TODO: based on original
 	InsertStock(
 		txn,
 		iid, wid,
-		quantity, dists, 0, 0, 0, data,
+		quantity, 0, 0, 0, data,
 	)
 
 }

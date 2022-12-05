@@ -98,7 +98,6 @@ func neworder(
 		sytd       := stock.S_YTD
 		sordercnt  := stock.S_ORDER_CNT
 		sremotecnt := stock.S_REMOTE_CNT
-		sdist      := stock.S_DISTS[did - 1]
 		sdata      := stock.S_DATA
 
 		/* Compute new stock values. */
@@ -129,7 +128,7 @@ func neworder(
 		olnum := uint8(i) + 1
 		InsertOrderLine(
 			txn, oid, did, wid, olnum,
-			iid, iwid, oentryd, olquantity, olamount, sdist,
+			iid, iwid, oentryd, olquantity, olamount,
 		)
 
 		/* TODO: Collect other return values. */

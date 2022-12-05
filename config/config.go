@@ -2,7 +2,7 @@ package config
 
 const (
 	N_TXN_SITES  uint64 = 64
-	N_IDX_BUCKET uint64 = 2048
+	N_IDX_BUCKET uint64 = 4096
 )
 
 const (
