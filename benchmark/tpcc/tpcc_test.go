@@ -3,6 +3,8 @@ package tpcc
 import (
 	"testing"
 	"fmt"
+	"bytes"
+	"encoding/binary"
 	"github.com/stretchr/testify/assert"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
@@ -44,35 +46,32 @@ func TestGkey(t *testing.T) {
 	fmt.Printf("%x\n", stock.gkey())
 }
 
+func encodeSlow(x any) uint64 {
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, x)
+	return uint64(len(buf.String()))
+}
+
 func TestRecordSize(t *testing.T) {
-	var s string
+	assert := assert.New(t)
 	warehouse := Warehouse { W_ID : 1 }
-	s = warehouse.encode()
-	fmt.Printf("Warehouse record size = %d\n", len(s))
+	assert.Equal(encodeSlow(warehouse), X_W_LEN)
 	district := District { D_ID : 1, D_W_ID : 1 }
-	s = district.encode()
-	fmt.Printf("District record size = %d\n", len(s))
+	assert.Equal(encodeSlow(district), X_D_LEN)
 	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
-	s = customer.encode()
-	fmt.Printf("Customer record size = %d\n", len(s))
+	assert.Equal(encodeSlow(customer), X_C_LEN)
 	history := History { H_ID : 1 }
-	s = history.encode()
-	fmt.Printf("History record size = %d\n", len(s))
+	assert.Equal(encodeSlow(history), X_H_LEN)
 	neworder := NewOrder { NO_O_ID : 1, NO_D_ID : 1, NO_W_ID : 1 }
-	s = neworder.encode()
-	fmt.Printf("NewOrder record size = %d\n", len(s))
+	assert.Equal(encodeSlow(neworder), X_NO_LEN)
 	order := Order { O_ID : 1, O_D_ID : 1, O_W_ID : 1 }
-	s = order.encode()
-	fmt.Printf("Order record size = %d\n", len(s))
+	assert.Equal(encodeSlow(order), X_O_LEN)
 	orderline := OrderLine { OL_O_ID : 1, OL_D_ID : 1, OL_W_ID : 1, OL_NUMBER : 1 }
-	s = orderline.encode()
-	fmt.Printf("OrderLine record size = %d\n", len(s))
+	assert.Equal(encodeSlow(orderline), X_OL_LEN)
 	item := Item { I_ID : 1 }
-	s = item.encode()
-	fmt.Printf("Item record size = %d\n", len(s))
+	assert.Equal(encodeSlow(item), X_I_LEN)
 	stock := Stock { S_I_ID : 1, S_W_ID : 1 }
-	s = stock.encode()
-	fmt.Printf("Stock record size = %d\n", len(s))
+	assert.Equal(encodeSlow(stock), X_S_LEN)
 }
 
 func TestEncodeDecodeCustomer(t *testing.T) {
