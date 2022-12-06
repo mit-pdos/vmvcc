@@ -4,6 +4,19 @@ import (
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
+func GetOrderLineX(
+	txn *txn.Txn, x *OrderLine,
+	oid uint32, did uint8, wid uint8, olnum uint8,
+) bool {
+	x.OL_O_ID   = oid
+	x.OL_D_ID   = did
+	x.OL_W_ID   = wid
+	x.OL_NUMBER = olnum
+	gkey := x.gkey()
+	found := readtbl(txn, gkey, x)
+	return found
+}
+
 func GetOrderLine(
 	txn *txn.Txn,
 	oid uint32, did uint8, wid uint8, olnum uint8,

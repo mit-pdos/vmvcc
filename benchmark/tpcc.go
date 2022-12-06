@@ -58,6 +58,7 @@ func worker(
 
 	/* Create a new tranasction object. */
 	t := db.New()
+	ctx := tpcc.NewTPCContext()
 
 	/* Start running TPC-C transactions. */
 	for !done {
@@ -72,7 +73,7 @@ func worker(
 			ok = tpcc.TxnPayment(t, p)
 		case tpcc.TXN_ORDERSTATUS:
 			p := gen.GetOrderStatusInput()
-			_, ok = tpcc.TxnOrderStatus(t, p)
+			_, ok = tpcc.TxnOrderStatus(t, p, ctx)
 		case tpcc.TXN_DELIVERY:
 			p := gen.GetDeliveryInput()
 			_, ok = tpcc.TxnDelivery(t, p)

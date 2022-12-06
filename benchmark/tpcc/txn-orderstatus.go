@@ -33,14 +33,15 @@ type OrderStatusResult struct {
 }
 
 func orderstatus(
-	txn *txn.Txn,
+	txn *txn.Txn, ctx *TPCContext,
 	/* input parameters */
 	wid uint8, did uint8, cid uint32,
 	/* return values */
 	res *OrderStatusResult,
 ) bool {
 	/* Read customer. */
-	customer, _ := GetCustomer(txn, cid, did, wid)
+	customer := &ctx.customer
+	GetCustomerX(txn, cid, did, wid, customer)
 	res.C_BALANCE = customer.C_BALANCE
 	res.C_FIRST   = customer.C_FIRST
 	res.C_MIDDLE  = customer.C_MIDDLE
@@ -71,7 +72,8 @@ func orderstatus(
 	/* Get all order lines of that order. */
 	olres := make([]OrderStatusOrderLineResult, 0, 10)
 	for olnum := uint8(1); olnum <= 15; olnum++ {
-		ol, found := GetOrderLine(txn, oid, did, wid, olnum)
+		ol := &ctx.orderline
+		found := GetOrderLineX(txn, ol, oid, did, wid, olnum)
 		if !found {
 			break
 		}
@@ -89,7 +91,7 @@ func orderstatus(
 	return true
 }
 
-func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput) (*OrderStatusResult, bool) {
+func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput, ctx *TPCContext) (*OrderStatusResult, bool) {
 	/* prepare output */
 	res := new(OrderStatusResult)
 	/* prepare input */
@@ -97,7 +99,7 @@ func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput) (*OrderStatusResult, boo
 	did := p.D_ID
 	cid := p.C_ID
 	body := func(txni *txn.Txn) bool {
-		return orderstatus(txni, wid, did, cid, res)
+		return orderstatus(txni, ctx, wid, did, cid, res)
 	}
 	ok := txno.DoTxn(body)
 	return res, ok
