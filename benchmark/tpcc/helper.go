@@ -136,3 +136,7 @@ func decodeString(buf []byte, s string, offset uint64) {
 func decodeF32(ptr *float32, s string, offset uint64) {
 	copy(unsafe.Slice((*byte)(unsafe.Pointer(ptr)), 4), s[offset :])
 }
+
+func bytesToString(bs []byte) string {
+	return *(*string)(unsafe.Pointer(&bs))
+}

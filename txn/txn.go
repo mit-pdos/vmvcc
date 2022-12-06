@@ -188,7 +188,7 @@ func (txnMgr *TxnMgr) ActivateGC() {
 	go func() {
 		for {
 			txnMgr.gc()
-			machine.Sleep(100 * 1000000)
+			machine.Sleep(1 * 1000000)
 		}
 	}()
 }

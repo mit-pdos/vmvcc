@@ -59,7 +59,7 @@ func (x *NewOrder) encode() string {
 	encodeU32(buf, x.NO_O_ID, X_NO_O_ID)
 	encodeU8(buf, x.NO_D_ID, X_NO_D_ID)
 	encodeU8(buf, x.NO_W_ID, X_NO_W_ID)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

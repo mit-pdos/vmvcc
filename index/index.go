@@ -63,7 +63,7 @@ func (idx *Index) GetTuple(key uint64) *tuple.Tuple {
 func (idx *Index) getKeys() []uint64 {
 	var keys []uint64
 	/* TODO: Try a better initial cap by summing up each bucket. */
-	keys = make([]uint64, 0, 2000)
+	keys = make([]uint64, 0, 200)
 	// for b := uint64(0); b < config.N_IDX_BUCKET; b++ {
 	for _, bkt := range idx.buckets {
 		bkt.latch.Lock()

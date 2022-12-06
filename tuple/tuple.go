@@ -250,7 +250,7 @@ func MkTuple() *Tuple {
 	tuple.rcond = sync.NewCond(tuple.latch)
 	tuple.owned = false
 	tuple.tidlast = 1
-	tuple.vers = make([]Version, 1, 16)
+	tuple.vers = make([]Version, 1, 1)
 	tuple.vers[0] = Version{
 		deleted : true,
 	}

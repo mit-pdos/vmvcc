@@ -121,7 +121,7 @@ func (x *Customer) encode() string {
 	encodeU16(buf, x.C_PAYMENT_CNT, X_C_PAYMENT_CNT)
 	encodeU16(buf, x.C_DELIVERY_CNT, X_C_DELIVERY_CNT)
 	encodeBytes(buf, x.C_DATA[:], X_C_DATA)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

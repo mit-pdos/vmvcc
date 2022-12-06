@@ -69,7 +69,7 @@ func (x *Stock) encode() string {
 	encodeU16(buf, x.S_ORDER_CNT, X_S_ORDER_CNT)
 	encodeU16(buf, x.S_REMOTE_CNT, X_S_REMOTE_CNT)
 	encodeBytes(buf, x.S_DATA[:], X_S_DATA)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

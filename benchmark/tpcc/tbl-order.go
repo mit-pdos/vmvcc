@@ -114,7 +114,7 @@ func (x *Order) encode() string {
 	encodeU8(buf, x.O_CARRIER_ID, X_O_CARRIER_ID)
 	encodeU8(buf, x.O_OL_CNT, X_O_OL_CNT)
 	encodeBool(buf, x.O_ALL_LOCAL, X_O_ALL_LOCAL)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

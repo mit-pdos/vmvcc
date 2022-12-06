@@ -78,7 +78,7 @@ func (x *OrderLine) encode() string {
 	encodeU8(buf, x.OL_QUANTITY, X_OL_QUANTITY)
 	encodeF32(buf, x.OL_AMOUNT, X_OL_AMOUNT)
 	/* this still creates a copy, but anyway*/
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

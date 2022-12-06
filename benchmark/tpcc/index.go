@@ -1,9 +1,7 @@
 package tpcc
 
 import (
-	"bytes"
-	"strings"
-	"encoding/binary"
+	"unsafe"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -25,10 +23,11 @@ func writeidx(txn *txn.Txn, gkey uint64, ents []uint64) {
  * Encode a slice of global keys pointing to table records to an opaque string.
  */
 func encodeidx(gkeys []uint64) string {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, uint64(len(gkeys)))
-	binary.Write(buf, binary.LittleEndian, gkeys)
-	return buf.String()
+	n := uint64(len(gkeys))
+	buf := make([]byte, n * 8 + 8)
+	encodeU64(buf, n, 0)
+	copy(buf[8 :], unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n * 8))
+	return string(buf)
 }
 
 /**
@@ -36,9 +35,8 @@ func encodeidx(gkeys []uint64) string {
  */
 func decodeidx(opaque string) []uint64 {
 	var n uint64
-	reader := strings.NewReader(opaque)
-	binary.Read(reader, binary.LittleEndian, &n)
+	decodeU64(&n, opaque, 0)
 	gkeys := make([]uint64, n)
-	binary.Read(reader, binary.LittleEndian, gkeys)
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n * 8), opaque[8 :])
 	return gkeys
 }

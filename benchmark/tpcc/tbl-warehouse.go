@@ -66,7 +66,7 @@ func (x *Warehouse) encode() string {
 	encodeBytes(buf, x.W_ZIP[:], X_W_ZIP)
 	encodeF32(buf, x.W_TAX, X_W_TAX)
 	encodeF32(buf, x.W_YTD, X_W_YTD)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

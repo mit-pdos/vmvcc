@@ -51,7 +51,7 @@ func (x *Item) encode() string {
 	encodeBytes(buf, x.I_NAME[:], X_I_NAME)
 	encodeF32(buf, x.I_PRICE, X_I_PRICE)
 	encodeBytes(buf, x.I_DATA[:], X_I_DATA)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

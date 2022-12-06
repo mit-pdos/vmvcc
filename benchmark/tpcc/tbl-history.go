@@ -57,7 +57,7 @@ func (x *History) encode() string {
 	encodeU32(buf, x.H_DATE, X_H_DATE)
 	encodeF32(buf, x.H_AMOUNT, X_H_AMOUNT)
 	encodeBytes(buf, x.H_DATA[:], X_H_DATA)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**

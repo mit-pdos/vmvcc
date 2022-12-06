@@ -86,7 +86,7 @@ func (x *District) encode() string {
 	encodeF32(buf, x.D_YTD, X_D_YTD)
 	encodeU32(buf, x.D_NEXT_O_ID, X_D_NEXT_O_ID)
 	encodeU32(buf, x.D_OLD_O_ID, X_D_OLD_O_ID)
-	return string(buf)
+	return bytesToString(buf)
 }
 
 /**
