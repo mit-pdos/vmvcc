@@ -1,7 +1,7 @@
 #!/bin/bash
 
 dir=./exp
-rm -rf $dir
+# rm -rf $dir
 mkdir $dir
 
 duration=30
