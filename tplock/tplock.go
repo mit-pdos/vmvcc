@@ -75,16 +75,14 @@ func (tuple *Tuple) Free() {
 	tuple.latch.Unlock()
 }
 
-func (tuple *Tuple) Read(first bool) (string, bool) {
+func (tuple *Tuple) Read() (string, bool) {
 	tuple.latch.Lock()
 
 	for tuple.lock == 0xffffffff {
 		tuple.rcond.Wait()
 	}
 
-	if first {
-		tuple.lock++
-	}
+	tuple.lock++
 
 	tuple.latch.Unlock()
 	return tuple.val, !tuple.del
@@ -150,6 +148,11 @@ func (wrbuf *WrBuf) sortEntsByKey() {
 	}
 }
 
+func (wrbuf *WrBuf) Exists(key uint64) bool {
+	_, found := search(wrbuf.ents, key)
+	return found
+}
+
 func (wrbuf *WrBuf) Lookup(key uint64) (string, bool, bool) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
@@ -158,6 +161,16 @@ func (wrbuf *WrBuf) Lookup(key uint64) (string, bool, bool) {
 	}
 
 	return "", false, false
+}
+
+func (wrbuf *WrBuf) Add(key uint64, val string, wr bool, tpl *Tuple) {
+	ent := WrEnt {
+		key : key,
+		val : val,
+		wr  : wr,
+		tpl : tpl,
+	}
+	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
 func (wrbuf *WrBuf) Put(key uint64, val string) {
@@ -192,7 +205,17 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
-func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset map[uint64]struct{}) bool {
+func (wrbuf *WrBuf) Remove(key uint64) {
+	pos, found := search(wrbuf.ents, key)
+	if !found {
+		return
+	}
+
+	copy(wrbuf.ents[pos :], wrbuf.ents[pos + 1 :])
+	wrbuf.ents = wrbuf.ents[: len(wrbuf.ents) - 1]
+}
+
+func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset *WrBuf) bool {
 	/* Sort entries by key to prevent deadlock. */
 	wrbuf.sortEntsByKey()
 
@@ -202,13 +225,13 @@ func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset map[uint64]struct{}) bool {
 	for pos < uint64(len(ents)) {
 		ent := ents[pos]
 		tpl := idx.GetTuple(ent.key)
-		_, found := rdset[ent.key]
+		found := rdset.Exists(ent.key)
 		ret := tpl.Own(found)
 		if !ret {
 			break
 		}
 		/* Escalte the read lock to write lock. */
-		delete(rdset, ent.key)
+		rdset.Remove(ent.key)
 		// A more efficient way is updating field `tpl`, but not supported by Goose.
 		ents[pos] = WrEnt {
 			key : ent.key,
@@ -245,6 +268,14 @@ func (wrbuf *WrBuf) UpdateTuples() {
 		} else {
 			tpl.Kill()
 		}
+	}
+}
+
+func (wrbuf *WrBuf) ReleaseTuples() {
+	ents := wrbuf.ents
+	for _, ent := range ents {
+		tpl := ent.tpl
+		tpl.ReadRelease()
 	}
 }
 
@@ -315,7 +346,7 @@ func (idx *Index) GetTuple(key uint64) *Tuple {
  */
 type Txn struct {
 	wrbuf *WrBuf
-	rdset map[uint64]struct{}
+	rdset *WrBuf
 	idx   *Index
 }
 
@@ -333,7 +364,7 @@ func (txnMgr *TxnMgr) New() *Txn {
 	/* Make a new txn. */
 	txn := new(Txn)
 	txn.wrbuf = MkWrBuf()
-	txn.rdset = make(map[uint64]struct{})
+	txn.rdset = MkWrBuf()
 	txn.idx = txnMgr.idx
 
 	return txn
@@ -364,19 +395,23 @@ func (txn *Txn) Get(key uint64) (string, bool) {
 		return valb, wr
 	}
 
-	_, found = txn.rdset[key]
+	rdset := txn.rdset
+	valb, wr, found = rdset.Lookup(key)
+	if found {
+		return valb, wr
+	}
 
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
-	txn.rdset[key] = struct{}{}
-	val, found := tuple.Read(!found)
+	val, found := tuple.Read()
+	rdset.Add(key, val, found, tuple)
 
 	return val, found
 }
 
 func (txn *Txn) begin() {
 	txn.wrbuf.Clear()
-	txn.rdset = make(map[uint64]struct{})
+	txn.rdset.Clear()
 }
 
 func (txn *Txn) acquire() bool {
@@ -384,21 +419,14 @@ func (txn *Txn) acquire() bool {
 	return ok
 }
 
-func (txn *Txn) releaseReadLocks() {
-	for k := range txn.rdset {
-		tpl := txn.idx.GetTuple(k)
-		tpl.ReadRelease()
-	}
-}
-
 func (txn *Txn) commit() {
 	/* At this point we have all the read and write locks. First release wlocks. */
 	txn.wrbuf.UpdateTuples()
-	txn.releaseReadLocks()
+	txn.rdset.ReleaseTuples()
 }
 
 func (txn *Txn) abort() {
-	txn.releaseReadLocks()
+	txn.rdset.ReleaseTuples()
 }
 
 func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
