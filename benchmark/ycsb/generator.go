@@ -2,6 +2,8 @@ package ycsb
 
 import (
 	"math/rand"
+	/* for Zipfian distribution */
+	"github.com/pingcap/go-ycsb/pkg/generator"
 )
 
 const (
@@ -19,21 +21,28 @@ type Generator struct {
 	nKeys   int
 	rKeys   uint64
 	rdRatio uint64
+	zipfian *generator.Zipfian
 	dist    int
 }
 
 func NewGenerator(
 	seed int,
 	nKeys int, rKeys, rdRatio uint64,
-	dist int,
+	dist int, theta float64,
 ) *Generator {
 	rd := rand.New(rand.NewSource(int64(seed)))
+
+	var zipfian *generator.Zipfian
+	if dist == DIST_ZIPFIAN {
+		zipfian = generator.NewZipfianWithItems(int64(rKeys), theta)
+	}
 
 	gen := &Generator {
 		rd : rd,
 		nKeys : nKeys,
 		rKeys : rKeys,
 		rdRatio : rdRatio,
+		zipfian : zipfian,
 		dist : dist,
 	}
 
@@ -53,8 +62,16 @@ func (g *Generator) pickKeyUniform() uint64 {
 	return g.rd.Uint64() % g.rKeys
 }
 
+func (g *Generator) pickKeyZipfian() uint64 {
+	return uint64(g.zipfian.Next(g.rd))
+}
+
 func (g *Generator) PickKey() uint64 {
-	return g.pickKeyUniform()
+	if g.dist == DIST_ZIPFIAN {
+		return g.pickKeyZipfian()
+	} else {
+		return g.pickKeyUniform()
+	}
 }
 
 func (g *Generator) NKeys() int {

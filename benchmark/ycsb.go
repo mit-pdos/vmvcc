@@ -10,7 +10,6 @@ import (
 	"github.com/mit-pdos/go-mvcc/benchmark/ycsb"
 	"github.com/mit-pdos/go-mvcc/txn"
 	// "github.com/mit-pdos/go-mvcc/tplock"
-	// "github.com/pingcap/go-ycsb"
 )
 
 var done bool
@@ -33,7 +32,7 @@ func populateData(db *txn.TxnMgr, rkeys uint64) {
 }
 
 func longReaderBody(txn *txn.Txn, gen *ycsb.Generator) bool {
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		key := gen.PickKey()
 		txn.Get(key)
 	}
@@ -101,6 +100,7 @@ func main() {
 	var nkeys int
 	var rkeys uint64
 	var rdratio uint64
+	var theta float64
 	var long bool
 	var duration uint64
 	var cpuprof string
@@ -109,6 +109,7 @@ func main() {
 	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
 	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
 	flag.Uint64Var(&rdratio, "rdratio", 80, "read ratio")
+	flag.Float64Var(&theta, "theta", 0.8, "zipfian theta (the higher the more contended)")
 	flag.BoolVar(&long, "long", false, "background long-running RO transactions")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
 	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
@@ -132,7 +133,7 @@ func main() {
 
 	gens := make([]*ycsb.Generator, nthrds)
 	for i := 0; i < nthrds; i++ {
-		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN)
+		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
 	}
 
 	db := txn.MkTxnMgr()
@@ -145,7 +146,7 @@ func main() {
 
 	/* Start a long-running reader. */
 	if long {
-		gen := ycsb.NewGenerator(nthrds, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN)
+		gen := ycsb.NewGenerator(nthrds, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
 		go longReader(db, gen)
 	}
 
