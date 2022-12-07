@@ -7,9 +7,10 @@ import (
 	"flag"
 	"os"
 	"log"
-	"math/rand"
+	"github.com/mit-pdos/go-mvcc/benchmark/ycsb"
 	"github.com/mit-pdos/go-mvcc/txn"
 	// "github.com/mit-pdos/go-mvcc/tplock"
+	// "github.com/pingcap/go-ycsb"
 )
 
 var done bool
@@ -21,8 +22,8 @@ func populateDataBody(txn *txn.Txn, key uint64) bool {
 	return true
 }
 
-func populateData(txnMgr *txn.TxnMgr, rkeys uint64) {
-	t := txnMgr.New()
+func populateData(db *txn.TxnMgr, rkeys uint64) {
+	t := db.New()
 	for k := uint64(0); k < rkeys; k++ {
 		body := func(txn *txn.Txn) bool {
 			return populateDataBody(txn, k)
@@ -31,28 +32,31 @@ func populateData(txnMgr *txn.TxnMgr, rkeys uint64) {
 	}
 }
 
-func longReaderBody(txn *txn.Txn, rkeys uint64) bool {
-	for k := uint64(0); k < rkeys; k++ {
-		txn.Get(k)
+func longReaderBody(txn *txn.Txn, gen *ycsb.Generator) bool {
+	for i := 0; i < 1000; i++ {
+		key := gen.PickKey()
+		txn.Get(key)
 	}
 	return true
 }
 
-func longReader(txnMgr *txn.TxnMgr, rkeys uint64) {
-	t := txnMgr.New()
+func longReader(db *txn.TxnMgr, gen *ycsb.Generator) {
+	t := db.New()
+
 	for !done {
 		body := func(txn *txn.Txn) bool {
-			return longReaderBody(txn, rkeys)
+			return longReaderBody(txn, gen)
 		}
 		t.DoTxn(body)
 	}
 }
 
-func workerBody(txn *txn.Txn, keys []uint64, rw []bool) bool {
+func workerBody(txn *txn.Txn, keys []uint64, ops []int) bool {
 	for i, k := range(keys) {
-		if rw[i] {
+		if ops[i] == ycsb.OP_RD {
 			txn.Get(k)
-		} else {
+		} else if ops[i] == ycsb.OP_WR {
+			/* TODO: Move slice out of the loop. */
 			s := string(make([]byte, szrec))
 			txn.Put(k, s)
 		}
@@ -60,110 +64,39 @@ func workerBody(txn *txn.Txn, keys []uint64, rw []bool) bool {
 	return true
 }
 
-func worker(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64, rdratio uint64) {
+func worker(
+	db *txn.TxnMgr, gen *ycsb.Generator,
+	chCommitted, chTotal chan uint64,
+) {
 	var committed uint64 = 0
 	var total uint64 = 0
-	r := int64(rkeys)
-	rd := rand.New(src)
-	keys := make([]uint64, nkeys)
-	rw := make([]bool, nkeys)
-	t := txnMgr.New()
+	nKeys := gen.NKeys()
+
+	keys := make([]uint64, nKeys)
+	ops := make([]int, nKeys)
+
+	t := db.New()
+
 	for !done {
-		for i := 0; i < nkeys; i++ {
-			k := uint64(rd.Int63n(r))
-			x := uint64(rd.Int63n(int64(100)))
-			keys[i] = k
-			if x < rdratio {
-				rw[i] = true
-			} else {
-				rw[i] = false
-			}
+		for i := 0; i < nKeys; i++ {
+			keys[i] = gen.PickKey()
+			ops[i] = gen.PickOp()
 		}
 		body := func(txn *txn.Txn) bool {
-			return workerBody(txn, keys, rw)
+			return workerBody(txn, keys, ops)
 		}
-		res := t.DoTxn(body)
-		if res {
+		ok := t.DoTxn(body)
+		if ok {
 			committed++
 		}
 		total++
 	}
-	chCommitted <-committed
-	chTotal <-total
-}
 
-func readerBody(txn *txn.Txn, keys []uint64) bool {
-	for _, k := range(keys) {
-		_, ok := txn.Get(k)
-		if !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func reader(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
-	var committed uint64 = 0
-	var total uint64 = 0
-	r := int64(rkeys)
-	rd := rand.New(src)
-	keys := make([]uint64, nkeys)
-	t := txnMgr.New()
-	for !done {
-		for i := 0; i < nkeys; i++ {
-			k := uint64(rd.Int63n(r))
-			keys[i] = k
-		}
-		body := func(txn *txn.Txn) bool {
-			return readerBody(txn, keys)
-		}
-		res := t.DoTxn(body)
-		if res {
-			committed++
-		}
-		total++
-	}
-	chCommitted <-committed
-	chTotal <-total
-}
-
-func writerBody(txn *txn.Txn, keys []uint64) bool {
-	for _, k := range(keys) {
-		s := string(make([]byte, szrec))
-		txn.Put(k, s)
-	}
-	return true
-}
-
-func writer(txnMgr *txn.TxnMgr, src rand.Source, chCommitted, chTotal chan uint64, nkeys int, rkeys uint64) {
-	var committed uint64 = 0
-	var total uint64 = 0
-	r := int64(rkeys)
-	rd := rand.New(src)
-	keys := make([]uint64, nkeys)
-	t := txnMgr.New()
-	for !done {
-		for i := 0; i < nkeys; i++ {
-			k := uint64(rd.Int63n(r))
-			keys[i] = k
-		}
-		body := func(txn *txn.Txn) bool {
-			return writerBody(txn, keys)
-		}
-		res := t.DoTxn(body)
-		if res {
-			committed++
-		}
-		total++
-	}
 	chCommitted <-committed
 	chTotal <-total
 }
 
 func main() {
-	txnMgr := txn.MkTxnMgr()
-	txnMgr.ActivateGC()
-
 	var nthrds int
 	var nkeys int
 	var rkeys uint64
@@ -197,18 +130,28 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	populateData(txnMgr, rkeys)
+	gens := make([]*ycsb.Generator, nthrds)
+	for i := 0; i < nthrds; i++ {
+		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN)
+	}
+
+	db := txn.MkTxnMgr()
+	populateData(db, rkeys)
 	if !exp {
 		fmt.Printf("Database populated.\n")
 	}
 
+	db.ActivateGC()
+
+	/* Start a long-running reader. */
 	if long {
-		go longReader(txnMgr, rkeys)
+		gen := ycsb.NewGenerator(nthrds, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN)
+		go longReader(db, gen)
 	}
+
 	done = false
 	for i := 0; i < nthrds; i++ {
-		src := rand.NewSource(int64(i))
-		go worker(txnMgr, src, chCommitted, chTotal, nkeys, rkeys, rdratio)
+		go worker(db, gens[i], chCommitted, chTotal)
 	}
 	time.Sleep(time.Duration(duration) * time.Second)
 	done = true

@@ -164,5 +164,5 @@ func (g *Generator) cid() uint32 {
 func (g *Generator) iid() uint32 {
 	/* See Silo tpcc.cc:L369. */
 	n := uint32(pickBetweenNonUniformly(g.rd, 8191, 7911, 1, g.nItems))
-	return n	
+	return n
 }
