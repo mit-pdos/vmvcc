@@ -1,7 +1,9 @@
 package tplock
 
 import (
-	// "fmt"
+	"fmt"
+	"sync"
+	"math/rand"
 	"testing"
 	"github.com/stretchr/testify/assert"
 )
@@ -105,4 +107,51 @@ func TestWriteReadAbort(t *testing.T) {
 	assert.Equal(false, ok)
 	assert.Equal(uint32(0), db.idx.GetTuple(0).lock)
 	assert.Equal(true, db.idx.GetTuple(0).del)
+}
+
+func worker(i int, txno *Txn) {
+	t := 0
+	c := 0
+	rd := rand.New(rand.NewSource(int64(i)))
+	body := func(txni *Txn) bool {
+		for i := 0; i < 5; i++ {
+			key := rd.Uint64() % 16
+			if rd.Uint64() % 2 == 0 {
+				txni.Get(key)
+			} else {
+				txni.Put(key, "hello")
+			}
+		}
+		return true
+	}
+	for j := 0; j < 10000; j++ {
+		ok := txno.DoTxn(body)
+		if ok {
+			c++
+		}
+		t++
+	}
+	fmt.Printf("Thread %d : (%d / %d)\n", i, c, t)
+}
+
+func TestStress(t *testing.T) {
+	assert := assert.New(t)
+	db := MkTxnMgr()
+
+	/* Initialize each key to 0. */
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		txno := db.New()
+		wg.Add(1)
+		go func(x int) {
+			defer wg.Done()
+			worker(x, txno)
+		}(i)
+	}
+	wg.Wait()
+
+	var key uint64
+	for key = 0; key < 16; key++ {
+		assert.Equal(uint32(0), db.idx.GetTuple(key).lock)
+	}
 }
