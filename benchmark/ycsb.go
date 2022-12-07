@@ -8,7 +8,8 @@ import (
 	"os"
 	"log"
 	"math/rand"
-	"github.com/mit-pdos/go-mvcc/tplock"
+	"github.com/mit-pdos/go-mvcc/txn"
+	// "github.com/mit-pdos/go-mvcc/tplock"
 )
 
 var done bool
@@ -201,8 +202,10 @@ func main() {
 		fmt.Printf("Database populated.\n")
 	}
 
+	if long {
+		go longReader(txnMgr, rkeys)
+	}
 	done = false
-	go longReader(txnMgr, rkeys)
 	for i := 0; i < nthrds; i++ {
 		src := rand.NewSource(int64(i))
 		go worker(txnMgr, src, chCommitted, chTotal, nkeys, rkeys, rdratio)
