@@ -131,9 +131,14 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	gens := make([]*ycsb.Generator, nthrds)
+	var nthrdsro int = 1
+
+	gens := make([]*ycsb.Generator, nthrds + nthrdsro)
 	for i := 0; i < nthrds; i++ {
 		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
+	}
+	for i := 0; i < nthrdsro; i++ {
+		gens[i + nthrds] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
 	}
 
 	db := txn.MkTxnMgr()
@@ -146,8 +151,9 @@ func main() {
 
 	/* Start a long-running reader. */
 	if long {
-		gen := ycsb.NewGenerator(nthrds, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
-		go longReader(db, gen)
+		for i := 0; i < nthrdsro; i++ {
+			go longReader(db, gens[nthrds + i])
+		}
 	}
 
 	done = false
@@ -167,8 +173,8 @@ func main() {
 	tp := float64(c) / float64(duration) / 1000000.0
 
 	if exp {
-		fmt.Printf("%d, %d, %d, %d, %d, %d, %f, %f\n",
-			nthrds, nkeys, rkeys, duration, c, t, tp, rate)
+		fmt.Printf("%d, %d, %d, %d, %.2f, %v, %d, %d, %d, %f, %f\n",
+			nthrds, nkeys, rkeys, rdratio, theta, long, duration, c, t, tp, rate)
 	} else {
 		fmt.Printf("committed / total = %d / %d (%f).\n", c, t, rate)
 		fmt.Printf("tp = %f (M txns/s).\n", tp)
