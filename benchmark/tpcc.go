@@ -237,6 +237,6 @@ func main() {
 	)
 	dprintf(debug, "Throughput = %.3f (K txns/s).\n", tp)
 
-	fmt.Printf("%d, %d, %d, %d, %.3f, %.2f\n",
-		nthrds, duration, committed, total, tp, rate)
+	fmt.Printf("%d, %d, %.3f, %.2f\n",
+		nthrds, duration, tp, rate)
 }
