@@ -4,14 +4,14 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=60
-rkeys=10000000
+duration=10
+rkeys=1000000
 
 theta=0.2
 nkeys=1
 rdratio=100
 
-fpath=$dir/ycsb-optimization-$1.csv
+fpath=$dir/optimization-$1.csv
 rm -f $fpath
 for nthrds in $(seq 16)
 do

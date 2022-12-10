@@ -166,7 +166,7 @@ func main() {
 	for i := 0; i < nthrds; i++ {
 		go worker(db, gens[i], chCommitted, chTotal)
 	}
-	time.Sleep(time.Duration(60) * time.Second)
+	// time.Sleep(time.Duration(60) * time.Second)
 	warmup = true
 	time.Sleep(time.Duration(duration) * time.Second)
 	done = true
