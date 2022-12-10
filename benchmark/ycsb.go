@@ -10,7 +10,6 @@ import (
 	"log"
 	"github.com/mit-pdos/go-mvcc/benchmark/ycsb"
 	"github.com/mit-pdos/go-mvcc/txn"
-	// "github.com/mit-pdos/go-mvcc/tplock"
 )
 
 var done, warmup bool
@@ -140,14 +139,14 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	var nthrdsro int = 1
+	var nthrdsro int = 8
 
 	gens := make([]*ycsb.Generator, nthrds + nthrdsro)
 	for i := 0; i < nthrds; i++ {
 		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, theta)
 	}
 	for i := 0; i < nthrdsro; i++ {
-		gens[i + nthrds] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, theta)
+		gens[i + nthrds] = ycsb.NewGenerator(i + nthrds, nkeys,  rkeys, rdratio, theta)
 	}
 
 	db := txn.MkTxnMgr()
