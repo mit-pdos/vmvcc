@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 	"fmt"
+	// "runtime"
 	"runtime/pprof"
 	"flag"
 	"os"
@@ -12,7 +13,7 @@ import (
 	// "github.com/mit-pdos/go-mvcc/tplock"
 )
 
-var done bool
+var done, warmup bool
 var szrec int = 100
 
 func populateDataBody(txn *txn.Txn, key uint64) bool {
@@ -67,6 +68,7 @@ func worker(
 	db *txn.TxnMgr, gen *ycsb.Generator,
 	chCommitted, chTotal chan uint64,
 ) {
+	// runtime.LockOSThread()
 	var committed uint64 = 0
 	var total uint64 = 0
 	nKeys := gen.NKeys()
@@ -85,6 +87,9 @@ func worker(
 			return workerBody(txn, keys, ops)
 		}
 		ok := t.DoTxn(body)
+		if !warmup {
+			continue
+		}
 		if ok {
 			committed++
 		}
@@ -157,9 +162,12 @@ func main() {
 	}
 
 	done = false
+	warmup = false
 	for i := 0; i < nthrds; i++ {
 		go worker(db, gens[i], chCommitted, chTotal)
 	}
+	time.Sleep(time.Duration(60) * time.Second)
+	warmup = true
 	time.Sleep(time.Duration(duration) * time.Second)
 	done = true
 
@@ -173,8 +181,8 @@ func main() {
 	tp := float64(c) / float64(duration) / 1000000.0
 
 	if exp {
-		fmt.Printf("%d, %d, %d, %d, %.2f, %v, %d, %d, %d, %f, %f\n",
-			nthrds, nkeys, rkeys, rdratio, theta, long, duration, c, t, tp, rate)
+		fmt.Printf("%d, %d, %d, %d, %.2f, %v, %d, %f, %f\n",
+			nthrds, nkeys, rkeys, rdratio, theta, long, duration, tp, rate)
 	} else {
 		fmt.Printf("committed / total = %d / %d (%f).\n", c, t, rate)
 		fmt.Printf("tp = %f (M txns/s).\n", tp)
