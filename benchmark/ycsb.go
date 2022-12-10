@@ -51,13 +51,16 @@ func longReader(db *txn.TxnMgr, gen *ycsb.Generator) {
 	}
 }
 
-func workerBody(txn *txn.Txn, keys []uint64, ops []int) bool {
+func workerBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
 	for i, k := range(keys) {
 		if ops[i] == ycsb.OP_RD {
 			txn.Get(k)
 		} else if ops[i] == ycsb.OP_WR {
 			/* TODO: Move slice out of the loop. */
-			s := string(make([]byte, szrec))
+			for j := range buf {
+				buf[j] = 'b'
+			}
+			s := string(buf)
 			txn.Put(k, s)
 		}
 	}
@@ -78,13 +81,14 @@ func worker(
 
 	t := db.New()
 
+	buf := make([]byte, szrec)
 	for !done {
 		for i := 0; i < nKeys; i++ {
 			keys[i] = gen.PickKey()
 			ops[i] = gen.PickOp()
 		}
 		body := func(txn *txn.Txn) bool {
-			return workerBody(txn, keys, ops)
+			return workerBody(txn, keys, ops, buf)
 		}
 		ok := t.DoTxn(body)
 		if !warmup {
@@ -114,7 +118,7 @@ func main() {
 	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
 	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
 	flag.Uint64Var(&rdratio, "rdratio", 80, "read ratio")
-	flag.Float64Var(&theta, "theta", 0.8, "zipfian theta (the higher the more contended)")
+	flag.Float64Var(&theta, "theta", 0.8, "zipfian theta (the higher the more contended; -1 for uniform)")
 	flag.BoolVar(&long, "long", false, "background long-running RO transactions")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
 	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
@@ -140,10 +144,10 @@ func main() {
 
 	gens := make([]*ycsb.Generator, nthrds + nthrdsro)
 	for i := 0; i < nthrds; i++ {
-		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
+		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, theta)
 	}
 	for i := 0; i < nthrdsro; i++ {
-		gens[i + nthrds] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, ycsb.DIST_ZIPFIAN, theta)
+		gens[i + nthrds] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, theta)
 	}
 
 	db := txn.MkTxnMgr()

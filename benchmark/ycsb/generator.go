@@ -28,12 +28,16 @@ type Generator struct {
 func NewGenerator(
 	seed int,
 	nKeys int, rKeys, rdRatio uint64,
-	dist int, theta float64,
+	theta float64,
 ) *Generator {
 	rd := rand.New(rand.NewSource(int64(seed)))
 
 	var zipfian *generator.Zipfian
-	if dist == DIST_ZIPFIAN {
+	var dist int
+	if theta == -1 {
+		dist = DIST_UNIFORM
+	} else {
+		dist = DIST_ZIPFIAN
 		zipfian = generator.NewZipfianWithItems(int64(rKeys), theta)
 	}
 
