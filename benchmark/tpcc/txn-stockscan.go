@@ -1,7 +1,7 @@
 package tpcc
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/mit-pdos/go-mvcc/txn"
 )
 
@@ -20,7 +20,7 @@ func stockscan(
 			cnts[iid - 1] += uint32(quantity)
 		}
 	}
-	fmt.Printf("Done stockscan.\n")
+	// fmt.Printf("Done stockscan.\n")
 
 	return true
 }

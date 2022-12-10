@@ -49,11 +49,15 @@ func dprintf(debug bool, format string, a ...interface{}) (n int, err error) {
 	return
 }
 
-func stockscanner(db *txn.TxnMgr, nWarehouses uint8, nItems uint32) {
+func stockscanner(
+	db *txn.TxnMgr, nWarehouses uint8, nItems uint32,
+	interval time.Duration,
+) {
 	t := db.New()
 
 	for !done {
 		tpcc.TxnStockScan(t, nWarehouses, nItems)
+		time.Sleep(interval)
 	}
 }
 
@@ -70,24 +74,34 @@ func worker(
 
 	/* Start running TPC-C transactions. */
 	for !done {
-		var ok bool
+		var ok bool = false
 		x := gen.PickTxn()
 		switch x {
 		case tpcc.TXN_NEWORDER:
 			p := gen.GetNewOrderInput()
-			_, _, _, ok = tpcc.TxnNewOrder(t, p)
+			for !ok {
+				_, _, _, ok = tpcc.TxnNewOrder(t, p)
+			}
 		case tpcc.TXN_PAYMENT:
 			p := gen.GetPaymentInput()
-			ok = tpcc.TxnPayment(t, p)
+			for !ok {
+				ok = tpcc.TxnPayment(t, p)
+			}
 		case tpcc.TXN_ORDERSTATUS:
 			p := gen.GetOrderStatusInput()
-			_, ok = tpcc.TxnOrderStatus(t, p, ctx)
+			for !ok {
+				_, ok = tpcc.TxnOrderStatus(t, p, ctx)
+			}
 		case tpcc.TXN_DELIVERY:
 			p := gen.GetDeliveryInput()
-			_, ok = tpcc.TxnDelivery(t, p)
+			for !ok {
+				_, ok = tpcc.TxnDelivery(t, p)
+			}
 		case tpcc.TXN_STOCKLEVEL:
 			p := gen.GetStockLevelInput()
-			_, ok = tpcc.TxnStockLevel(t, p)
+			for !ok {
+				_, ok = tpcc.TxnStockLevel(t, p)
+			}
 		}
 
 		if ok {
@@ -102,13 +116,13 @@ func worker(
 func main() {
 	var nthrds int
 	var duration uint64
-	var stockscan bool
+	var stockscan uint64
 	var cpuprof string
 	var debug bool
 	var w workloads = make([]uint64, 0)
 	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
 	flag.Var(&w, "workloads", "ratio of each TPC-C transaction")
-	flag.BoolVar(&stockscan, "stockscan", false, "enable stock scan transaction")
+	flag.Uint64Var(&stockscan, "stockscan", 0, "interval of stock scan transaction (0 to disable)")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
 	flag.StringVar(&cpuprof, "cpuprof", "", "write cpu profile to cpuprof")
 	flag.BoolVar(&debug, "debug", true, "print debug info")
@@ -186,8 +200,9 @@ func main() {
 	elapsed = time.Since(start)
 	dprintf(debug, "Done (%s).", elapsed)
 
-	if stockscan {
-		go stockscanner(db, nWarehouses, nItems)
+	if stockscan > 0 {
+		interval := time.Duration(stockscan) * time.Millisecond
+		go stockscanner(db, nWarehouses, nItems, interval)
 	}
 
 	dprintf(debug, "Running benchmark...")
@@ -251,6 +266,6 @@ func main() {
 	)
 	dprintf(debug, "Throughput = %.3f (K txns/s).\n", tp)
 
-	fmt.Printf("%d, %v, %d, %.3f, %.2f\n",
+	fmt.Printf("%d, %d, %d, %.3f, %.2f\n",
 		nthrds, stockscan, duration, tp, rate)
 }

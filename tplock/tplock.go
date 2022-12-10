@@ -458,6 +458,7 @@ func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
 		txn.beginRO()
 		body(txn)
 		txn.commitRO()
+		return true
 	}
 
 	txn.begin()
