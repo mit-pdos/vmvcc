@@ -88,6 +88,16 @@ func (tuple *Tuple) Read() (string, bool) {
 	return tuple.val, !tuple.del
 }
 
+/**
+ * Call this only when the transaction already owns the lock of this key.
+ */
+func (tuple *Tuple) UnconditionalRead() (string, bool) {
+	tuple.latch.Lock()
+
+	tuple.latch.Unlock()
+	return tuple.val, !tuple.del
+}
+
 func (tuple *Tuple) ReadRelease() {
 	tuple.latch.Lock()
 
@@ -345,9 +355,11 @@ func (idx *Index) GetTuple(key uint64) *Tuple {
  * Transaction.
  */
 type Txn struct {
-	wrbuf *WrBuf
-	rdset *WrBuf
-	idx   *Index
+	wrbuf  *WrBuf
+	rdbuf  *WrBuf
+	idx    *Index
+	rdonly bool
+	rdset  map[uint64]*Tuple
 }
 
 type TxnMgr struct {
@@ -364,8 +376,9 @@ func (txnMgr *TxnMgr) New() *Txn {
 	/* Make a new txn. */
 	txn := new(Txn)
 	txn.wrbuf = MkWrBuf()
-	txn.rdset = MkWrBuf()
+	txn.rdbuf = MkWrBuf()
 	txn.idx = txnMgr.idx
+	txn.rdonly = false
 
 	return txn
 }
@@ -387,7 +400,7 @@ func (txn *Txn) Delete(key uint64) bool {
 	return true
 }
 
-func (txn *Txn) Get(key uint64) (string, bool) {
+func (txn *Txn) get(key uint64) (string, bool) {
 	/* First try to find `key` in the local write set. */
 	wrbuf := txn.wrbuf
 	valb, wr, found := wrbuf.Lookup(key)
@@ -395,8 +408,8 @@ func (txn *Txn) Get(key uint64) (string, bool) {
 		return valb, wr
 	}
 
-	rdset := txn.rdset
-	valb, wr, found = rdset.Lookup(key)
+	rdbuf := txn.rdbuf
+	valb, wr, found = rdbuf.Lookup(key)
 	if found {
 		return valb, wr
 	}
@@ -404,32 +417,49 @@ func (txn *Txn) Get(key uint64) (string, bool) {
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 	val, found := tuple.Read()
-	rdset.Add(key, val, found, tuple)
+	rdbuf.Add(key, val, found, tuple)
 
+	return val, found
+}
+
+func (txn *Txn) Get(key uint64) (string, bool) {
+	if txn.rdonly {
+		val, found := txn.getRO(key)
+		return val, found
+	}
+
+	val, found := txn.get(key)
 	return val, found
 }
 
 func (txn *Txn) begin() {
 	txn.wrbuf.Clear()
-	txn.rdset.Clear()
+	txn.rdbuf.Clear()
 }
 
 func (txn *Txn) acquire() bool {
-	ok := txn.wrbuf.OpenTuples(txn.idx, txn.rdset)
+	ok := txn.wrbuf.OpenTuples(txn.idx, txn.rdbuf)
 	return ok
 }
 
 func (txn *Txn) commit() {
 	/* At this point we have all the read and write locks. First release wlocks. */
 	txn.wrbuf.UpdateTuples()
-	txn.rdset.ReleaseTuples()
+	txn.rdbuf.ReleaseTuples()
 }
 
 func (txn *Txn) abort() {
-	txn.rdset.ReleaseTuples()
+	txn.rdbuf.ReleaseTuples()
 }
 
 func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
+	if txn.rdonly {
+		/* Read-only transactions never abort. */
+		txn.beginRO()
+		body(txn)
+		txn.commitRO()
+	}
+
 	txn.begin()
 	cmt := body(txn)
 	if !cmt {
@@ -443,4 +473,45 @@ func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
 	}
 	txn.commit()
 	return true
+}
+
+/**
+ * Using a slice to keep track of a large read set is too slow, on the other
+ * hand, using a go map to keep track of a small read set is also too slow.  So
+ * we have this interface for 2PL to create transactions optimized for read-only
+ * workload.
+ */
+func (txnMgr *TxnMgr) NewROTxn() *Txn {
+	/* Make a new txn. */
+	txn := new(Txn)
+	txn.idx = txnMgr.idx
+	txn.rdonly = true
+
+	return txn
+}
+
+func (txn *Txn) getRO(key uint64) (string, bool) {
+	rdset := txn.rdset
+	tuple, locked := rdset[key]
+	if locked {
+		val, found := tuple.UnconditionalRead()
+		return val, found
+	}
+
+	idx := txn.idx
+	tuple = idx.GetTuple(key)
+	val, found := tuple.Read()
+	rdset[key] = tuple
+
+	return val, found
+}
+
+func (txn *Txn) beginRO() {
+	txn.rdset = make(map[uint64]*Tuple)
+}
+
+func (txn *Txn) commitRO() {
+	for _, tpl := range txn.rdset {
+		tpl.ReadRelease()
+	}
 }
