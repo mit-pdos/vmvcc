@@ -4,7 +4,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=30
+duration=60
 nthrds=16
 
 pushd benchmark
@@ -15,7 +15,7 @@ cc="tplock"
 
 fpath=$dir/long-tpcc-$cc.csv
 rm -f $fpath
-for interval in 100 200 400 800 1600 3200 6400
+for interval in 0 10000 5000 2000 1000 500 200 100
 do
 	stdbuf -o 0 go run ./benchmark/tpcc.go -nthrds $nthrds -stockscan $interval -duration $duration -debug false | tee -a $fpath
 done
@@ -28,7 +28,7 @@ cc="mvcc"
 
 fpath=$dir/long-tpcc-$cc.csv
 rm -f $fpath
-for interval in 100 200 400 800 1600 3200 6400
+for interval in 0 10000 5000 2000 1000 500 200 100
 do
 	stdbuf -o 0 go run ./benchmark/tpcc.go -nthrds $nthrds -stockscan $interval -duration $duration -debug false | tee -a $fpath
 done
