@@ -50,12 +50,11 @@ func longReader(db *txn.TxnMgr, gen *ycsb.Generator) {
 	}
 }
 
-func workerBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
+func workerRWBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
 	for i, k := range(keys) {
 		if ops[i] == ycsb.OP_RD {
 			txn.Get(k)
 		} else if ops[i] == ycsb.OP_WR {
-			/* TODO: Move slice out of the loop. */
 			for j := range buf {
 				buf[j] = 'b'
 			}
@@ -66,7 +65,7 @@ func workerBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
 	return true
 }
 
-func worker(
+func workerRW(
 	db *txn.TxnMgr, gen *ycsb.Generator,
 	chCommitted, chTotal chan uint64,
 ) {
@@ -87,7 +86,43 @@ func worker(
 			ops[i] = gen.PickOp()
 		}
 		body := func(txn *txn.Txn) bool {
-			return workerBody(txn, keys, ops, buf)
+			return workerRWBody(txn, keys, ops, buf)
+		}
+		ok := t.DoTxn(body)
+		if !warmup {
+			continue
+		}
+		if ok {
+			committed++
+		}
+		total++
+	}
+
+	chCommitted <-committed
+	chTotal <-total
+}
+
+func workerScanBody(txn *txn.Txn, key uint64) bool {
+	for offset := uint64(0); offset < 100; offset++ {
+		txn.Get(key + offset)
+	}
+	return true
+}
+
+func workerScan(
+	db *txn.TxnMgr, gen *ycsb.Generator,
+	chCommitted, chTotal chan uint64,
+) {
+	// runtime.LockOSThread()
+	var committed uint64 = 0
+	var total uint64 = 0
+
+	t := db.New()
+
+	for !done {
+		key := gen.PickKey()
+		body := func(txn *txn.Txn) bool {
+			return workerScanBody(txn, key)
 		}
 		ok := t.DoTxn(body)
 		if !warmup {
@@ -116,7 +151,7 @@ func main() {
 	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
 	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
 	flag.Uint64Var(&rkeys, "rkeys", 1000, "access keys within [0:rkeys)")
-	flag.Uint64Var(&rdratio, "rdratio", 80, "read ratio")
+	flag.Uint64Var(&rdratio, "rdratio", 80, "read ratio (200 for scan)")
 	flag.Float64Var(&theta, "theta", 0.8, "zipfian theta (the higher the more contended; -1 for uniform)")
 	flag.BoolVar(&long, "long", false, "background long-running RO transactions")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
@@ -167,7 +202,11 @@ func main() {
 	done = false
 	warmup = false
 	for i := 0; i < nthrds; i++ {
-		go worker(db, gens[i], chCommitted, chTotal)
+		if rdratio == 200 {
+			go workerScan(db, gens[i], chCommitted, chTotal)
+		} else {
+			go workerRW(db, gens[i], chCommitted, chTotal)
+		}
 	}
 	// time.Sleep(time.Duration(60) * time.Second)
 	warmup = true

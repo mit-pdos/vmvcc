@@ -9,6 +9,7 @@ import (
 const (
 	OP_RD = iota
 	OP_WR
+	OP_SCAN
 )
 
 const (
