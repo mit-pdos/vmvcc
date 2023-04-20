@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 	"fmt"
-	// "runtime"
+	"runtime"
 	"runtime/pprof"
 	"flag"
 	"os"
@@ -147,6 +147,7 @@ func main() {
 	var long bool
 	var duration uint64
 	var cpuprof string
+	var heapprof string
 	var exp bool
 	flag.IntVar(&nthrds, "nthrds", 1, "number of threads")
 	flag.IntVar(&nkeys, "nkeys", 1, "number of keys accessed per txn")
@@ -156,6 +157,7 @@ func main() {
 	flag.BoolVar(&long, "long", false, "background long-running RO transactions")
 	flag.Uint64Var(&duration, "duration", 3, "benchmark duration (seconds)")
 	flag.StringVar(&cpuprof, "cpuprof", "cpu.prof", "write cpu profile to cpuprof")
+	flag.StringVar(&heapprof, "heapprof", "heap.prof", "write heap profile to heapprof")
 	flag.BoolVar(&exp, "exp", false, "print only experimental data")
 	flag.Parse()
 
@@ -228,5 +230,17 @@ func main() {
 	} else {
 		fmt.Printf("committed / total = %d / %d (%f).\n", c, t, rate)
 		fmt.Printf("tp = %f (M txns/s).\n", tp)
+	}
+
+	if heapprof != "" {
+		f, err := os.Create(heapprof)
+		if err != nil {
+			log.Fatal("could not create hea[ profile: ", err)
+		}
+		defer f.Close() // error handling omitted for example
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not start heap profile: ", err)
+		}
 	}
 }
