@@ -1,0 +1,84 @@
+diff --git a/config/config.go b/config/config.go
+index dc4b7a4..3457367 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -1,8 +1,8 @@
+ package config
+ 
+ const (
+-	N_TXN_SITES  uint64 = 16
+-	N_IDX_BUCKET uint64 = 8192
++	N_TXN_SITES  uint64 = 1
++	N_IDX_BUCKET uint64 = 1
+ )
+ 
+ const (
+diff --git a/tid/tid.go b/tid/tid.go
+index 3dc8097..99806f3 100644
+--- a/tid/tid.go
++++ b/tid/tid.go
+@@ -1,6 +1,7 @@
+ package tid
+ 
+ import (
++	"sync/atomic"
+ 	"github.com/goose-lang/std"
+ 	"github.com/mit-pdos/gokv/grove_ffi"
+ 	"github.com/mit-pdos/go-mvcc/config"
+@@ -22,3 +23,8 @@ func GenTID(sid uint64) uint64 {
+ 
+ 	return tid
+ }
++
++func GenTIDFAI(addr *uint64) uint64 {
++	tid := atomic.AddUint64(addr, 1)
++	return tid
++}
+diff --git a/txn/txn.go b/txn/txn.go
+index e914c2e..8fdc872 100644
+--- a/txn/txn.go
++++ b/txn/txn.go
+@@ -29,6 +29,7 @@ type TxnSite struct {
+ type TxnMgr struct {
+ 	latch		*cfmutex.CFMutex
+ 	sidCur		uint64
++	gtid		uint64
+ 	sites		[]*TxnSite
+ 	idx			*index.Index
+ 	p			machine.ProphId
+@@ -39,6 +40,7 @@ func MkTxnMgr() *TxnMgr {
+ 	txnMgr := &TxnMgr { p: p }
+ 	txnMgr.latch = new(cfmutex.CFMutex)
+ 	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
++	txnMgr.gtid = 0
+ 	/* Call this once for establishing invariants. */
+ 	tid.GenTID(0)
+ 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
+@@ -76,7 +78,12 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
+ 	site.latch.Lock()
+ 
+ 	var t uint64
+-	t = tid.GenTID(sid)
++	// t = tid.GenTID(sid)
++	// t = tid.GenTIDFAI(&txnMgr.gtid)
++	txnMgr.latch.Lock()
++	t = txnMgr.gtid
++	txnMgr.gtid++
++	txnMgr.latch.Unlock()
+ 	/* Assume TID never overflow */
+ 	machine.Assume(t < 18446744073709551615)
+ 
+@@ -133,7 +140,12 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
+ 	site.latch.Lock()
+ 
+ 	var tidnew uint64
+-	tidnew = tid.GenTID(sid)
++	// tidnew = tid.GenTID(sid)
++	// tidnew = tid.GenTIDFAI(&txnMgr.gtid)
++	txnMgr.latch.Lock()
++	tidnew = txnMgr.gtid
++	txnMgr.gtid++
++	txnMgr.latch.Unlock()
+ 	machine.Assume(tidnew < 18446744073709551615)
+ 
+ 	var tidmin uint64 = tidnew

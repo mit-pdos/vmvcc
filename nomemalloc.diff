@@ -1,0 +1,35 @@
+diff --git a/benchmark/ycsb.go b/benchmark/ycsb.go
+index f55424d..c16ba79 100644
+--- a/benchmark/ycsb.go
++++ b/benchmark/ycsb.go
+@@ -55,11 +55,11 @@ func workerRWBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
+ 		if ops[i] == ycsb.OP_RD {
+ 			txn.Get(k)
+ 		} else if ops[i] == ycsb.OP_WR {
+-			for j := range buf {
+-				buf[j] = 'b'
+-			}
+-			s := string(buf)
+-			txn.Put(k, s)
++			// for j := range buf {
++			// 	buf[j] = 'b'
++			// }
++			// s := string(buf)
++			txn.Put(k, "bbbb")
+ 		}
+ 	}
+ 	return true
+diff --git a/tuple/tuple.go b/tuple/tuple.go
+index 7fa359a..5ebe1e6 100644
+--- a/tuple/tuple.go
++++ b/tuple/tuple.go
+@@ -91,7 +91,8 @@ func (tuple *Tuple) appendVersion(tid uint64, val string) {
+ 		val		: val,
+ 		deleted	: false,
+ 	}
+-	tuple.vers = append(tuple.vers, verNew)
++	// tuple.vers = append(tuple.vers, verNew)
++	tuple.vers[0] = verNew
+ 
+ 	/* Release the permission to update this tuple. */
+ 	tuple.owned = false
