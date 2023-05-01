@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GO=go1.20.2
+GO=go
 dir=./exp/silo-${GO}
 rm -rf $dir
 mkdir -p $dir
@@ -11,7 +11,7 @@ theta=-1
 
 nkeys=1
 
-for i in $(seq 10)
+for i in $(seq 1)
 do
 	fpath=$dir/ycsb.csv
 	# rm -f $fpath
@@ -24,14 +24,14 @@ do
 		done
 	done
 
-	# fpath=$dir/tpcc.csv
-	# # rm -f $fpath
-	# for workloads in '45,43,4,4,4'
-	# do
-	# 	# for nthrds in $(seq 8)
-	# 	for nthrds in 1 8
-	# 	do
-	# 		stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
-	# 	done
-	# done
+	fpath=$dir/tpcc.csv
+	# rm -f $fpath
+	for workloads in '45,43,4,4,4'
+	do
+		# for nthrds in $(seq 8)
+		for nthrds in 1 8
+		do
+			stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
+		done
+	done
 done

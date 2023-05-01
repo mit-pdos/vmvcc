@@ -4,7 +4,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=60
+duration=30
 nthrds=16
 
 pushd benchmark
