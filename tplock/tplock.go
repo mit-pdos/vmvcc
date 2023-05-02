@@ -138,7 +138,7 @@ type WrBuf struct {
 
 func MkWrBuf() *WrBuf {
 	wrbuf := new(WrBuf)
-	wrbuf.ents = make([]WrEnt, 0, 16)
+	wrbuf.ents = make([]WrEnt, 0, 128)
 	return wrbuf
 }
 
@@ -221,7 +221,9 @@ func (wrbuf *WrBuf) Remove(key uint64) {
 		return
 	}
 
-	copy(wrbuf.ents[pos :], wrbuf.ents[pos + 1 :])
+	ent := wrbuf.ents[pos]
+	wrbuf.ents[pos] = wrbuf.ents[len(wrbuf.ents) - 1]
+	wrbuf.ents[len(wrbuf.ents) - 1] = ent
 	wrbuf.ents = wrbuf.ents[: len(wrbuf.ents) - 1]
 }
 
@@ -240,7 +242,7 @@ func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset *WrBuf) bool {
 		if !ret {
 			break
 		}
-		/* Escalte the read lock to write lock. */
+		/* Escalate the read lock to write lock. */
 		rdset.Remove(ent.key)
 		// A more efficient way is updating field `tpl`, but not supported by Goose.
 		ents[pos] = WrEnt {
