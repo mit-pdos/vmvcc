@@ -6,7 +6,7 @@ index dc4b7a4..3457367 100644
  package config
  
  const (
--	N_TXN_SITES  uint64 = 16
+-	N_TXN_SITES  uint64 = 32
 -	N_IDX_BUCKET uint64 = 8192
 +	N_TXN_SITES  uint64 = 1
 +	N_IDX_BUCKET uint64 = 1
