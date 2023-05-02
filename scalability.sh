@@ -2,9 +2,9 @@
 
 if [ -z "$1" ]
 then
-	niters=1
+	nruns=1
 else
-	niters=$1
+	nruns=$1
 fi
 
 dir=./exp
@@ -22,10 +22,10 @@ do
 	do
 		fpath=$dir/scalability-$rdratio-$theta.csv
 		rm -f $fpath
-		for nthrds in 1 2 4 8 16 32
-		# for nthrds in 4
+		for i in $(seq $nruns)
 		do
-			for i in $(seq $niters)
+			for nthrds in 1 2 4 8 16 32
+			# for nthrds in 4
 			do
 				stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
 			done

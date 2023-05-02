@@ -2,9 +2,9 @@
 
 if [ -z "$1" ]
 then
-	niters=1
+	nruns=1
 else
-	niters=$1
+	nruns=$1
 fi
 
 GO=go
@@ -18,33 +18,30 @@ theta=-1
 
 nkeys=1
 
-for i in $(seq 1)
+fpath=$dir/silo-ycsb.csv
+rm -f $fpath
+for i in $(seq $nruns)
 do
-	fpath=$dir/silo-ycsb.csv
-	rm -f $fpath
 	for rdratio in 100 50 0 200
 	do
 		# for nthrds in $(seq 16)
 		for nthrds in 16
 		do
-			for i in $(seq $niters)
-			do
-				stdbuf -o 0 $GO run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
-			done
+			stdbuf -o 0 $GO run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
 		done
 	done
+done
 
-	fpath=$dir/silo-tpcc.csv
-	rm -f $fpath
+fpath=$dir/silo-tpcc.csv
+rm -f $fpath
+for i in $(seq $nruns)
+do
 	for workloads in '45,43,4,4,4'
 	do
 		# for nthrds in $(seq 8)
 		for nthrds in 1 8
 		do
-			for i in $(seq $niters)
-			do
-				stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
-			done
+			stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
 		done
 	done
 done
