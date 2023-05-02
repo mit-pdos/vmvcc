@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ -z "$1" ]
+then
+	niters=1
+else
+	niters=$1
+fi
+
 dir=./exp
 # rm -rf $dir
 mkdir -p $dir
@@ -21,11 +28,17 @@ fpath=$dir/long-ycsb-$cc.csv
 rm -f $fpath
 for rdratio in 100 80 60 40 20 0
 do
-	stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+	for i in $(seq $niters)
+	do
+		stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+	done
 done
 for rdratio in 100 80 60 40 20 0
 do
-	stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -long -exp | tee -a $fpath
+	for i in $(seq $niters)
+	do
+		stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -long -exp | tee -a $fpath
+	done
 done
 
 pushd benchmark
@@ -38,12 +51,18 @@ fpath=$dir/long-ycsb-$cc.csv
 rm -f $fpath
 for rdratio in 100 80 60 40 20 0
 do
-	stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+	for i in $(seq $niters)
+	do
+		stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+	done
 done
 
 fpath=$dir/long-ycsb-$cc.csv
 for rdratio in 100 80 60 40 20 0
 do
-	stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -long -exp | tee -a $fpath
+	for i in $(seq $niters)
+	do
+		stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -long -exp | tee -a $fpath
+	done
 done
 
