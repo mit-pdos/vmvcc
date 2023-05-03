@@ -28,7 +28,7 @@ fpath=$dir/optimization-$2.csv
 rm -f $fpath
 for i in $(seq $nruns)
 do
-	for nthrds in 1 2 4 8 16
+	for nthrds in 1 2 4 8 16 32
 	do
 		stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
 	done

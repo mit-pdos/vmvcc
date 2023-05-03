@@ -39,7 +39,7 @@ do
 	for workloads in '45,43,4,4,4'
 	do
 		# for nthrds in $(seq 8)
-		for nthrds in 1 8
+		for nthrds in 1 32
 		do
 			stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
 		done

@@ -16,7 +16,7 @@ rkeys=1000000
 
 theta=0.85
 nkeys=4
-nthrds=8
+nthrds=24
 
 pushd benchmark
 ./sed-tplock.sh
