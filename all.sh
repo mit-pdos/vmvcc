@@ -7,7 +7,7 @@ then
 	exit 1
 fi
 
-nruns=1
+nruns=10
 
 # Silo
 ./silo.sh $nruns
