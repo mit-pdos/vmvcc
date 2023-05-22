@@ -11,6 +11,9 @@ func GenTID(sid uint64) uint64 {
 
 	/* Call `GetTSC` and round the result up to site ID boundary. */
 	tid = grove_ffi.GetTSC()
+	// XXX: this would be buggy:
+	// return tid
+
 	tid = std.SumAssumeNoOverflow(tid,config.N_TXN_SITES)/config.N_TXN_SITES * config.N_TXN_SITES + sid
 	// Below is the old (and wrong) version where we simply round the result,
 	// up or down, to site ID boundary.
