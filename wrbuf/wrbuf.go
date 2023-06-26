@@ -134,7 +134,7 @@ func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
 	}
 
 	for _, ent := range ents {
-		ent.tpl.WriteLock()
+		ent.tpl.WriteOpen()
 	}
 	return true
 }
