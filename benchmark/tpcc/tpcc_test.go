@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/stretchr/testify/assert"
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 /**

@@ -3,7 +3,7 @@ package tid
 import (
 	"github.com/goose-lang/std"
 	"github.com/mit-pdos/gokv/grove_ffi"
-	"github.com/mit-pdos/go-mvcc/config"
+	"github.com/mit-pdos/vmvcc/config"
 )
 
 func GenTID(sid uint64) uint64 {

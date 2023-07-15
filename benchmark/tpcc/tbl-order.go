@@ -1,7 +1,7 @@
 package tpcc
 
 import (
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {

@@ -3,12 +3,12 @@ package txn
 import (
 	//"fmt"
 	//"time"
-	"github.com/mit-pdos/go-mvcc/config"
-	"github.com/mit-pdos/go-mvcc/index"
-	"github.com/mit-pdos/go-mvcc/wrbuf"
-	"github.com/mit-pdos/go-mvcc/trusted_proph"
-	"github.com/mit-pdos/go-mvcc/tid"
-	"github.com/mit-pdos/go-mvcc/cfmutex"
+	"github.com/mit-pdos/vmvcc/config"
+	"github.com/mit-pdos/vmvcc/index"
+	"github.com/mit-pdos/vmvcc/wrbuf"
+	"github.com/mit-pdos/vmvcc/trusted_proph"
+	"github.com/mit-pdos/vmvcc/tid"
+	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/tchajed/goose/machine"
 )
 

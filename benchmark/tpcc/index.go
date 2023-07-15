@@ -2,7 +2,7 @@ package tpcc
 
 import (
 	"unsafe"
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 func readidx(txn *txn.Txn, gkey uint64) ([]uint64, bool) {

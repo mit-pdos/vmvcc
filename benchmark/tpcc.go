@@ -11,8 +11,8 @@ import (
 	"strings"
 	"strconv"
 	"errors"
-	"github.com/mit-pdos/go-mvcc/benchmark/tpcc"
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/benchmark/tpcc"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 var done bool

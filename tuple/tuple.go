@@ -2,7 +2,7 @@ package tuple
 
 import (
 	"sync"
-	"github.com/mit-pdos/go-mvcc/common"
+	"github.com/mit-pdos/vmvcc/common"
 )
 
 

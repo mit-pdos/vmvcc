@@ -1,7 +1,7 @@
 package tpcc
 
 import (
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 func GetStock(txn *txn.Txn, iid uint32, wid uint8) (*Stock, bool) {

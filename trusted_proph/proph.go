@@ -1,7 +1,7 @@
 package trusted_proph
 
 import (
-	"github.com/mit-pdos/go-mvcc/wrbuf"
+	"github.com/mit-pdos/vmvcc/wrbuf"
 	"github.com/tchajed/goose/machine"
 )
 

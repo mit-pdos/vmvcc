@@ -3,7 +3,7 @@ package tpcc
 import (
 	// "fmt"
 	"bytes"
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 type ItemInfo struct {

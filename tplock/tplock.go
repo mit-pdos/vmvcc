@@ -3,8 +3,8 @@ package txn
 import (
 	//"time"
 	"sync"
-	"github.com/mit-pdos/go-mvcc/config"
-	// "github.com/mit-pdos/go-mvcc/cfmutex"
+	"github.com/mit-pdos/vmvcc/config"
+	// "github.com/mit-pdos/vmvcc/cfmutex"
 )
 
 

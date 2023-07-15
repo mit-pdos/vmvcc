@@ -8,8 +8,8 @@ import (
 	"flag"
 	"os"
 	"log"
-	"github.com/mit-pdos/go-mvcc/benchmark/ycsb"
-	"github.com/mit-pdos/go-mvcc/txn"
+	"github.com/mit-pdos/vmvcc/benchmark/ycsb"
+	"github.com/mit-pdos/vmvcc/txn"
 )
 
 var done, warmup bool
