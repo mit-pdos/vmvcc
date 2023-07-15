@@ -1,3 +1,6 @@
+// This test intends to test "how frequent timestamps collide if without our
+// technique to make it unique". Comment out every line in tid.go except L13
+// for comparison.
 package main
 
 import (
