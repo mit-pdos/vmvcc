@@ -1,11 +1,20 @@
 package wrbuf
 
 import (
-	"github.com/mit-pdos/go-mvcc/common"
-	"github.com/mit-pdos/go-mvcc/tuple"
-	"github.com/mit-pdos/go-mvcc/index"
+	"github.com/mit-pdos/vmvcc/common"
+	"github.com/mit-pdos/vmvcc/tuple"
+	"github.com/mit-pdos/vmvcc/index"
 )
 
+// @key and @val
+// Key-value pair of the write entry.
+//
+// @wr
+// Write @key with @val, or delete @key.
+//
+// @tpl
+// Tuple pointer. Exists to save one index-lookup per write entry--written by
+// @OpenTuples and read by @UpdateTuples.
 type WrEnt struct {
 	key uint64
 	val string
@@ -13,6 +22,7 @@ type WrEnt struct {
 	tpl *tuple.Tuple
 }
 
+// Linear search can be quite slow when there are many entries.
 func search(ents []WrEnt, key uint64) (uint64, bool) {
 	var pos uint64 = 0
 	for pos < uint64(len(ents)) && key != ents[pos].key {
@@ -97,11 +107,27 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
+// @OpenTuples acquires the write locks of tuples to be updated by calling
+// @tuple.Own.
+//
+// This design prevents deadlocks that show up in the design where transactions
+// acquire write locks on writes. For instance, consider the following
+// scenarios:
+//
+// Txn A | W(x)    R(y)
+// Txn B |     W(y)    R(x)
+//
+// This causes a deadlock because A's R(y) waits on B's W(y), and B's R(x) waits
+// on A's W(x). Acquring write locks at commit time breaks the wait-cycle since
+// if one transaction waits on another, this means the latter must have entered
+// the commit phase, and therefore never waits on anything.
 func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
-	/* Sort entries by key to prevent deadlock. */
+	// Mistakenly think we need to sort the entries by keys to prevent
+	// deadlocks, but keeping it here since empirically it slightly improves
+	// performance for some reasons.
 	wrbuf.sortEntsByKey()
 
-	/* Start acquiring locks for each key. */
+	// Start acquiring locks for each key.
 	ents := wrbuf.ents
 	var pos uint64 = 0
 	for pos < uint64(len(ents)) {
@@ -109,10 +135,11 @@ func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
 		tpl := idx.GetTuple(ent.key)
 		ret := tpl.Own(tid)
 		if ret != common.RET_SUCCESS {
-			/* TODO: can retry a few times for RET_RETRY. */
+			// TODO: can retry a few times for RET_RETRY.
 			break
 		}
-		// A more efficient way is updating field `tpl`, but not supported by Goose.
+		// A more efficient way is updating field @tpl, but not
+		// supported by Goose.
 		ents[pos] = WrEnt {
 			key : ent.key,
 			val : ent.val,
@@ -122,7 +149,7 @@ func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
 		pos++
 	}
 
-	/* Release partially acquired locks. */
+	// Release partially acquired locks.
 	if pos < uint64(len(ents)) {
 		var i uint64 = 0
 		for i < pos {
