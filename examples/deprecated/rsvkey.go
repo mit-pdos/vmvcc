@@ -5,7 +5,7 @@ import (
 )
 
 func WriteReservedKeySeq(txn *txn.Txn, v uint64) bool {
-	txn.Put(0, v)
+	txn.Write(0, v)
 	return true
 }
 
@@ -13,11 +13,11 @@ func WriteReservedKey(t *txn.Txn, v uint64) bool {
 	body := func(txn *txn.Txn) bool {
 		return WriteReservedKeySeq(txn, v)
 	}
-	return t.DoTxn(body)
+	return t.Run(body)
 }
 
 func WriteFreeKeySeq(txn *txn.Txn, v uint64) bool {
-	txn.Put(1, v)
+	txn.Write(1, v)
 	return true
 }
 
@@ -25,7 +25,7 @@ func WriteFreeKey(t *txn.Txn, v uint64) bool {
 	body := func(txn *txn.Txn) bool {
 		return WriteFreeKeySeq(txn, v)
 	}
-	return t.DoTxn(body)
+	return t.Run(body)
 }
 
 func InitializeData(mgr *txn.TxnMgr) {

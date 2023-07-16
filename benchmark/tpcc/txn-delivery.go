@@ -76,7 +76,7 @@ func TxnDelivery(txno *txn.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
 			return delivery(txni, wid, did, ocarrierid, oldeliveryd, res)
 		}
 		/* Restart this transaction if fails. */
-		for !txno.DoTxn(body) {
+		for !txno.Run(body) {
 		}
 		ress[did - 1] = res
 	}

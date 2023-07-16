@@ -83,17 +83,14 @@ func encodeU8(buf []byte, n uint8, offset uint64) {
 }
 
 func encodeU16(buf []byte, n uint16, offset uint64) {
-	//binary.LittleEndian.PutUint16(buf[offset :], n)
 	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 2))
 }
 
 func encodeU32(buf []byte, n uint32, offset uint64) {
-	//binary.LittleEndian.PutUint32(buf[offset :], n)
 	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 4))
 }
 
 func encodeU64(buf []byte, n uint64, offset uint64) {
-	//binary.LittleEndian.PutUint64(buf[offset :], n)
 	copy(buf[offset :], unsafe.Slice((*byte)(unsafe.Pointer(&n)), 8))
 }
 

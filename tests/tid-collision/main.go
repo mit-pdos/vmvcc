@@ -23,7 +23,7 @@ func doIncr(txn *txn.Txn) bool {
 	var m uint64
 
 	for i := 0; i < nkeys; i += 1 {
-		xStr, _ := txn.Get(uint64(i))
+		xStr, _ := txn.Read(uint64(i))
 		x, err := strconv.ParseUint(xStr, 10, 64)
 		if err != nil {
 			panic(err)
@@ -34,7 +34,7 @@ func doIncr(txn *txn.Txn) bool {
 	}
 
 	randKey := machine.RandomUint64() % nkeys
-	txn.Put(randKey, strconv.FormatUint(m+1, 10))
+	txn.Write(randKey, strconv.FormatUint(m+1, 10))
 	return true
 }
 
@@ -42,7 +42,7 @@ func incrThread(db *txn.TxnMgr) uint64 {
 	txn := db.New()
 	numIncrs := uint64(0)
 	for i := 0; i < 1_000_000; i += 1 {
-		committed := txn.DoTxn(doIncr)
+		committed := txn.Run(doIncr)
 		if committed {
 			numIncrs += 1
 		}
@@ -54,9 +54,9 @@ func putZero(db *txn.TxnMgr) int {
 	t := db.New()
 	v := new(int)
 
-	committed := t.DoTxn(func(t *txn.Txn) bool {
+	committed := t.Run(func(t *txn.Txn) bool {
 		for i := 0; i < nkeys; i += 1 {
-			t.Put(uint64(i), "0")
+			t.Write(uint64(i), "0")
 		}
 		return true
 	})
@@ -71,10 +71,10 @@ func getValue(db *txn.TxnMgr) uint64 {
 	t := db.New()
 	v := new(uint64)
 
-	committed := t.DoTxn(func(t *txn.Txn) bool {
+	committed := t.Run(func(t *txn.Txn) bool {
 		var m uint64
 		for i := 0; i < nkeys; i += 1 {
-			xStr, _ := t.Get(uint64(i))
+			xStr, _ := t.Read(uint64(i))
 			x, err := strconv.ParseUint(xStr, 10, 64)
 			if err != nil {
 				panic(err)

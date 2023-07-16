@@ -17,7 +17,7 @@ var szrec int = 100
 
 func populateDataBody(txn *txn.Txn, key uint64) bool {
 	s := string(make([]byte, szrec))
-	txn.Put(key, s)
+	txn.Write(key, s)
 	return true
 }
 
@@ -27,14 +27,14 @@ func populateData(db *txn.TxnMgr, rkeys uint64) {
 		body := func(txn *txn.Txn) bool {
 			return populateDataBody(txn, k)
 		}
-		t.DoTxn(body)
+		t.Run(body)
 	}
 }
 
 func longReaderBody(txn *txn.Txn, gen *ycsb.Generator) bool {
 	for i := 0; i < 10000; i++ {
 		key := gen.PickKey()
-		txn.Get(key)
+		txn.Read(key)
 	}
 	return true
 }
@@ -46,20 +46,20 @@ func longReader(db *txn.TxnMgr, gen *ycsb.Generator) {
 		body := func(txn *txn.Txn) bool {
 			return longReaderBody(txn, gen)
 		}
-		t.DoTxn(body)
+		t.Run(body)
 	}
 }
 
 func workerRWBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
 	for i, k := range(keys) {
 		if ops[i] == ycsb.OP_RD {
-			txn.Get(k)
+			txn.Read(k)
 		} else if ops[i] == ycsb.OP_WR {
 			for j := range buf {
 				buf[j] = 'b'
 			}
 			s := string(buf)
-			txn.Put(k, s)
+			txn.Write(k, s)
 		}
 	}
 	return true
@@ -88,7 +88,7 @@ func workerRW(
 		body := func(txn *txn.Txn) bool {
 			return workerRWBody(txn, keys, ops, buf)
 		}
-		ok := t.DoTxn(body)
+		ok := t.Run(body)
 		if !warmup {
 			continue
 		}
@@ -104,7 +104,7 @@ func workerRW(
 
 func workerScanBody(txn *txn.Txn, key uint64) bool {
 	for offset := uint64(0); offset < 100; offset++ {
-		txn.Get(key + offset)
+		txn.Read(key + offset)
 	}
 	return true
 }
@@ -124,7 +124,7 @@ func workerScan(
 		body := func(txn *txn.Txn) bool {
 			return workerScanBody(txn, key)
 		}
-		ok := t.DoTxn(body)
+		ok := t.Run(body)
 		if !warmup {
 			continue
 		}

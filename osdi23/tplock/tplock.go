@@ -183,7 +183,7 @@ func (wrbuf *WrBuf) Add(key uint64, val string, wr bool, tpl *Tuple) {
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
 
-func (wrbuf *WrBuf) Put(key uint64, val string) {
+func (wrbuf *WrBuf) Write(key uint64, val string) {
 	pos, found := search(wrbuf.ents, key)
 	if found {
 		ent := &wrbuf.ents[pos]
@@ -328,8 +328,8 @@ func getBucket(key uint64) uint64 {
 /**
  * Note that `GetTuple` will always create a tuple when there is no entry in
  * `m`. This design choice seems to be wasting memory resource as we'll always
- * allocate a `Tuple` even with an empty `txn.Get`, but is actually a must: An
- * empty `txn.Get` should prevent other transactions from inserting a new one
+ * allocate a `Tuple` even with an empty `txn.Read`, but is actually a must: An
+ * empty `txn.Read` should prevent other transactions from inserting a new one
  * during the execution of this transaction.
  */
 func (idx *Index) GetTuple(key uint64) *Tuple {
@@ -390,9 +390,9 @@ func (txnMgr *TxnMgr) ActivateGC() {
 }
 
 
-func (txn *Txn) Put(key uint64, val string) {
+func (txn *Txn) Write(key uint64, val string) {
 	wrbuf := txn.wrbuf
-	wrbuf.Put(key, val)
+	wrbuf.Write(key, val)
 }
 
 func (txn *Txn) Delete(key uint64) bool {
@@ -424,7 +424,7 @@ func (txn *Txn) get(key uint64) (string, bool) {
 	return val, found
 }
 
-func (txn *Txn) Get(key uint64) (string, bool) {
+func (txn *Txn) Read(key uint64) (string, bool) {
 	if txn.rdonly {
 		val, found := txn.getRO(key)
 		return val, found
@@ -454,7 +454,7 @@ func (txn *Txn) abort() {
 	txn.rdbuf.ReleaseTuples()
 }
 
-func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
+func (txn *Txn) Run(body func(txn *Txn) bool) bool {
 	if txn.rdonly {
 		/* Read-only transactions never abort. */
 		txn.beginRO()

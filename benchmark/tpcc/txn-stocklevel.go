@@ -61,6 +61,6 @@ func TxnStockLevel(txno *txn.Txn, p *StockLevelInput) (uint32, bool) {
 	body := func(txni *txn.Txn) bool {
 		return stocklevel(txni, wid, did, threshold, &cnt)
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	return cnt, ok
 }

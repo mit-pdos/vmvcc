@@ -32,6 +32,6 @@ func TxnStockScan(txno *txn.Txn, nwhs uint8, nitems uint32) ([]uint32, bool) {
 	body := func(txni *txn.Txn) bool {
 		return stockscan(txni, nwhs, nitems, cnts)
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	return cnts, ok
 }

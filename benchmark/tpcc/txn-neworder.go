@@ -165,6 +165,6 @@ func TxnNewOrder(txno *txn.Txn, p *NewOrderInput) (*Customer, *NewOrderResult, [
 			customer, res, &iinfos,
 		)
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	return customer, res, iinfos, ok
 }

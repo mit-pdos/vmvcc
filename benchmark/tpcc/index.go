@@ -6,7 +6,7 @@ import (
 )
 
 func readidx(txn *txn.Txn, gkey uint64) ([]uint64, bool) {
-	opaque, found := txn.Get(gkey)
+	opaque, found := txn.Read(gkey)
 	if !found {
 		return nil, false
 	}
@@ -16,7 +16,7 @@ func readidx(txn *txn.Txn, gkey uint64) ([]uint64, bool) {
 
 func writeidx(txn *txn.Txn, gkey uint64, ents []uint64) {
 	s := encodeidx(ents)
-	txn.Put(gkey, s)
+	txn.Write(gkey, s)
 }
 
 /**

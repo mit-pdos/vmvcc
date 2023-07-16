@@ -72,6 +72,6 @@ func TxnPayment(txno *txn.Txn, p *PaymentInput) bool {
 	body := func(txni *txn.Txn) bool {
 		return payment(txni, wid, did, hamount, cwid, cdid, cid, hdate)
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	return ok
 }

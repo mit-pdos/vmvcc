@@ -197,7 +197,7 @@ func (mgr *TxnMgr) ActivateGC() {
 	}()
 }
 
-func (txn *Txn) Put(key uint64, val string) {
+func (txn *Txn) Write(key uint64, val string) {
 	wrbuf := txn.wrbuf
 	wrbuf.Put(key, val)
 }
@@ -210,7 +210,7 @@ func (txn *Txn) Delete(key uint64) bool {
 	return true
 }
 
-func (txn *Txn) Get(key uint64) (string, bool) {
+func (txn *Txn) Read(key uint64) (string, bool) {
 	// First try to find @key in the local write set.
 	wrbuf := txn.wrbuf
 	valb, wr, found := wrbuf.Lookup(key)
@@ -249,7 +249,7 @@ func (txn *Txn) abort() {
 	txn.mgr.deactivate(txn.sid, txn.tid)
 }
 
-func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
+func (txn *Txn) Run(body func(txn *Txn) bool) bool {
 	txn.begin()
 	cmt := body(txn)
 	if !cmt {

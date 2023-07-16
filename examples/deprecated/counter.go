@@ -6,7 +6,7 @@ import (
 )
 
 func fetch(txn *txn.Txn, p *uint64) bool {
-	v, _ := txn.Get(0)
+	v, _ := txn.Read(0)
 	*p = v
 
 	return true
@@ -17,17 +17,17 @@ func Fetch(t *txn.Txn) uint64 {
 	body := func(txn *txn.Txn) bool {
 		return fetch(txn, &n)
 	}
-	t.DoTxn(body)
+	t.Run(body)
 	return n
 }
 
 func increment(txn *txn.Txn, p *uint64) bool {
-	v, _ := txn.Get(0)
+	v, _ := txn.Read(0)
 	*p = v
 	if v == 18446744073709551615 {
 		return false
 	}
-	txn.Put(0, v + 1)
+	txn.Write(0, v + 1)
 
 	return true
 }
@@ -37,17 +37,17 @@ func Increment(t *txn.Txn) (uint64, bool) {
 	body := func(txn *txn.Txn) bool {
 		return increment(txn, &n)
 	}
-	ok := t.DoTxn(body)
+	ok := t.Run(body)
 	return n, ok
 }
 
 func decrement(txn *txn.Txn, p *uint64) bool {
-	v, _ := txn.Get(0)
+	v, _ := txn.Read(0)
 	*p = v
 	if v == 0 {
 		return false
 	}
-	txn.Put(0, v - 1)
+	txn.Write(0, v - 1)
 	return true
 }
 
@@ -56,14 +56,14 @@ func Decrement(t *txn.Txn) (uint64, bool) {
 	body := func(txn *txn.Txn) bool {
 		return decrement(txn, &n)
 	}
-	ok := t.DoTxn(body)
+	ok := t.Run(body)
 	return n, ok
 }
 
 func InitializeCounterData(mgr *txn.TxnMgr) {
 	// Initialize key 0 to some value
 	body := func(txn *txn.Txn) bool {
-		txn.Put(0, 0)
+		txn.Write(0, 0)
 		return true
 	}
 	// We wrap this transaction in a loop because the spec says it might fail.
@@ -73,7 +73,7 @@ func InitializeCounterData(mgr *txn.TxnMgr) {
 	// available at init time, and updated to regular RPs before they are
 	// sealed in some invariants.
 	t := mgr.New()
-	for !t.DoTxn(body) {
+	for !t.Run(body) {
 	}
 }
 

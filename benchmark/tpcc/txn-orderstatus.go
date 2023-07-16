@@ -101,6 +101,6 @@ func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput, ctx *TPCContext) (*Order
 	body := func(txni *txn.Txn) bool {
 		return orderstatus(txni, ctx, wid, did, cid, res)
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	return res, ok
 }

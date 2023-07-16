@@ -15,7 +15,7 @@ type record interface {
 }
 
 func readtbl(txn *txn.Txn, gkey uint64, r record) bool {
-	opaque, found := txn.Get(gkey)
+	opaque, found := txn.Read(gkey)
 	if !found {
 		return false
 	}
@@ -25,7 +25,7 @@ func readtbl(txn *txn.Txn, gkey uint64, r record) bool {
 
 func writetbl(txn *txn.Txn, gkey uint64, r record) {
 	s := r.encode()
-	txn.Put(gkey, s)
+	txn.Write(gkey, s)
 }
 
 func deletetbl(txn *txn.Txn, gkey uint64) {

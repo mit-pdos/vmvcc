@@ -115,7 +115,7 @@ func TestTableWarehouse(t *testing.T) {
 		)
 		return true
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
@@ -132,7 +132,7 @@ func TestTableWarehouse(t *testing.T) {
 		assert.Equal(float32(90.0), x.W_YTD)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it again. */
@@ -144,7 +144,7 @@ func TestTableWarehouse(t *testing.T) {
 		assert.Equal(float32(90.0), x.W_YTD)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 }
 
@@ -164,7 +164,7 @@ func TestTableDistrict(t *testing.T) {
 		)
 		return true
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
@@ -188,7 +188,7 @@ func TestTableDistrict(t *testing.T) {
 		assert.Equal(uint32(2), x.D_OLD_O_ID)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it again. */
@@ -200,7 +200,7 @@ func TestTableDistrict(t *testing.T) {
 		assert.Equal(uint32(2), x.D_OLD_O_ID)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 }
 
@@ -221,7 +221,7 @@ func TestTableCustomer(t *testing.T) {
 		)
 		return true
 	}
-	ok := txno.DoTxn(body)
+	ok := txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
@@ -245,7 +245,7 @@ func TestTableCustomer(t *testing.T) {
 		assert.Equal("Hello Customer", string(beforeNull(x.C_DATA[:])))
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Read it again. */
@@ -261,7 +261,7 @@ func TestTableCustomer(t *testing.T) {
 		assert.Equal("Hello Customer", string(beforeNull(x.C_DATA[:])))
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 }
 
@@ -320,7 +320,7 @@ func TestLoader(t *testing.T) {
 		/* TODO: Testing whether ~10% of items contain "ORIGINAL" in I_DATA. */
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing Warehouse. */
@@ -338,7 +338,7 @@ func TestLoader(t *testing.T) {
 		}
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing District. */
@@ -359,7 +359,7 @@ func TestLoader(t *testing.T) {
 		}
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing Customer. */
@@ -397,7 +397,7 @@ func TestLoader(t *testing.T) {
 		fmt.Printf("Ratio of customers with bad credits = %f%% (sholud be ~10%%).\n", ratioBC)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing History. */
@@ -422,7 +422,7 @@ func TestLoader(t *testing.T) {
 		}
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing Order, NewOrder, and OrderLine. */
@@ -507,7 +507,7 @@ func TestLoader(t *testing.T) {
 		fmt.Printf("Ratio of remote items = %f%% (sholud be ~1%%).\n", ratioRemoteItems)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Testing Stock. */
@@ -530,7 +530,7 @@ func TestLoader(t *testing.T) {
 
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 }
 
@@ -564,7 +564,7 @@ func TestPayment(t *testing.T) {
 		)
 		return true
 	}
-	ok = txno.DoTxn(body)
+	ok = txno.Run(body)
 	assert.Equal(true, ok)
 
 	/* Run Payment transaction twice. */

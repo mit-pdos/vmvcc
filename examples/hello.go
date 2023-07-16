@@ -5,8 +5,8 @@ import (
 )
 
 func hello(txn *txn.Txn) bool {
-	txn.Put(0, "hello")
-	txn.Get(0)
+	txn.Write(0, "hello")
+	txn.Read(0)
 	txn.Delete(0)
 
 	return true
@@ -16,7 +16,7 @@ func Hello(txno *txn.Txn) {
 	body := func(txni *txn.Txn) bool {
 		return hello(txni)
 	}
-	txno.DoTxn(body)
+	txno.Run(body)
 }
 
 func CallHello() {

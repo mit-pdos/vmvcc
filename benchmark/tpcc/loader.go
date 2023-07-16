@@ -15,7 +15,7 @@ import (
 
 func panicf(ok bool) {
 	if !ok {
-		panic("txn.DoTxn should never fail here.")
+		panic("txn.Run should never fail here.")
 	}
 }
 
@@ -25,7 +25,7 @@ func LoadTPCCItems(txno *txn.Txn, nItems uint32) {
 			loadItem(txni, iid, true)
 			return true
 		}
-		panicf(txno.DoTxn(body))
+		panicf(txno.Run(body))
 	}
 }
 
@@ -45,7 +45,7 @@ func LoadOneTPCCWarehouse(
 		loadWarehouse(txni, wid)
 		return true
 	}
-	panicf(txno.DoTxn(body))
+	panicf(txno.Run(body))
 
 	for did := uint8(1); did <= nLocalDistricts; did++ {
 		// fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
@@ -55,7 +55,7 @@ func LoadOneTPCCWarehouse(
 			loadDistrict(txni, did, wid, nInitLocalNewOrders + 1)
 			return true
 		}
-		panicf(txno.DoTxn(body))
+		panicf(txno.Run(body))
 
 		/* Make a permutation of cids to be used for making Order. */
 		cids := make([]uint32, nLocalCustomers)
@@ -70,7 +70,7 @@ func LoadOneTPCCWarehouse(
 				cids[cid - 1] = cid
 				return true
 			}
-			panicf(txno.DoTxn(body))
+			panicf(txno.Run(body))
 		}
 
 		/* Shuffle `cids`. */
@@ -112,7 +112,7 @@ func LoadOneTPCCWarehouse(
 				}
 				return true
 			}
-			panicf(txno.DoTxn(body))
+			panicf(txno.Run(body))
 		}
 	}
 	for iid := uint32(1); iid <= nItems; iid++ {
@@ -121,7 +121,7 @@ func LoadOneTPCCWarehouse(
 			loadStock(txni, iid, wid, false) // TODO: original
 			return true
 		}
-		panicf(txno.DoTxn(body))
+		panicf(txno.Run(body))
 	}
 }
 
