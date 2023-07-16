@@ -5,8 +5,8 @@ import (
 )
 
 type CFMutex struct {
-	mutex	sync.Mutex
-	padding	[7]uint64
+	mutex   sync.Mutex
+	padding [7]uint64
 }
 
 func (cfmutex *CFMutex) Lock() {

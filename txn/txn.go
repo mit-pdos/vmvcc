@@ -12,86 +12,99 @@ import (
 	"github.com/tchajed/goose/machine"
 )
 
+// @tid
+// Transaction ID.
+//
+// @wrbuf
+// Write buffer.
+//
+// @idx
+// Pointer to the index.
 type Txn struct {
-	tid		uint64
-	sid		uint64
-	wrbuf	*wrbuf.WrBuf
-	idx		*index.Index
-	txnMgr	*TxnMgr
+	tid   uint64
+	sid   uint64
+	wrbuf *wrbuf.WrBuf
+	idx   *index.Index
+	mgr   *TxnMgr
 }
 
+// @tids
+// Actives transaction IDs.
 type TxnSite struct {
-	latch		*cfmutex.CFMutex
-	tidsActive	[]uint64
-	padding		[4]uint64
+	latch   *cfmutex.CFMutex
+	tids    []uint64
+	padding [4]uint64
 }
 
+// @sid
+// Current site ID.
+//
+// @sites
+// Transaction sites.
 type TxnMgr struct {
-	latch		*cfmutex.CFMutex
-	sidCur		uint64
-	sites		[]*TxnSite
-	idx			*index.Index
-	p			machine.ProphId
+	latch  *cfmutex.CFMutex
+	sid    uint64
+	sites  []*TxnSite
+	idx    *index.Index
+	proph  machine.ProphId
 }
 
 func MkTxnMgr() *TxnMgr {
-	p := machine.NewProph()
-	txnMgr := &TxnMgr { p: p }
-	txnMgr.latch = new(cfmutex.CFMutex)
-	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
-	/* Call this once for establishing invariants. */
+	proph := machine.NewProph()
+	mgr := &TxnMgr { proph : proph }
+	mgr.latch = new(cfmutex.CFMutex)
+	mgr.sites = make([]*TxnSite, config.N_TXN_SITES)
+
+	// Call this once for establishing invariants.
 	tid.GenTID(0)
 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
 		site := new(TxnSite)
 		site.latch = new(cfmutex.CFMutex)
-		site.tidsActive = make([]uint64, 0, 8)
-		txnMgr.sites[i] = site
+		site.tids = make([]uint64, 0, 8)
+		mgr.sites[i] = site
 	}
-	txnMgr.idx = index.MkIndex()
-	return txnMgr
+	mgr.idx = index.MkIndex()
+
+	return mgr
 }
 
-func (txnMgr *TxnMgr) New() *Txn {
-	txnMgr.latch.Lock()
+func (mgr *TxnMgr) New() *Txn {
+	mgr.latch.Lock()
 
-	/* Make a new txn. */
 	txn := new(Txn)
 	txn.wrbuf = wrbuf.MkWrBuf()
-	sid := txnMgr.sidCur
+	sid := mgr.sid
 	txn.sid = sid
-	txn.idx = txnMgr.idx
-	txn.txnMgr = txnMgr
+	txn.idx = mgr.idx
+	txn.mgr = mgr
 
-	txnMgr.sidCur = sid + 1
-	if txnMgr.sidCur >= config.N_TXN_SITES {
-		txnMgr.sidCur = 0
+	mgr.sid = sid + 1
+	if mgr.sid >= config.N_TXN_SITES {
+		mgr.sid = 0
 	}
 
-	txnMgr.latch.Unlock()
+	mgr.latch.Unlock()
 	return txn
 }
 
-func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
-	site := txnMgr.sites[sid]
+// @activate adds @tid to the set of active transaction IDs.
+func (mgr *TxnMgr) activate(sid uint64) uint64 {
+	site := mgr.sites[sid]
 	site.latch.Lock()
 
 	var t uint64
 	t = tid.GenTID(sid)
-	/* Assume TID never overflow */
+	// Assume TID never overflow.
 	machine.Assume(t < 18446744073709551615)
 
-	/* Add `tid` to the set of active transactions */
-	site.tidsActive = append(site.tidsActive, t)
+	site.tids = append(site.tids, t)
 
 	site.latch.Unlock()
 	return t
 }
 
-/**
- * Precondition:
- * 1. `tid` in `tids`.
- */
 func findTID(tid uint64, tids []uint64) uint64 {
+	// Require @tids contains @tid.
 	var idx uint64 = 0
 	for tid != tids[idx] {
 		idx++
@@ -100,36 +113,31 @@ func findTID(tid uint64, tids []uint64) uint64 {
 	return idx
 }
 
-/**
- * Precondition:
- * 1. `xs` not empty.
- * 2. `i < len(xs)`
- */
 func swapWithEnd(xs []uint64, i uint64) {
+	// Require (1) @xs not empty, (2) @i < len(@xs).
 	tmp := xs[len(xs) - 1]
 	xs[len(xs) - 1] = xs[i]
 	xs[i] = tmp
 }
 
-/**
- * This function is called by `Txn` at commit/abort time.
- * Precondition:
- * 1. The set of active transactions contains `tid`.
- */
-func (txnMgr *TxnMgr) deactivate(sid uint64, tid uint64) {
-	site := txnMgr.sites[sid]
+// @deactivate removes @tid from the set of active transaction IDs.
+func (mgr *TxnMgr) deactivate(sid uint64, tid uint64) {
+	// Require @mgr.tids contains @tid.
+	site := mgr.sites[sid]
 	site.latch.Lock()
 
-	/* Remove `tid` from the set of active transactions. */
-	idx := findTID(tid, site.tidsActive)
-	swapWithEnd(site.tidsActive, idx)
-	site.tidsActive = site.tidsActive[:len(site.tidsActive) - 1]
+	// Remove @tid from the set of active transactions.
+	idx := findTID(tid, site.tids)
+	swapWithEnd(site.tids, idx)
+	site.tids = site.tids[:len(site.tids) - 1]
 
 	site.latch.Unlock()
 }
 
-func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
-	site := txnMgr.sites[sid]
+// @getSafeTS returns a per-site lower bound on the active/future transaction
+// IDs.
+func (mgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
+	site := mgr.sites[sid]
 	site.latch.Lock()
 
 	var tidnew uint64
@@ -137,7 +145,7 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 	machine.Assume(tidnew < 18446744073709551615)
 
 	var tidmin uint64 = tidnew
-	for _, tid := range site.tidsActive {
+	for _, tid := range site.tids {
 		if tid < tidmin {
 			tidmin = tid
 		}
@@ -147,13 +155,11 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
 	return tidmin
 }
 
-/**
- * This function returns a lower bound of the active TID.
- */
-func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
+// @GetSafeTS returns a lower bound on the active/future transaction IDs.
+func (mgr *TxnMgr) getMinActiveTID() uint64 {
 	var min uint64 = config.TID_SENTINEL
 	for sid := uint64(0); sid < config.N_TXN_SITES; sid++ {
-		tid := txnMgr.getMinActiveTIDSite(sid)
+		tid := mgr.getMinActiveTIDSite(sid)
 		if tid < min {
 			min = tid
 		}
@@ -162,32 +168,30 @@ func (txnMgr *TxnMgr) getMinActiveTID() uint64 {
 	return min
 }
 
-/**
- * Probably only used for testing and profiling.
- */
-func (txnMgr *TxnMgr) getNumActiveTxns() uint64 {
+// Only used for testing and profiling.
+func (mgr *TxnMgr) getNumActiveTxns() uint64 {
 	var n uint64 = 0
 	for sid := uint64(0); sid < config.N_TXN_SITES; sid++ {
-		site := txnMgr.sites[sid]
+		site := mgr.sites[sid]
 		site.latch.Lock()
-		n += uint64(len(site.tidsActive))
+		n += uint64(len(site.tids))
 		site.latch.Unlock()
 	}
 
 	return n
 }
 
-func (txnMgr *TxnMgr) gc() {
-	tidMin := txnMgr.getMinActiveTID()
+func (mgr *TxnMgr) gc() {
+	tidMin := mgr.getMinActiveTID()
 	if tidMin < config.TID_SENTINEL {
-		txnMgr.idx.DoGC(tidMin)
+		mgr.idx.DoGC(tidMin)
 	}
 }
 
-func (txnMgr *TxnMgr) ActivateGC() {
+func (mgr *TxnMgr) ActivateGC() {
 	go func() {
 		for {
-			txnMgr.gc()
+			mgr.gc()
 			machine.Sleep(1 * 1000000)
 		}
 	}()
@@ -202,12 +206,12 @@ func (txn *Txn) Delete(key uint64) bool {
 	wrbuf := txn.wrbuf
 	wrbuf.Delete(key)
 
-	/* TODO: `Delete` should return false when no such key. */
+	// To support SQL in the future, @Delete should return false when not found.
 	return true
 }
 
 func (txn *Txn) Get(key uint64) (string, bool) {
-	/* First try to find `key` in the local write set. */
+	// First try to find @key in the local write set.
 	wrbuf := txn.wrbuf
 	valb, wr, found := wrbuf.Lookup(key)
 	if found {
@@ -217,14 +221,14 @@ func (txn *Txn) Get(key uint64) (string, bool) {
 	idx := txn.idx
 	tuple := idx.GetTuple(key)
 	tuple.ReadWait(txn.tid)
-	trusted_proph.ResolveRead(txn.txnMgr.p, txn.tid, key)
+	trusted_proph.ResolveRead(txn.mgr.proph, txn.tid, key)
 	val, found := tuple.ReadVersion(txn.tid)
 
 	return val, found
 }
 
 func (txn *Txn) begin() {
-	tid := txn.txnMgr.activate(txn.sid)
+	tid := txn.mgr.activate(txn.sid)
 	txn.tid = tid
 	txn.wrbuf.Clear()
 }
@@ -235,14 +239,14 @@ func (txn *Txn) acquire() bool {
 }
 
 func (txn *Txn) commit() {
-	trusted_proph.ResolveCommit(txn.txnMgr.p, txn.tid, txn.wrbuf)
+	trusted_proph.ResolveCommit(txn.mgr.proph, txn.tid, txn.wrbuf)
 	txn.wrbuf.UpdateTuples(txn.tid)
-	txn.txnMgr.deactivate(txn.sid, txn.tid)
+	txn.mgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) abort() {
-	trusted_proph.ResolveAbort(txn.txnMgr.p, txn.tid)
-	txn.txnMgr.deactivate(txn.sid, txn.tid)
+	trusted_proph.ResolveAbort(txn.mgr.proph, txn.tid)
+	txn.mgr.deactivate(txn.sid, txn.tid)
 }
 
 func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
@@ -260,4 +264,3 @@ func (txn *Txn) DoTxn(body func(txn *Txn) bool) bool {
 	txn.commit()
 	return true
 }
-
