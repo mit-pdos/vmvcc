@@ -1,10 +1,10 @@
 package examples
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func hello(txn *txn.Txn) bool {
+func hello(txn *vmvcc.Txn) bool {
 	txn.Write(0, "hello")
 	txn.Read(0)
 	txn.Delete(0)
@@ -12,17 +12,17 @@ func hello(txn *txn.Txn) bool {
 	return true
 }
 
-func Hello(txno *txn.Txn) {
-	body := func(txni *txn.Txn) bool {
+func Hello(txno *vmvcc.Txn) {
+	body := func(txni *vmvcc.Txn) bool {
 		return hello(txni)
 	}
 	txno.Run(body)
 }
 
 func CallHello() {
-	db := txn.MkTxnMgr()
+	db := vmvcc.MkDB()
 	db.ActivateGC()
 
-	txn := db.New()
+	txn := db.NewTxn()
     Hello(txn)
 }
