@@ -48,4 +48,3 @@ func WriteFreeKeyExample(mgr *txn.TxnMgr, v uint64) bool {
 	ok := WriteFreeKey(txn, v)
 	return ok
 }
-

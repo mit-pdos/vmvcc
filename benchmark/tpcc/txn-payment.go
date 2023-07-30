@@ -1,13 +1,13 @@
-package tpcc
+package main
 
 import (
 	"fmt"
 	"math/rand"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 func payment(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	wid uint8, did uint8, hamount float32,
 	cwid uint8, cdid uint8, cid uint32, hdate uint32,
 ) bool {
@@ -60,7 +60,7 @@ func payment(
 	return true
 }
 
-func TxnPayment(txno *txn.Txn, p *PaymentInput) bool {
+func TxnPayment(txno *vmvcc.Txn, p *PaymentInput) bool {
 	wid := p.W_ID
 	did := p.D_ID
 	hamount := p.H_AMOUNT
@@ -69,7 +69,7 @@ func TxnPayment(txno *txn.Txn, p *PaymentInput) bool {
 	cid := p.C_ID
 	hdate := p.H_DATE
 
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		return payment(txni, wid, did, hamount, cwid, cdid, cid, hdate)
 	}
 	ok := txno.Run(body)

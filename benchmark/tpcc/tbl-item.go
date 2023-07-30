@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetItem(txn *txn.Txn, iid uint32) (*Item, bool) {
+func GetItem(txn *vmvcc.Txn, iid uint32) (*Item, bool) {
 	x := &Item { I_ID : iid }
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -15,7 +15,7 @@ func GetItem(txn *txn.Txn, iid uint32) (*Item, bool) {
  * Table mutator methods.
  */
 func InsertItem(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	iid uint32,
 	imid uint32, name string, price float32, data string,
 ) {

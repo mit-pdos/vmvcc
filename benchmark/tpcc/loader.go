@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
 	// "time"
 	"math/rand"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 /**
@@ -19,9 +19,9 @@ func panicf(ok bool) {
 	}
 }
 
-func LoadTPCCItems(txno *txn.Txn, nItems uint32) {
+func LoadTPCCItems(txno *vmvcc.Txn, nItems uint32) {
 	for iid := uint32(1); iid <= nItems; iid++ {
-		body := func(txni *txn.Txn) bool {
+		body := func(txni *vmvcc.Txn) bool {
 			loadItem(txni, iid, true)
 			return true
 		}
@@ -30,7 +30,7 @@ func LoadTPCCItems(txno *txn.Txn, nItems uint32) {
 }
 
 func LoadOneTPCCWarehouse(
-	txno *txn.Txn, wid uint8,
+	txno *vmvcc.Txn, wid uint8,
 	nItems uint32, nWarehouses uint8,
 	nLocalDistricts uint8, nLocalCustomers uint32,
 	nInitLocalNewOrders uint32,
@@ -41,7 +41,7 @@ func LoadOneTPCCWarehouse(
 	hid := uint64(wid - 1) * uint64(nLocalDistricts) * uint64(nLocalCustomers) + 1
 
 	/* Load warehouse. */
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		loadWarehouse(txni, wid)
 		return true
 	}
@@ -51,7 +51,7 @@ func LoadOneTPCCWarehouse(
 		// fmt.Printf("Loading (W,D) = (%d,%d).\n", wid, did)
 
 		/* Load district in each warehouse. */
-		body = func(txni *txn.Txn) bool {
+		body = func(txni *vmvcc.Txn) bool {
 			loadDistrict(txni, did, wid, nInitLocalNewOrders + 1)
 			return true
 		}
@@ -61,7 +61,7 @@ func LoadOneTPCCWarehouse(
 		cids := make([]uint32, nLocalCustomers)
 		/* Load customer and history. */
 		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
-			body = func(txni *txn.Txn) bool {
+			body = func(txni *vmvcc.Txn) bool {
 				/* Load customer in each pair of warehouse and district. */
 				bc := rd.Uint32() % 10 < 1
 				loadCustomer(txni, cid, did, wid, bc)
@@ -80,7 +80,7 @@ func LoadOneTPCCWarehouse(
 
 		/* Every customer has one initial order. */
 		for oid := uint32(1); oid <= nLocalCustomers; oid++ {
-			body = func(txni *txn.Txn) bool {
+			body = func(txni *vmvcc.Txn) bool {
 				r := uint32(OL_MAX_CNT + 1 - OL_MIN_CNT)
 				nOrderLines := uint8(rd.Uint32() % r + uint32(OL_MIN_CNT))
 				isNewOrder := false
@@ -116,7 +116,7 @@ func LoadOneTPCCWarehouse(
 		}
 	}
 	for iid := uint32(1); iid <= nItems; iid++ {
-		body = func(txni *txn.Txn) bool {
+		body = func(txni *vmvcc.Txn) bool {
 			/* Load stock. */
 			loadStock(txni, iid, wid, false) // TODO: original
 			return true
@@ -130,7 +130,7 @@ func LoadOneTPCCWarehouse(
  * Sequential loader, could be very slow. Exists for demo/testing.
  */
 func LoadTPCCSeq(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	nItems uint32, nWarehouses uint8,
 	nLocalDistricts uint8, nLocalCustomers uint32, nInitLocalNewOrders uint32,
 ) {
@@ -145,7 +145,7 @@ func LoadTPCCSeq(
 	}
 }
 
-func loadItem(txn *txn.Txn, iid uint32, original bool) {
+func loadItem(txn *vmvcc.Txn, iid uint32, original bool) {
 	// TODO: original data
 	InsertItem(
 		txn, iid,
@@ -153,7 +153,7 @@ func loadItem(txn *txn.Txn, iid uint32, original bool) {
 	)
 }
 
-func loadWarehouse(txn *txn.Txn, wid uint8) {
+func loadWarehouse(txn *vmvcc.Txn, wid uint8) {
 	InsertWarehouse(
 		txn, wid,
 		"name", "street1", "street2", "city",
@@ -162,7 +162,7 @@ func loadWarehouse(txn *txn.Txn, wid uint8) {
 	)
 }
 
-func loadDistrict(txn *txn.Txn, did uint8, wid uint8, nextoid uint32) {
+func loadDistrict(txn *vmvcc.Txn, did uint8, wid uint8, nextoid uint32) {
 	InsertDistrict(
 		txn, did, wid,
 		"name", "street1", "street2", "city",
@@ -171,7 +171,7 @@ func loadDistrict(txn *txn.Txn, did uint8, wid uint8, nextoid uint32) {
 	)
 }
 
-func loadCustomer(txn *txn.Txn, cid uint32, did uint8, wid uint8, bc bool) {
+func loadCustomer(txn *vmvcc.Txn, cid uint32, did uint8, wid uint8, bc bool) {
 	var credit [2]byte
 	if bc {
 		credit = [2]byte{ 'B', 'C' }
@@ -189,7 +189,7 @@ func loadCustomer(txn *txn.Txn, cid uint32, did uint8, wid uint8, bc bool) {
 }
 
 func loadOrder(
-	txn *txn.Txn, oid uint32, did uint8, wid uint8,
+	txn *vmvcc.Txn, oid uint32, did uint8, wid uint8,
 	cid uint32, entryd uint32, olcnt uint8, isnew bool,
 ) {
 	InsertOrder(
@@ -200,12 +200,12 @@ func loadOrder(
 	)
 }
 
-func loadNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
+func loadNewOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) {
 	InsertNewOrder(txn, oid, did, wid)
 }
 
 func loadOrderLine(
-	txn *txn.Txn, rd *rand.Rand,
+	txn *vmvcc.Txn, rd *rand.Rand,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 	entryd uint32, nwarehouses uint8, nitems uint32, isnew bool,
 ) {
@@ -233,7 +233,7 @@ func loadOrderLine(
 	)
 }
 
-func loadHistory(txn *txn.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
+func loadHistory(txn *vmvcc.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 	InsertHistory(
 		txn,
 		hid,
@@ -242,7 +242,7 @@ func loadHistory(txn *txn.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 	)
 }
 
-func loadStock(txn *txn.Txn, iid uint32, wid uint8, original bool) {
+func loadStock(txn *vmvcc.Txn, iid uint32, wid uint8, original bool) {
 	var quantity uint16 = 20 // TODO
 	var data string = "stockdata" // TODO: based on original
 	InsertStock(

@@ -1,11 +1,11 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 func GetCustomerX(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	cid uint32, did uint8, wid uint8, x *Customer,
 ) bool {
 	x.C_ID = cid
@@ -17,7 +17,7 @@ func GetCustomerX(
 }
 
 func GetCustomer(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	cid uint32, did uint8, wid uint8,
 ) (*Customer, bool) {
 	x := &Customer {
@@ -34,7 +34,7 @@ func GetCustomer(
  * Table mutator methods.
  */
 func InsertCustomer(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	cid uint32, did uint8, wid uint8,
 	first string, middle [2]byte, last, street1, street2, city string,
 	state [2]byte, zip [9]byte, phone [16]byte, since uint32,
@@ -69,7 +69,7 @@ func InsertCustomer(
 }
 
 func (x *Customer) UpdateOnBadCredit(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	hamount float32, cdata string,
 ) {
 	x.C_BALANCE -= hamount
@@ -80,7 +80,7 @@ func (x *Customer) UpdateOnBadCredit(
 	writetbl(txn, gkey, x)
 }
 
-func (x *Customer) UpdateOnGoodCredit(txn *txn.Txn, hamount float32) {
+func (x *Customer) UpdateOnGoodCredit(txn *vmvcc.Txn, hamount float32) {
 	x.C_BALANCE -= hamount
 	x.C_YTD_PAYMENT += hamount
 	x.C_PAYMENT_CNT++
@@ -88,7 +88,7 @@ func (x *Customer) UpdateOnGoodCredit(txn *txn.Txn, hamount float32) {
 	writetbl(txn, gkey, x)
 }
 
-func (x *Customer) IncreaseBalance(txn *txn.Txn, total float32) {
+func (x *Customer) IncreaseBalance(txn *vmvcc.Txn, total float32) {
 	x.C_BALANCE += total
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

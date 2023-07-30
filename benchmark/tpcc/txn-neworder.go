@@ -1,9 +1,9 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
 	"bytes"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 type ItemInfo struct {
@@ -22,7 +22,7 @@ type NewOrderResult struct {
 }
 
 func neworder(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	/* input parameter */
 	wid uint8, did uint8, cid uint32, oentryd uint32,
 	iids []uint32, iwids []uint8, iqtys []uint8,
@@ -146,7 +146,7 @@ func neworder(
 	return true
 }
 
-func TxnNewOrder(txno *txn.Txn, p *NewOrderInput) (*Customer, *NewOrderResult, []ItemInfo, bool) {
+func TxnNewOrder(txno *vmvcc.Txn, p *NewOrderInput) (*Customer, *NewOrderResult, []ItemInfo, bool) {
 	/* prepare output */
 	customer := new(Customer)
 	res := new(NewOrderResult)
@@ -159,7 +159,7 @@ func TxnNewOrder(txno *txn.Txn, p *NewOrderInput) (*Customer, *NewOrderResult, [
 	iids := p.I_IDS
 	iwids:= p.I_W_IDS
 	iqtys := p.I_QTYS
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		return neworder(
 			txni, wid, did, cid, oentryd, iids, iwids, iqtys, 
 			customer, res, &iinfos,

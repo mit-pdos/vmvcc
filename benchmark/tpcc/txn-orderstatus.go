@@ -1,8 +1,8 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 /**
@@ -33,7 +33,7 @@ type OrderStatusResult struct {
 }
 
 func orderstatus(
-	txn *txn.Txn, ctx *TPCContext,
+	txn *vmvcc.Txn, ctx *TPCContext,
 	/* input parameters */
 	wid uint8, did uint8, cid uint32,
 	/* return values */
@@ -91,14 +91,14 @@ func orderstatus(
 	return true
 }
 
-func TxnOrderStatus(txno *txn.Txn, p *OrderStatusInput, ctx *TPCContext) (*OrderStatusResult, bool) {
+func TxnOrderStatus(txno *vmvcc.Txn, p *OrderStatusInput, ctx *TPCContext) (*OrderStatusResult, bool) {
 	/* prepare output */
 	res := new(OrderStatusResult)
 	/* prepare input */
 	wid := p.W_ID
 	did := p.D_ID
 	cid := p.C_ID
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		return orderstatus(txni, ctx, wid, did, cid, res)
 	}
 	ok := txno.Run(body)

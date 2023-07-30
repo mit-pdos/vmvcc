@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*NewOrder, bool) {
+func GetNewOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) (*NewOrder, bool) {
 	x := &NewOrder {
 		NO_O_ID : oid,
 		NO_D_ID : did,
@@ -18,7 +18,7 @@ func GetNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*NewOrder, boo
 /**
  * Table mutator methods.
  */
-func InsertNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
+func InsertNewOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) {
 	x := &NewOrder {
 		NO_O_ID : oid,
 		NO_D_ID : did,
@@ -28,7 +28,7 @@ func InsertNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
 	writetbl(txn, gkey, x)
 }
 
-func DeleteNewOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) {
+func DeleteNewOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) {
 	x := &NewOrder {
 		NO_O_ID : oid,
 		NO_D_ID : did,

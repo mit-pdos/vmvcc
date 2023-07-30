@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetHistory(txn *txn.Txn, hid uint64) (*History, bool) {
+func GetHistory(txn *vmvcc.Txn, hid uint64) (*History, bool) {
 	x := &History { H_ID : hid }
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -12,7 +12,7 @@ func GetHistory(txn *txn.Txn, hid uint64) (*History, bool) {
 }
 
 func InsertHistory(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	hid uint64,
 	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
 	date uint32, hamount float32, hdata string,

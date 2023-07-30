@@ -1,8 +1,8 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 type DeliveryNewOrderResult struct {
@@ -15,7 +15,7 @@ type DeliveryResult struct {
 }
 
 func delivery(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	wid uint8, did uint8, carrierid uint8, deliveryd uint32,
 	res *DeliveryResult,
 ) bool {
@@ -63,7 +63,7 @@ func delivery(
 	return true
 }
 
-func TxnDelivery(txno *txn.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
+func TxnDelivery(txno *vmvcc.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
 	/* prepare output */
 	ress := make([]*DeliveryResult, 10)
 	/* prepare input */
@@ -72,7 +72,7 @@ func TxnDelivery(txno *txn.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
 	oldeliveryd := p.OL_DELIVERY_D
 	for did := uint8(1); did <= 10; did ++ {
 		res := new(DeliveryResult)
-		body := func(txni *txn.Txn) bool {
+		body := func(txni *vmvcc.Txn) bool {
 			return delivery(txni, wid, did, ocarrierid, oldeliveryd, res)
 		}
 		/* Restart this transaction if fails. */

@@ -1,12 +1,12 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 func stocklevel(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	/* input parameters */
 	wid uint8, did uint8, threshold uint16,
 	/* return value */
@@ -51,14 +51,14 @@ func stocklevel(
 	return true
 }
 
-func TxnStockLevel(txno *txn.Txn, p *StockLevelInput) (uint32, bool) {
+func TxnStockLevel(txno *vmvcc.Txn, p *StockLevelInput) (uint32, bool) {
 	/* prepare output */
 	var cnt uint32 = 0
 	/* prepare input */
 	wid := p.W_ID
 	did := p.D_ID
 	threshold := p.THRESHOLD
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		return stocklevel(txni, wid, did, threshold, &cnt)
 	}
 	ok := txno.Run(body)

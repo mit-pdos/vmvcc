@@ -11,8 +11,7 @@ import (
 	"strings"
 	"strconv"
 	"errors"
-	"github.com/mit-pdos/vmvcc/benchmark/tpcc"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 var done bool
@@ -50,57 +49,57 @@ func dprintf(debug bool, format string, a ...interface{}) (n int, err error) {
 }
 
 func stockscanner(
-	db *txn.TxnMgr, nWarehouses uint8, nItems uint32,
+	db *vmvcc.DB, nWarehouses uint8, nItems uint32,
 	interval time.Duration,
 ) {
-	t := db.New()
+	t := db.NewTxn()
 
 	for !done {
-		tpcc.TxnStockScan(t, nWarehouses, nItems)
+		TxnStockScan(t, nWarehouses, nItems)
 		time.Sleep(interval)
 	}
 }
 
 func worker(
-	db *txn.TxnMgr, gen *tpcc.Generator,
+	db *vmvcc.DB, gen *Generator,
 	chCommitted, chTotal chan []uint64,
 ) {
 	nCommittedTxns := make([]uint64, 5)
 	nTotalTxns := make([]uint64, 5)
 
 	/* Create a new tranasction object. */
-	t := db.New()
-	ctx := tpcc.NewTPCContext()
+	t := db.NewTxn()
+	ctx := NewTPCContext()
 
 	/* Start running TPC-C transactions. */
 	for !done {
 		var ok bool = false
 		x := gen.PickTxn()
 		switch x {
-		case tpcc.TXN_NEWORDER:
+		case TXN_NEWORDER:
 			p := gen.GetNewOrderInput()
 			for !ok {
-				_, _, _, ok = tpcc.TxnNewOrder(t, p)
+				_, _, _, ok = TxnNewOrder(t, p)
 			}
-		case tpcc.TXN_PAYMENT:
+		case TXN_PAYMENT:
 			p := gen.GetPaymentInput()
 			for !ok {
-				ok = tpcc.TxnPayment(t, p)
+				ok = TxnPayment(t, p)
 			}
-		case tpcc.TXN_ORDERSTATUS:
+		case TXN_ORDERSTATUS:
 			p := gen.GetOrderStatusInput()
 			for !ok {
-				_, ok = tpcc.TxnOrderStatus(t, p, ctx)
+				_, ok = TxnOrderStatus(t, p, ctx)
 			}
-		case tpcc.TXN_DELIVERY:
+		case TXN_DELIVERY:
 			p := gen.GetDeliveryInput()
 			for !ok {
-				_, ok = tpcc.TxnDelivery(t, p)
+				_, ok = TxnDelivery(t, p)
 			}
-		case tpcc.TXN_STOCKLEVEL:
+		case TXN_STOCKLEVEL:
 			p := gen.GetStockLevelInput()
 			for !ok {
-				_, ok = tpcc.TxnStockLevel(t, p)
+				_, ok = TxnStockLevel(t, p)
 			}
 		}
 
@@ -166,18 +165,18 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	db := txn.MkTxnMgr()
+	db := vmvcc.MkDB()
 	db.ActivateGC()
 
-	var nItems uint32 = tpcc.N_ITEMS
-	var nLocalDistricts uint8 = tpcc.N_DISTRICTS_PER_WAREHOUSE
-	var nLocalCustomers uint32 = tpcc.N_CUSTOMERS_PER_DISTRICT
-	var nInitLocalNewOrders uint32 = tpcc.N_INIT_NEW_ORDERS_PER_DISTRICT
+	var nItems uint32 = N_ITEMS
+	var nLocalDistricts uint8 = N_DISTRICTS_PER_WAREHOUSE
+	var nLocalCustomers uint32 = N_CUSTOMERS_PER_DISTRICT
+	var nInitLocalNewOrders uint32 = N_INIT_NEW_ORDERS_PER_DISTRICT
 
 	dprintf(debug, "Loading items...")
 	start := time.Now()
-	txnitem := db.New()
-	tpcc.LoadTPCCItems(txnitem, nItems)
+	txnitem := db.NewTxn()
+	LoadTPCCItems(txnitem, nItems)
 	elapsed := time.Since(start)
 	dprintf(debug, "Done (%s).", elapsed)
 
@@ -185,11 +184,11 @@ func main() {
 	dprintf(debug, "Loading %d warehouses...", nWarehouses)
 	start = time.Now()
 	for wid := uint8(1); wid <= nWarehouses; wid++ {
-		txnwh := db.New()
+		txnwh := db.NewTxn()
 		wg.Add(1)
 		go func(wid uint8) {
 			defer wg.Done()
-			tpcc.LoadOneTPCCWarehouse(
+			LoadOneTPCCWarehouse(
 				txnwh, wid,
 				nItems, nWarehouses,
 				nLocalDistricts, nLocalCustomers, nInitLocalNewOrders,
@@ -209,7 +208,7 @@ func main() {
 	start = time.Now()
 	done = false
 	for wid := uint8(1); wid <= nWarehouses; wid++ {
-		gen := tpcc.NewGenerator(wid, w, nItems, nWarehouses, nLocalDistricts, nLocalCustomers)
+		gen := NewGenerator(wid, w, nItems, nWarehouses, nLocalDistricts, nLocalCustomers)
 		go worker(db, gen, chCommitted, chTotal)
 	}
 	time.Sleep(time.Duration(duration) * time.Second)

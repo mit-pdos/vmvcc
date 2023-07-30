@@ -1,4 +1,4 @@
-package tpcc
+package main
 
 /**
  * Based on:

@@ -1,4 +1,4 @@
-package tpcc
+package main
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/stretchr/testify/assert"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 /**
@@ -105,7 +105,7 @@ func TestTableWarehouse(t *testing.T) {
 	txno := mgr.New()
 
 	/* Insert a Warehouse record. */
-	body := func(txn *txn.Txn) bool {
+	body := func(txn *vmvcc.Txn) bool {
 		InsertWarehouse(
 			txn,
 			41,
@@ -119,7 +119,7 @@ func TestTableWarehouse(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetWarehouse(txn, 41)
 		assert.Equal(true, found)
 		assert.Equal(uint8(41), x.W_ID)
@@ -136,7 +136,7 @@ func TestTableWarehouse(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it again. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetWarehouse(txn, 41)
 		assert.Equal(true, found)
 		assert.Equal(uint8(41), x.W_ID)
@@ -154,7 +154,7 @@ func TestTableDistrict(t *testing.T) {
 	txno := mgr.New()
 
 	/* Insert a District record. */
-	body := func(txn *txn.Txn) bool {
+	body := func(txn *vmvcc.Txn) bool {
 		InsertDistrict(
 			txn,
 			95, 41,
@@ -168,7 +168,7 @@ func TestTableDistrict(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetDistrict(txn, 95, 41)
 		assert.Equal(true, found)
 		assert.Equal(uint8(95), x.D_ID)
@@ -192,7 +192,7 @@ func TestTableDistrict(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it again. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetDistrict(txn, 95, 41)
 		assert.Equal(true, found)
 		assert.Equal(float32(90.0), x.D_YTD)
@@ -210,7 +210,7 @@ func TestTableCustomer(t *testing.T) {
 	txno := mgr.New()
 
 	/* Insert a Customer record. */
-	body := func(txn *txn.Txn) bool {
+	body := func(txn *vmvcc.Txn) bool {
 		InsertCustomer(
 			txn,
 			20, 95, 41,
@@ -225,7 +225,7 @@ func TestTableCustomer(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it, update it, and read it again in one transaction. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetCustomer(txn, 20, 95, 41)
 		assert.Equal(true, found)
 		assert.Equal(uint32(20), x.C_ID)
@@ -249,7 +249,7 @@ func TestTableCustomer(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Read it again. */
-	body = func(txn *txn.Txn) bool {
+	body = func(txn *vmvcc.Txn) bool {
 		x, found := GetCustomer(txn, 20, 95, 41)
 		assert.Equal(true, found)
 		assert.Equal(uint32(20), x.C_ID)
@@ -295,7 +295,7 @@ func TestLoader(t *testing.T) {
 	)
 
 	/* Testing items. */
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		var item *Item
 		var found bool
 		item, found = GetItem(txni, 0)
@@ -324,7 +324,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing Warehouse. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		var warehouse *Warehouse
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
@@ -342,7 +342,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing District. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		var district *District
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
@@ -363,7 +363,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing Customer. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		/* For testing distribution. */
 		var cntBCCustomers uint64 = 0
 		var cntTotalCustomers uint64 = 0
@@ -401,7 +401,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing History. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		var history *History
 		var found bool
 		var nHistory uint64 = uint64(nWarehouses) * uint64(nLocalDistricts) * uint64(nLocalCustomers)
@@ -426,7 +426,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing Order, NewOrder, and OrderLine. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		/* For testing distribution. */
 		var cntTotalItems uint64 = 0
 		var cntRemoteItems uint64 = 0
@@ -511,7 +511,7 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 
 	/* Testing Stock. */
-	body = func(txni *txn.Txn) bool {
+	body = func(txni *vmvcc.Txn) bool {
 		var stock *Stock
 		var found bool
 		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
@@ -553,7 +553,7 @@ func TestPayment(t *testing.T) {
 
 	/* Insert a Customer record. */
 	var ok bool
-	body := func(txn *txn.Txn) bool {
+	body := func(txn *vmvcc.Txn) bool {
 		InsertCustomer(
 			txn,
 			20, 95, 41,

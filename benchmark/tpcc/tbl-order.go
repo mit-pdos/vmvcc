@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {
+func GetOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {
 	x := &Order {
 		O_ID   : oid,
 		O_D_ID : did,
@@ -16,7 +16,7 @@ func GetOrder(txn *txn.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {
 }
 
 func GetOrdersByIndex(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	cid uint32, did uint8, wid uint8,
 ) []*Order {
 	records := make([]*Order, 0, 10)
@@ -47,7 +47,7 @@ func GetOrdersByIndex(
  * Table mutator methods.
  */
 func InsertOrder(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	oid uint32, did uint8, wid uint8,
 	cid uint32, oentryd uint32, ocarrierid uint8, olcnt uint8, alllocal bool,
 ) {
@@ -74,7 +74,7 @@ func InsertOrder(
 	writeidx(txn, gkeyidx, ents)
 }
 
-func (x *Order) UpdateCarrier(txn *txn.Txn, ocarrierid uint8) {
+func (x *Order) UpdateCarrier(txn *vmvcc.Txn, ocarrierid uint8) {
 	x.O_CARRIER_ID = ocarrierid
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

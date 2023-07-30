@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetDistrict(txn *txn.Txn, did uint8, wid uint8) (*District, bool) {
+func GetDistrict(txn *vmvcc.Txn, did uint8, wid uint8) (*District, bool) {
 	x := &District {
 		D_ID   : did,
 		D_W_ID : wid,
@@ -15,7 +15,7 @@ func GetDistrict(txn *txn.Txn, did uint8, wid uint8) (*District, bool) {
 }
 
 func InsertDistrict(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	did uint8, wid uint8,
 	name, street1, street2, city string,
 	state [2]byte, zip [9]byte, tax, ytd float32,
@@ -39,19 +39,19 @@ func InsertDistrict(
 	writetbl(txn, gkey, x)
 }
 
-func (x *District) IncrementNextOrderId(txn *txn.Txn) {
+func (x *District) IncrementNextOrderId(txn *vmvcc.Txn) {
 	x.D_NEXT_O_ID++
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
 }
 
-func (x *District) IncrementOldestOrderId(txn *txn.Txn) {
+func (x *District) IncrementOldestOrderId(txn *vmvcc.Txn) {
 	x.D_OLD_O_ID++
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
 }
 
-func (x *District) UpdateBalance(txn *txn.Txn, hamount float32) {
+func (x *District) UpdateBalance(txn *vmvcc.Txn, hamount float32) {
 	x.D_YTD += hamount
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

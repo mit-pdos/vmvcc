@@ -8,30 +8,29 @@ import (
 	"flag"
 	"os"
 	"log"
-	"github.com/mit-pdos/vmvcc/benchmark/ycsb"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 var done, warmup bool
 var szrec int = 100
 
-func populateDataBody(txn *txn.Txn, key uint64) bool {
+func populateDataBody(txn *vmvcc.Txn, key uint64) bool {
 	s := string(make([]byte, szrec))
 	txn.Write(key, s)
 	return true
 }
 
-func populateData(db *txn.TxnMgr, rkeys uint64) {
-	t := db.New()
+func populateData(db *vmvcc.DB, rkeys uint64) {
+	t := db.NewTxn()
 	for k := uint64(0); k < rkeys; k++ {
-		body := func(txn *txn.Txn) bool {
+		body := func(txn *vmvcc.Txn) bool {
 			return populateDataBody(txn, k)
 		}
 		t.Run(body)
 	}
 }
 
-func longReaderBody(txn *txn.Txn, gen *ycsb.Generator) bool {
+func longReaderBody(txn *vmvcc.Txn, gen *Generator) bool {
 	for i := 0; i < 10000; i++ {
 		key := gen.PickKey()
 		txn.Read(key)
@@ -39,22 +38,22 @@ func longReaderBody(txn *txn.Txn, gen *ycsb.Generator) bool {
 	return true
 }
 
-func longReader(db *txn.TxnMgr, gen *ycsb.Generator) {
-	t := db.New()
+func longReader(db *vmvcc.DB, gen *Generator) {
+	t := db.NewTxn()
 
 	for !done {
-		body := func(txn *txn.Txn) bool {
+		body := func(txn *vmvcc.Txn) bool {
 			return longReaderBody(txn, gen)
 		}
 		t.Run(body)
 	}
 }
 
-func workerRWBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
+func workerRWBody(txn *vmvcc.Txn, keys []uint64, ops []int, buf []byte) bool {
 	for i, k := range(keys) {
-		if ops[i] == ycsb.OP_RD {
+		if ops[i] == OP_RD {
 			txn.Read(k)
-		} else if ops[i] == ycsb.OP_WR {
+		} else if ops[i] == OP_WR {
 			for j := range buf {
 				buf[j] = 'b'
 			}
@@ -66,7 +65,7 @@ func workerRWBody(txn *txn.Txn, keys []uint64, ops []int, buf []byte) bool {
 }
 
 func workerRW(
-	db *txn.TxnMgr, gen *ycsb.Generator,
+	db *vmvcc.DB, gen *Generator,
 	chCommitted, chTotal chan uint64,
 ) {
 	// runtime.LockOSThread()
@@ -77,7 +76,7 @@ func workerRW(
 	keys := make([]uint64, nKeys)
 	ops := make([]int, nKeys)
 
-	t := db.New()
+	t := db.NewTxn()
 
 	buf := make([]byte, szrec)
 	for !done {
@@ -85,7 +84,7 @@ func workerRW(
 			keys[i] = gen.PickKey()
 			ops[i] = gen.PickOp()
 		}
-		body := func(txn *txn.Txn) bool {
+		body := func(txn *vmvcc.Txn) bool {
 			return workerRWBody(txn, keys, ops, buf)
 		}
 		ok := t.Run(body)
@@ -102,7 +101,7 @@ func workerRW(
 	chTotal <-total
 }
 
-func workerScanBody(txn *txn.Txn, key uint64) bool {
+func workerScanBody(txn *vmvcc.Txn, key uint64) bool {
 	for offset := uint64(0); offset < 100; offset++ {
 		txn.Read(key + offset)
 	}
@@ -110,18 +109,18 @@ func workerScanBody(txn *txn.Txn, key uint64) bool {
 }
 
 func workerScan(
-	db *txn.TxnMgr, gen *ycsb.Generator,
+	db *vmvcc.DB, gen *Generator,
 	chCommitted, chTotal chan uint64,
 ) {
 	// runtime.LockOSThread()
 	var committed uint64 = 0
 	var total uint64 = 0
 
-	t := db.New()
+	t := db.NewTxn()
 
 	for !done {
 		key := gen.PickKey()
-		body := func(txn *txn.Txn) bool {
+		body := func(txn *vmvcc.Txn) bool {
 			return workerScanBody(txn, key)
 		}
 		ok := t.Run(body)
@@ -178,15 +177,15 @@ func main() {
 
 	var nthrdsro int = 8
 
-	gens := make([]*ycsb.Generator, nthrds + nthrdsro)
+	gens := make([]*Generator, nthrds + nthrdsro)
 	for i := 0; i < nthrds; i++ {
-		gens[i] = ycsb.NewGenerator(i, nkeys,  rkeys, rdratio, theta)
+		gens[i] = NewGenerator(i, nkeys,  rkeys, rdratio, theta)
 	}
 	for i := 0; i < nthrdsro; i++ {
-		gens[i + nthrds] = ycsb.NewGenerator(i + nthrds, nkeys,  rkeys, rdratio, theta)
+		gens[i + nthrds] = NewGenerator(i + nthrds, nkeys,  rkeys, rdratio, theta)
 	}
 
-	db := txn.MkTxnMgr()
+	db := vmvcc.MkDB()
 	populateData(db, rkeys)
 	if !exp {
 		fmt.Printf("Database populated.\n")

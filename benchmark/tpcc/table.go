@@ -1,7 +1,7 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 /**
@@ -14,7 +14,7 @@ type record interface {
 	decode(opaque string)
 }
 
-func readtbl(txn *txn.Txn, gkey uint64, r record) bool {
+func readtbl(txn *vmvcc.Txn, gkey uint64, r record) bool {
 	opaque, found := txn.Read(gkey)
 	if !found {
 		return false
@@ -23,11 +23,11 @@ func readtbl(txn *txn.Txn, gkey uint64, r record) bool {
 	return true
 }
 
-func writetbl(txn *txn.Txn, gkey uint64, r record) {
+func writetbl(txn *vmvcc.Txn, gkey uint64, r record) {
 	s := r.encode()
 	txn.Write(gkey, s)
 }
 
-func deletetbl(txn *txn.Txn, gkey uint64) {
+func deletetbl(txn *vmvcc.Txn, gkey uint64) {
 	txn.Delete(gkey)
 }

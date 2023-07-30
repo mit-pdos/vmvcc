@@ -1,12 +1,12 @@
-package tpcc
+package main
 
 import (
 	// "fmt"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 func stockscan(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	/* input parameters */
 	nwhs uint8, nitems uint32,
 	/* return value */
@@ -25,11 +25,11 @@ func stockscan(
 	return true
 }
 
-func TxnStockScan(txno *txn.Txn, nwhs uint8, nitems uint32) ([]uint32, bool) {
+func TxnStockScan(txno *vmvcc.Txn, nwhs uint8, nitems uint32) ([]uint32, bool) {
 	/* prepare output */
 	cnts := make([]uint32, nitems)
 	/* prepare input */
-	body := func(txni *txn.Txn) bool {
+	body := func(txni *vmvcc.Txn) bool {
 		return stockscan(txni, nwhs, nitems, cnts)
 	}
 	ok := txno.Run(body)

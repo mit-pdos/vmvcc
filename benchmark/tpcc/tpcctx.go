@@ -1,7 +1,7 @@
 /**
  * TPC-C context to reduce memory presure induced by the benchmark itself.
  */
-package tpcc
+package main
 
 type TPCContext struct {
 	warehouse Warehouse

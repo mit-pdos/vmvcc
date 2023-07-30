@@ -3,7 +3,7 @@
  * https://github.com/apavlo/py-tpcc/blob/7c3ff501bbe98a6a7abd3c13267523c3684b62d6/pytpcc/runtime/executor.py
  */
 
-package tpcc
+package main
 
 import (
 	"math/rand"

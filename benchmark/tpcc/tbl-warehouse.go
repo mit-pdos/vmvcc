@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetWarehouse(txn *txn.Txn, wid uint8) (*Warehouse, bool) {
+func GetWarehouse(txn *vmvcc.Txn, wid uint8) (*Warehouse, bool) {
 	x := &Warehouse { W_ID : wid }
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -12,7 +12,7 @@ func GetWarehouse(txn *txn.Txn, wid uint8) (*Warehouse, bool) {
 }
 
 func InsertWarehouse(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	wid uint8,
 	name, street1, street2, city string,
 	state [2]byte, zip [9]byte, tax, ytd float32,
@@ -35,7 +35,7 @@ func InsertWarehouse(
 /**
  * Table mutator methods.
  */
-func (x *Warehouse) UpdateBalance(txn *txn.Txn, hamount float32) {
+func (x *Warehouse) UpdateBalance(txn *vmvcc.Txn, hamount float32) {
 	x.W_YTD += hamount
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

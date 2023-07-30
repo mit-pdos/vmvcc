@@ -1,10 +1,10 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func GetStock(txn *txn.Txn, iid uint32, wid uint8) (*Stock, bool) {
+func GetStock(txn *vmvcc.Txn, iid uint32, wid uint8) (*Stock, bool) {
 	x := &Stock {
 		S_I_ID : iid,
 		S_W_ID : wid,
@@ -15,7 +15,7 @@ func GetStock(txn *txn.Txn, iid uint32, wid uint8) (*Stock, bool) {
 }
 
 func InsertStock(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	iid uint32, wid uint8,
 	quantity uint16, ytd uint32,
 	ordercnt, remotecnt uint16, data string,
@@ -34,7 +34,7 @@ func InsertStock(
 }
 
 func (x *Stock) Update(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	quantity uint16, ytd uint32, ordercnt uint16, remotecnt uint16,
 ) {
 	x.S_QUANTITY   = quantity

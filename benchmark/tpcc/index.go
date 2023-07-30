@@ -1,11 +1,11 @@
-package tpcc
+package main
 
 import (
 	"unsafe"
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
-func readidx(txn *txn.Txn, gkey uint64) ([]uint64, bool) {
+func readidx(txn *vmvcc.Txn, gkey uint64) ([]uint64, bool) {
 	opaque, found := txn.Read(gkey)
 	if !found {
 		return nil, false
@@ -14,7 +14,7 @@ func readidx(txn *txn.Txn, gkey uint64) ([]uint64, bool) {
 	return ents, true
 }
 
-func writeidx(txn *txn.Txn, gkey uint64, ents []uint64) {
+func writeidx(txn *vmvcc.Txn, gkey uint64, ents []uint64) {
 	s := encodeidx(ents)
 	txn.Write(gkey, s)
 }

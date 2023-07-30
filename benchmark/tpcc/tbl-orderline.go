@@ -1,11 +1,11 @@
-package tpcc
+package main
 
 import (
-	"github.com/mit-pdos/vmvcc/txn"
+	"github.com/mit-pdos/vmvcc/vmvcc"
 )
 
 func GetOrderLineX(
-	txn *txn.Txn, x *OrderLine,
+	txn *vmvcc.Txn, x *OrderLine,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 ) bool {
 	x.OL_O_ID   = oid
@@ -18,7 +18,7 @@ func GetOrderLineX(
 }
 
 func GetOrderLine(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 ) (*OrderLine, bool) {
 	x := &OrderLine {
@@ -36,7 +36,7 @@ func GetOrderLine(
  * Table mutator methods.
  */
 func InsertOrderLine(
-	txn *txn.Txn,
+	txn *vmvcc.Txn,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 	iid uint32, iwid uint8, deliveryd uint32, quantity uint8,
 	amount float32,
@@ -56,7 +56,7 @@ func InsertOrderLine(
 	writetbl(txn, gkey, x)
 }
 
-func (x *OrderLine) UpdateDeliveryDate(txn *txn.Txn, deliveryd uint32) {
+func (x *OrderLine) UpdateDeliveryDate(txn *vmvcc.Txn, deliveryd uint32) {
 	x.OL_DELIVERY_D = deliveryd
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)

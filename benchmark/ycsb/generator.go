@@ -1,4 +1,4 @@
-package ycsb
+package main
 
 import (
 	"math/rand"
