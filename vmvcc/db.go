@@ -87,3 +87,9 @@ func (db *DB) ActivateGC() {
 		}
 	}()
 }
+
+func (db *DB) Run(body func(txn *Txn) bool) bool {
+	txn := db.NewTxn()
+	return txn.Run(body)
+}
+
