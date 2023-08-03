@@ -12,7 +12,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=3
+duration=30
 rkeys=1000000
 theta=-1
 

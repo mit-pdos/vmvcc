@@ -11,7 +11,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=3
+duration=30
 nthrds=32
 
 ./osdi23/scripts/sed-tplock.sh
