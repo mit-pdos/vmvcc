@@ -1,4 +1,4 @@
-package txn
+package vmvcc
 
 import (
 	//"time"
@@ -364,28 +364,28 @@ type Txn struct {
 	rdset  map[uint64]*Tuple
 }
 
-type TxnMgr struct {
+type DB struct {
 	idx *Index
 }
 
-func MkTxnMgr() *TxnMgr {
-	mgr := new(TxnMgr)
-	mgr.idx = MkIndex()
-	return mgr
+func MkDB() *DB {
+	db := new(DB)
+	db.idx = MkIndex()
+	return db
 }
 
-func (txnMgr *TxnMgr) New() *Txn {
+func (db *DB) NewTxn() *Txn {
 	/* Make a new txn. */
 	txn := new(Txn)
 	txn.wrbuf = MkWrBuf()
 	txn.rdbuf = MkWrBuf()
-	txn.idx = txnMgr.idx
+	txn.idx = db.idx
 	txn.rdonly = false
 
 	return txn
 }
 
-func (txnMgr *TxnMgr) ActivateGC() {
+func (db *DB) ActivateGC() {
 	/* Do nothing. Just for compatibility. */
 }
 
@@ -484,10 +484,10 @@ func (txn *Txn) Run(body func(txn *Txn) bool) bool {
  * we have this interface for 2PL to create transactions optimized for read-only
  * workload.
  */
-func (txnMgr *TxnMgr) NewROTxn() *Txn {
+func (db *DB) NewROTxn() *Txn {
 	/* Make a new txn. */
 	txn := new(Txn)
-	txn.idx = txnMgr.idx
+	txn.idx = db.idx
 	txn.rdonly = true
 
 	return txn

@@ -1,61 +1,117 @@
 diff --git a/tid/tid.go b/tid/tid.go
-index 3dc8097..99806f3 100644
+index c884924..0aa0674 100644
 --- a/tid/tid.go
 +++ b/tid/tid.go
-@@ -1,6 +1,7 @@
+@@ -1,11 +1,17 @@
  package tid
  
  import (
 +	"sync/atomic"
  	"github.com/goose-lang/std"
  	"github.com/mit-pdos/gokv/grove_ffi"
- 	"github.com/mit-pdos/go-mvcc/config"
-@@ -22,3 +23,8 @@ func GenTID(sid uint64) uint64 {
+ 	"github.com/mit-pdos/vmvcc/config"
+ )
  
- 	return tid
- }
-+
-+func GenTIDFAI(addr *uint64) uint64 {
-+	tid := atomic.AddUint64(addr, 1)
++func GenTIDWithFAI(gtidref *uint64) uint64 {
++	tid := atomic.AddUint64(gtidref, 1)
 +	return tid
 +}
-diff --git a/txn/txn.go b/txn/txn.go
-index e914c2e..f8cff5d 100644
---- a/txn/txn.go
-+++ b/txn/txn.go
-@@ -29,6 +29,7 @@ type TxnSite struct {
- type TxnMgr struct {
- 	latch		*cfmutex.CFMutex
- 	sidCur		uint64
-+	gtid		uint64
- 	sites		[]*TxnSite
- 	idx			*index.Index
- 	p			machine.ProphId
-@@ -39,6 +40,7 @@ func MkTxnMgr() *TxnMgr {
- 	txnMgr := &TxnMgr { p: p }
- 	txnMgr.latch = new(cfmutex.CFMutex)
- 	txnMgr.sites = make([]*TxnSite, config.N_TXN_SITES)
-+	txnMgr.gtid = 0
- 	/* Call this once for establishing invariants. */
- 	tid.GenTID(0)
- 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
-@@ -76,7 +78,8 @@ func (txnMgr *TxnMgr) activate(sid uint64) uint64 {
++
+ func GenTID(sid uint64) uint64 {
+ 	var tid uint64
+ 
+diff --git a/txnsite/txnsite.go b/txnsite/txnsite.go
+index 91e325d..9c74479 100644
+--- a/txnsite/txnsite.go
++++ b/txnsite/txnsite.go
+@@ -1,6 +1,7 @@
+ package txnsite
+ 
+ import (
++	"sync"
+ 	"github.com/mit-pdos/vmvcc/tid"
+ 	"github.com/mit-pdos/vmvcc/cfmutex"
+ 	"github.com/tchajed/goose/machine"
+@@ -14,13 +15,17 @@ type TxnSite struct {
+ 	// Active transaction IDs.
+ 	padding [4]uint64
+ 	// TODO: should only need 3, change it once performance is tested.
++	gtidref *uint64
++	gtidlk  *sync.Mutex
+ }
+ 
+-func MkTxnSite(sid uint64) *TxnSite {
++func MkTxnSite(sid uint64, gtidref *uint64, gtidlk *sync.Mutex) *TxnSite {
+ 	site := new(TxnSite)
+ 	site.latch = new(cfmutex.CFMutex)
+ 	site.tids  = make([]uint64, 0, 8)
+ 	site.sid   = sid
++	site.gtidref = gtidref
++	site.gtidlk  = gtidlk
+ 
+ 	return site
+ }
+@@ -30,7 +35,12 @@ func (site *TxnSite) Activate() uint64 {
  	site.latch.Lock()
  
  	var t uint64
--	t = tid.GenTID(sid)
-+	// t = tid.GenTID(sid)
-+	t = tid.GenTIDFAI(&txnMgr.gtid)
- 	/* Assume TID never overflow */
+-	t = tid.GenTID(site.sid)
++	// t = tid.GenTID(site.sid)
++	t = tid.GenTIDWithFAI(site.gtidref)
++	// site.gtidlk.Lock()
++	// t = *site.gtidref
++	// *site.gtidref++
++	// site.gtidlk.Unlock()
+ 	// Assume TID never overflow.
  	machine.Assume(t < 18446744073709551615)
  
-@@ -133,7 +136,8 @@ func (txnMgr *TxnMgr) getMinActiveTIDSite(sid uint64) uint64 {
+@@ -76,7 +86,13 @@ func (site *TxnSite) GetSafeTS() uint64 {
  	site.latch.Lock()
  
  	var tidnew uint64
--	tidnew = tid.GenTID(sid)
-+	// tidnew = tid.GenTID(sid)
-+	tidnew = tid.GenTIDFAI(&txnMgr.gtid)
+-	tidnew = tid.GenTID(site.sid)
++	// tidnew = tid.GenTID(site.sid)
++	tidnew = tid.GenTIDWithFAI(site.gtidref)
++	// site.gtidlk.Lock()
++	// tidnew = *site.gtidref
++	// *site.gtidref++
++	// site.gtidlk.Unlock()
++
  	machine.Assume(tidnew < 18446744073709551615)
  
  	var tidmin uint64 = tidnew
+diff --git a/vmvcc/db.go b/vmvcc/db.go
+index 8da24d6..d2ad962 100644
+--- a/vmvcc/db.go
++++ b/vmvcc/db.go
+@@ -1,6 +1,7 @@
+ package vmvcc
+ 
+ import (
++	"sync"
+ 	"github.com/mit-pdos/vmvcc/config"
+ 	"github.com/mit-pdos/vmvcc/index"
+ 	"github.com/mit-pdos/vmvcc/wrbuf"
+@@ -15,6 +16,7 @@ type DB struct {
+ 	latch *cfmutex.CFMutex
+ 	// Next site ID to assign.
+ 	sid   uint64
++	gtid  uint64
+ 	// All transaction sites.
+ 	sites []*txnsite.TxnSite
+ 	// Index.
+@@ -28,11 +30,13 @@ func MkDB() *DB {
+ 	db := &DB { proph : proph }
+ 	db.latch = new(cfmutex.CFMutex)
+ 	db.sites = make([]*txnsite.TxnSite, config.N_TXN_SITES)
++	db.gtid = 0
+ 
+ 	// Call this once to establish invariants.
++	gtidlk := new(sync.Mutex)
+ 	tid.GenTID(0)
+ 	for i := uint64(0); i < config.N_TXN_SITES; i++ {
+-		site := txnsite.MkTxnSite(i)
++		site := txnsite.MkTxnSite(i, &db.gtid, gtidlk)
+ 		db.sites[i] = site
+ 	}
+ 	db.idx = index.MkIndex()

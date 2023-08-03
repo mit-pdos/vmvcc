@@ -12,7 +12,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=30
+duration=3
 rkeys=1000000
 theta=-1
 
@@ -27,7 +27,7 @@ do
 		# for nthrds in $(seq 16)
 		for nthrds in 32
 		do
-			stdbuf -o 0 $GO run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+			stdbuf -o 0 $GO run ./benchmark/ycsb -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
 		done
 	done
 done
@@ -41,7 +41,7 @@ do
 		# for nthrds in $(seq 8)
 		for nthrds in 1 32
 		do
-			stdbuf -o 0 $GO run ./benchmark/tpcc.go -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
+			stdbuf -o 0 $GO run ./benchmark/tpcc -nthrds $nthrds -duration $duration -workloads $workloads -debug false | tee -a $fpath
 		done
 	done
 done

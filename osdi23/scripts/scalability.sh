@@ -11,7 +11,7 @@ dir=./exp
 # rm -rf $dir
 mkdir -p $dir
 
-duration=30
+duration=3
 rkeys=1000000
 
 nkeys=4
@@ -27,7 +27,7 @@ do
 			for nthrds in 1 2 4 8 16 32
 			# for nthrds in 4
 			do
-				stdbuf -o 0 go run ./benchmark/ycsb.go -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
+				stdbuf -o 0 go run ./benchmark/ycsb -nthrds $nthrds -duration $duration -rdratio $rdratio -nkeys $nkeys -rkeys $rkeys -theta $theta -exp | tee -a $fpath
 			done
 		done
 	done

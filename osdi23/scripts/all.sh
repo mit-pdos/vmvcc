@@ -7,20 +7,22 @@ then
 	exit 1
 fi
 
-nruns=10
+nruns=1
+
+dir=./osdi23/scripts
 
 # Silo
-./silo.sh $nruns
+$dir/silo.sh $nruns
 
 # Robustness to long-running readers
-./long-ycsb.sh $nruns
-./long-tpcc.sh $nruns
+$dir/long-ycsb.sh $nruns
+$dir/long-tpcc.sh $nruns
 
 # Optimization factor analysis
-git reset --hard && git apply base.diff     && ./optimization.sh $nruns base
-git reset --hard && git apply shardpad.diff && ./optimization.sh $nruns shardpad
-git reset --hard && git apply fai.diff      && ./optimization.sh $nruns fai
-git reset --hard && ./optimization.sh $nruns rdtsc
+git reset --hard && git apply $dir/base.diff     && $dir/optimization.sh $nruns base
+git reset --hard && git apply $dir/shardpad.diff && $dir/optimization.sh $nruns shardpad
+git reset --hard && git apply $dir/fai.diff      && $dir/optimization.sh $nruns fai
+git reset --hard && $dir/optimization.sh $nruns rdtsc
 
 # Scalability analysis
-./scalability.sh $nruns
+$dir/scalability.sh $nruns

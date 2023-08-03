@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIRS="txn wrbuf tuple index tid cfmutex config"
+DIRS="vmvcc txnsite wrbuf tuple index tid cfmutex config"
 FILES_EXEC=$(find ${DIRS} | grep -E ".go$" | grep -vE "_test.go$" | tr '\n' ' ')
 FILES_TEST=$(find ${DIRS} | grep -E "_test.go$" | tr '\n' ' ')
 
