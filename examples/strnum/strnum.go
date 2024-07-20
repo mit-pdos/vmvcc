@@ -3,7 +3,7 @@
 package strnum
 
 import (
-	"github.com/tchajed/goose/machine"
+	"github.com/goose-lang/goose/machine"
 )
 
 func StringToU64(s string) uint64 {

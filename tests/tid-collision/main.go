@@ -5,8 +5,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/goose-lang/goose/machine"
 	"github.com/mit-pdos/vmvcc/txn"
-	"github.com/tchajed/goose/machine"
 	"strconv"
 	"sync"
 	"time"

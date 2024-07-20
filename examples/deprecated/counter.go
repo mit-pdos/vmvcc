@@ -1,8 +1,8 @@
 package examples
 
 import (
+	"github.com/goose-lang/goose/machine"
 	"github.com/mit-pdos/vmvcc/txn"
-	"github.com/tchajed/goose/machine"
 )
 
 func fetch(txn *txn.Txn, p *uint64) bool {

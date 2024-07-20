@@ -1,6 +1,6 @@
 module github.com/mit-pdos/vmvcc
 
-go 1.18
+go 1.22
 
 require (
 	github.com/goose-lang/std v0.0.0-20220414201102-c41554454045
@@ -8,7 +8,7 @@ require (
 	github.com/mit-pdos/gokv v0.0.0-20230715172156-845eaa76dfca
 	github.com/pingcap/go-ycsb v1.0.0
 	github.com/stretchr/testify v1.7.0
-	github.com/tchajed/goose v0.5.2
+	github.com/goose-lang/goose v0.6.0
 )
 
 require (

@@ -1,9 +1,9 @@
 package txnsite
 
 import (
+	"github.com/goose-lang/goose/machine"
 	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/mit-pdos/vmvcc/tid"
-	"github.com/tchajed/goose/machine"
 )
 
 type TxnSite struct {

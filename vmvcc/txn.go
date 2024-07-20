@@ -1,11 +1,11 @@
 package vmvcc
 
 import (
+	"github.com/goose-lang/goose/machine"
 	"github.com/mit-pdos/vmvcc/index"
 	"github.com/mit-pdos/vmvcc/trusted_proph"
 	"github.com/mit-pdos/vmvcc/txnsite"
 	"github.com/mit-pdos/vmvcc/wrbuf"
-	"github.com/tchajed/goose/machine"
 )
 
 type Txn struct {

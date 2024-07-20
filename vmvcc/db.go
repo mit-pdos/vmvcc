@@ -1,13 +1,13 @@
 package vmvcc
 
 import (
+	"github.com/goose-lang/goose/machine"
 	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/mit-pdos/vmvcc/config"
 	"github.com/mit-pdos/vmvcc/index"
 	"github.com/mit-pdos/vmvcc/tid"
 	"github.com/mit-pdos/vmvcc/txnsite"
 	"github.com/mit-pdos/vmvcc/wrbuf"
-	"github.com/tchajed/goose/machine"
 )
 
 type DB struct {
