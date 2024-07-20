@@ -10,8 +10,8 @@ import (
 
 func TestReadRead(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
-	txno := db.New()
+	db := MkDB()
+	txno := db.NewTxn()
 	body := func(txni *Txn) bool {
 		_, found := txni.Read(0)
 		assert.Equal(false, found)
@@ -29,8 +29,8 @@ func TestReadRead(t *testing.T) {
 
 func TestReadWriteCommit(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
-	txno := db.New()
+	db := MkDB()
+	txno := db.NewTxn()
 	body := func(txni *Txn) bool {
 		_, found := txni.Read(0)
 		assert.Equal(false, found)
@@ -49,8 +49,8 @@ func TestReadWriteCommit(t *testing.T) {
 
 func TestReadWriteAbort(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
-	txno := db.New()
+	db := MkDB()
+	txno := db.NewTxn()
 	body := func(txni *Txn) bool {
 		_, found := txni.Read(0)
 		assert.Equal(false, found)
@@ -68,8 +68,8 @@ func TestReadWriteAbort(t *testing.T) {
 
 func TestWriteReadCommit(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
-	txno := db.New()
+	db := MkDB()
+	txno := db.NewTxn()
 	body := func(txni *Txn) bool {
 		txni.Write(0, "hello")
 		/* `lock` should still be 0 before commit. */
@@ -90,8 +90,8 @@ func TestWriteReadCommit(t *testing.T) {
 
 func TestWriteReadAbort(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
-	txno := db.New()
+	db := MkDB()
+	txno := db.NewTxn()
 	body := func(txni *Txn) bool {
 		txni.Write(0, "hello")
 		/* `lock` should still be 0 before commit. */
@@ -136,12 +136,12 @@ func worker(i int, txno *Txn) {
 
 func TestStress(t *testing.T) {
 	assert := assert.New(t)
-	db := MkTxnMgr()
+	db := MkDB()
 
 	/* Initialize each key to 0. */
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {
-		txno := db.New()
+		txno := db.NewTxn()
 		wg.Add(1)
 		go func(x int) {
 			defer wg.Done()

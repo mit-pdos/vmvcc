@@ -100,8 +100,8 @@ func TestIndexEncodeDecode(t *testing.T) {
  */
 func TestTableWarehouse(t *testing.T) {
 	assert := assert.New(t)
-	mgr := txn.MkTxnMgr()
-	txno := mgr.New()
+	db := vmvcc.MkDB()
+	txno := db.NewTxn()
 
 	/* Insert a Warehouse record. */
 	body := func(txn *vmvcc.Txn) bool {
@@ -149,8 +149,8 @@ func TestTableWarehouse(t *testing.T) {
 
 func TestTableDistrict(t *testing.T) {
 	assert := assert.New(t)
-	mgr := txn.MkTxnMgr()
-	txno := mgr.New()
+	db := vmvcc.MkDB()
+	txno := db.NewTxn()
 
 	/* Insert a District record. */
 	body := func(txn *vmvcc.Txn) bool {
@@ -205,8 +205,8 @@ func TestTableDistrict(t *testing.T) {
 
 func TestTableCustomer(t *testing.T) {
 	assert := assert.New(t)
-	mgr := txn.MkTxnMgr()
-	txno := mgr.New()
+	db := vmvcc.MkDB()
+	txno := db.NewTxn()
 
 	/* Insert a Customer record. */
 	body := func(txn *vmvcc.Txn) bool {
@@ -269,8 +269,8 @@ func TestTableCustomer(t *testing.T) {
  */
 func TestLoader(t *testing.T) {
 	assert := assert.New(t)
-	mgr := txn.MkTxnMgr()
-	txno := mgr.New()
+	db := vmvcc.MkDB()
+	txno := db.NewTxn()
 
 	var ok bool
 	// var nItems uint32 = N_ITEMS
@@ -537,8 +537,8 @@ func TestLoader(t *testing.T) {
  */
 func TestPayment(t *testing.T) {
 	assert := assert.New(t)
-	mgr := txn.MkTxnMgr()
-	txno := mgr.New()
+	db := vmvcc.MkDB()
+	txno := db.NewTxn()
 
 	// TODO: randomly generating below according to TPC-C spec
 	cid := uint32(1)
