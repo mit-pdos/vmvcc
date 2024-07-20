@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: ["stable"]
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install Goose
+        run: |
+          go install github.com/goose-lang/goose/cmd/goose@latest
+      - name: Install dependencies
+        run: |
+          go get -t ./...
+      - name: Check style
+        run: |
+          gofmt -w .
+          git diff --exit-code
+      - name: Test
+        run: |
+          ./scripts/test.sh
