@@ -88,3 +88,11 @@ All the scripts for reproducing the results in the paper can be found in
 
 Run all the experiments with `./osdi23/scripts/all.sh`.  The results will be
 generated in the CSV format under the `./exp` directory.
+
+## Developing
+
+To build the code that should be working, run
+
+```
+./scripts/test.sh
+```
