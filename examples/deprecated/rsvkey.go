@@ -1,4 +1,5 @@
 //go:build ignore
+
 package examples
 
 import (
