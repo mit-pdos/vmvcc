@@ -2,8 +2,8 @@ package wrbuf
 
 import (
 	"github.com/mit-pdos/vmvcc/common"
-	"github.com/mit-pdos/vmvcc/tuple"
 	"github.com/mit-pdos/vmvcc/index"
+	"github.com/mit-pdos/vmvcc/tuple"
 )
 
 // @key and @val
@@ -55,10 +55,10 @@ func (wrbuf *WrBuf) sortEntsByKey() {
 	for i < uint64(len(ents)) {
 		var j uint64 = i
 		for j > 0 {
-			if ents[j - 1].key <= ents[j].key {
+			if ents[j-1].key <= ents[j].key {
 				break
 			}
-			swap(ents, j - 1, j)
+			swap(ents, j-1, j)
 			j--
 		}
 		i++
@@ -80,14 +80,14 @@ func (wrbuf *WrBuf) Put(key uint64, val string) {
 	if found {
 		ent := &wrbuf.ents[pos]
 		ent.val = val
-		ent.wr  = true
+		ent.wr = true
 		return
 	}
 
-	ent := WrEnt {
-		key : key,
-		val : val,
-		wr  : true,
+	ent := WrEnt{
+		key: key,
+		val: val,
+		wr:  true,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -100,9 +100,9 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 		return
 	}
 
-	ent := WrEnt {
-		key : key,
-		wr  : false,
+	ent := WrEnt{
+		key: key,
+		wr:  false,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -140,11 +140,11 @@ func (wrbuf *WrBuf) OpenTuples(tid uint64, idx *index.Index) bool {
 		}
 		// A more efficient way is updating field @tpl, but not
 		// supported by Goose.
-		ents[pos] = WrEnt {
-			key : ent.key,
-			val : ent.val,
-			wr  : ent.wr,
-			tpl : tpl,
+		ents[pos] = WrEnt{
+			key: ent.key,
+			val: ent.val,
+			wr:  ent.wr,
+			tpl: tpl,
 		}
 		pos++
 	}
@@ -179,5 +179,5 @@ func (wrbuf *WrBuf) UpdateTuples(tid uint64) {
 }
 
 func (wrbuf *WrBuf) Clear() {
-	wrbuf.ents = wrbuf.ents[ : 0]
+	wrbuf.ents = wrbuf.ents[:0]
 }

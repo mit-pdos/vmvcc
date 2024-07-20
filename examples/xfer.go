@@ -8,7 +8,7 @@ import (
 func xfer(txn *vmvcc.Txn, src, dst, amt uint64) bool {
 	sbalx, _ := txn.Read(src)
 	sbal := strnum.StringToU64(sbalx)
-	
+
 	if sbal < amt {
 		return false
 	}
@@ -19,7 +19,7 @@ func xfer(txn *vmvcc.Txn, src, dst, amt uint64) bool {
 	dbalx, _ := txn.Read(dst)
 	dbal := strnum.StringToU64(dbalx)
 
-	if dbal + amt < dbal {
+	if dbal+amt < dbal {
 		return false
 	}
 

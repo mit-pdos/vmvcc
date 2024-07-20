@@ -6,4 +6,3 @@ const (
 	RET_RETRY          uint64 = 200
 	RET_UNSERIALIZABLE uint64 = 400
 )
-

@@ -17,7 +17,7 @@ func stockscan(
 		for wid := uint8(1); wid <= nwhs; wid++ {
 			stock, _ := GetStock(txn, iid, wid)
 			quantity := stock.S_QUANTITY
-			cnts[iid - 1] += uint32(quantity)
+			cnts[iid-1] += uint32(quantity)
 		}
 	}
 	// fmt.Printf("Done stockscan.\n")

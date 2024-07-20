@@ -5,10 +5,10 @@ import (
 )
 
 func GetOrder(txn *vmvcc.Txn, oid uint32, did uint8, wid uint8) (*Order, bool) {
-	x := &Order {
-		O_ID   : oid,
-		O_D_ID : did,
-		O_W_ID : wid,
+	x := &Order{
+		O_ID:   oid,
+		O_D_ID: did,
+		O_W_ID: wid,
 	}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -22,10 +22,10 @@ func GetOrdersByIndex(
 	records := make([]*Order, 0, 10)
 
 	/* Read the index entry. */
-	x := &Order {
-		O_C_ID : cid,
-		O_D_ID : did,
-		O_W_ID : wid,
+	x := &Order{
+		O_C_ID: cid,
+		O_D_ID: did,
+		O_W_ID: wid,
 	}
 	gkeyidx := x.gkeyidx()
 	gkeys, found := readidx(txn, gkeyidx)
@@ -51,15 +51,15 @@ func InsertOrder(
 	oid uint32, did uint8, wid uint8,
 	cid uint32, oentryd uint32, ocarrierid uint8, olcnt uint8, alllocal bool,
 ) {
-	x := &Order {
-		O_ID         : oid,
-		O_D_ID       : did,
-		O_W_ID       : wid,
-		O_C_ID       : cid,
-		O_ENTRY_D    : oentryd,
-		O_CARRIER_ID : ocarrierid,
-		O_OL_CNT     : olcnt,
-		O_ALL_LOCAL  : alllocal,
+	x := &Order{
+		O_ID:         oid,
+		O_D_ID:       did,
+		O_W_ID:       wid,
+		O_C_ID:       cid,
+		O_ENTRY_D:    oentryd,
+		O_CARRIER_ID: ocarrierid,
+		O_OL_CNT:     olcnt,
+		O_ALL_LOCAL:  alllocal,
 	}
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
@@ -86,16 +86,16 @@ func (x *Order) UpdateCarrier(txn *vmvcc.Txn, ocarrierid uint8) {
  */
 func (x *Order) gkey() uint64 {
 	var gkey uint64 = uint64(x.O_ID)
-	gkey = gkey << 8 + uint64(x.O_D_ID)
-	gkey = gkey << 8 + uint64(x.O_W_ID)
+	gkey = gkey<<8 + uint64(x.O_D_ID)
+	gkey = gkey<<8 + uint64(x.O_W_ID)
 	gkey += TBLID_ORDER
 	return gkey
 }
 
 func (x *Order) gkeyidx() uint64 {
 	var gkey uint64 = uint64(x.O_C_ID)
-	gkey = gkey << 8 + uint64(x.O_D_ID)
-	gkey = gkey << 8 + uint64(x.O_W_ID)
+	gkey = gkey<<8 + uint64(x.O_D_ID)
+	gkey = gkey<<8 + uint64(x.O_W_ID)
 	gkey += IDXID_ORDER
 	return gkey
 }

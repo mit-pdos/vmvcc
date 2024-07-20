@@ -5,9 +5,9 @@ import (
 )
 
 func GetDistrict(txn *vmvcc.Txn, did uint8, wid uint8) (*District, bool) {
-	x := &District {
-		D_ID   : did,
-		D_W_ID : wid,
+	x := &District{
+		D_ID:   did,
+		D_W_ID: wid,
 	}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -21,15 +21,15 @@ func InsertDistrict(
 	state [2]byte, zip [9]byte, tax, ytd float32,
 	nextoid, oldestoid uint32,
 ) {
-	x := &District {
-		D_ID        : did,
-		D_W_ID      : wid,
-		D_STATE     : state,
-		D_ZIP       : zip,
-		D_TAX       : tax,
-		D_YTD       : ytd,
-		D_NEXT_O_ID : nextoid,
-		D_OLD_O_ID  : oldestoid,
+	x := &District{
+		D_ID:        did,
+		D_W_ID:      wid,
+		D_STATE:     state,
+		D_ZIP:       zip,
+		D_TAX:       tax,
+		D_YTD:       ytd,
+		D_NEXT_O_ID: nextoid,
+		D_OLD_O_ID:  oldestoid,
 	}
 	copy(x.D_NAME[:], name)
 	copy(x.D_STREET_1[:], street1)
@@ -63,7 +63,7 @@ func (x *District) UpdateBalance(txn *vmvcc.Txn, hamount float32) {
  */
 func (x *District) gkey() uint64 {
 	var gkey uint64 = uint64(x.D_ID)
-	gkey = gkey << 8 + uint64(x.D_W_ID)
+	gkey = gkey<<8 + uint64(x.D_W_ID)
 	gkey += TBLID_DISTRICT
 	return gkey
 }

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"github.com/mit-pdos/vmvcc/vmvcc"
+	"math/rand"
 )
 
 func payment(
@@ -27,13 +27,13 @@ func payment(
 	customer, _ := GetCustomer(txn, cid, cdid, cwid)
 
 	/* Update customer balance, payment, and payment count. */
-	if customer.C_CREDIT == [2]byte{ 'B', 'C' } {
+	if customer.C_CREDIT == [2]byte{'B', 'C'} {
 		/* Also update the data field if the customer has bad credit. */
 		cdata := fmt.Sprintf("%d %d %d %d %d %.2f|%s",
 			cid, cdid, cwid, did, wid, hamount, beforeNull(customer.C_DATA[:]))
 		// fmt.Printf("cdata = %s len(cdata) = %d\n", cdata, len(cdata))
 		if len(cdata) > 500 {
-			cdata = cdata[: 500]
+			cdata = cdata[:500]
 		}
 		customer.UpdateOnBadCredit(txn, hamount, cdata)
 	} else {

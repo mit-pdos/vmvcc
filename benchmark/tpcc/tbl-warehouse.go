@@ -5,7 +5,7 @@ import (
 )
 
 func GetWarehouse(txn *vmvcc.Txn, wid uint8) (*Warehouse, bool) {
-	x := &Warehouse { W_ID : wid }
+	x := &Warehouse{W_ID: wid}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
 	return x, found
@@ -17,12 +17,12 @@ func InsertWarehouse(
 	name, street1, street2, city string,
 	state [2]byte, zip [9]byte, tax, ytd float32,
 ) {
-	x := &Warehouse {
-		W_ID    : wid,
-		W_STATE : state,
-		W_ZIP   : zip,
-		W_TAX   : tax,
-		W_YTD   : ytd,
+	x := &Warehouse{
+		W_ID:    wid,
+		W_STATE: state,
+		W_ZIP:   zip,
+		W_TAX:   tax,
+		W_YTD:   ytd,
 	}
 	copy(x.W_NAME[:], name)
 	copy(x.W_STREET_1[:], street1)

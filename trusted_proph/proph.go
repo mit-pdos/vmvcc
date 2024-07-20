@@ -11,6 +11,6 @@ func NewProph() ProphId {
 	return machine.NewProph()
 }
 
-func ResolveRead(p ProphId, tid uint64, key uint64) {}
-func ResolveAbort(p ProphId, tid uint64) {}
+func ResolveRead(p ProphId, tid uint64, key uint64)           {}
+func ResolveAbort(p ProphId, tid uint64)                      {}
 func ResolveCommit(p ProphId, tid uint64, wrbuf *wrbuf.WrBuf) {}

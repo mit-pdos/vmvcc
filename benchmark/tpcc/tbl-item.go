@@ -5,7 +5,7 @@ import (
 )
 
 func GetItem(txn *vmvcc.Txn, iid uint32) (*Item, bool) {
-	x := &Item { I_ID : iid }
+	x := &Item{I_ID: iid}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
 	return x, found
@@ -19,10 +19,10 @@ func InsertItem(
 	iid uint32,
 	imid uint32, name string, price float32, data string,
 ) {
-	x := &Item {
-		I_ID    : iid,
-		I_IM_ID : imid,
-		I_PRICE : price,
+	x := &Item{
+		I_ID:    iid,
+		I_IM_ID: imid,
+		I_PRICE: price,
 	}
 	copy(x.I_NAME[:], name)
 	copy(x.I_DATA[:], data)

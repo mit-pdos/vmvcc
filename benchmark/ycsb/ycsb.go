@@ -1,14 +1,14 @@
 package main
 
 import (
-	"time"
+	"flag"
 	"fmt"
+	"github.com/mit-pdos/vmvcc/vmvcc"
+	"log"
+	"os"
 	"runtime"
 	"runtime/pprof"
-	"flag"
-	"os"
-	"log"
-	"github.com/mit-pdos/vmvcc/vmvcc"
+	"time"
 )
 
 var done, warmup bool
@@ -50,7 +50,7 @@ func longReader(db *vmvcc.DB, gen *Generator) {
 }
 
 func workerRWBody(txn *vmvcc.Txn, keys []uint64, ops []int, buf []byte) bool {
-	for i, k := range(keys) {
+	for i, k := range keys {
 		if ops[i] == OP_RD {
 			txn.Read(k)
 		} else if ops[i] == OP_WR {
@@ -97,8 +97,8 @@ func workerRW(
 		total++
 	}
 
-	chCommitted <-committed
-	chTotal <-total
+	chCommitted <- committed
+	chTotal <- total
 }
 
 func workerScanBody(txn *vmvcc.Txn, key uint64) bool {
@@ -133,8 +133,8 @@ func workerScan(
 		total++
 	}
 
-	chCommitted <-committed
-	chTotal <-total
+	chCommitted <- committed
+	chTotal <- total
 }
 
 func main() {
@@ -177,12 +177,12 @@ func main() {
 
 	var nthrdsro int = 8
 
-	gens := make([]*Generator, nthrds + nthrdsro)
+	gens := make([]*Generator, nthrds+nthrdsro)
 	for i := 0; i < nthrds; i++ {
-		gens[i] = NewGenerator(i, nkeys,  rkeys, rdratio, theta)
+		gens[i] = NewGenerator(i, nkeys, rkeys, rdratio, theta)
 	}
 	for i := 0; i < nthrdsro; i++ {
-		gens[i + nthrds] = NewGenerator(i + nthrds, nkeys,  rkeys, rdratio, theta)
+		gens[i+nthrds] = NewGenerator(i+nthrds, nkeys, rkeys, rdratio, theta)
 	}
 
 	db := vmvcc.MkDB()
@@ -196,7 +196,7 @@ func main() {
 	/* Start a long-running reader. */
 	if long {
 		for i := 0; i < nthrdsro; i++ {
-			go longReader(db, gens[nthrds + i])
+			go longReader(db, gens[nthrds+i])
 		}
 	}
 

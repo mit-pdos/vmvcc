@@ -14,7 +14,7 @@ func GenTID(sid uint64) uint64 {
 	// XXX: this would be buggy:
 	// return tid
 
-	tid = std.SumAssumeNoOverflow(tid,config.N_TXN_SITES)/config.N_TXN_SITES * config.N_TXN_SITES + sid
+	tid = std.SumAssumeNoOverflow(tid, config.N_TXN_SITES)/config.N_TXN_SITES*config.N_TXN_SITES + sid
 	// Below is the old (and wrong) version where we simply round the result,
 	// up or down, to site ID boundary.
 	// tid = (tid & ^(config.N_TXN_SITES - 1)) + sid

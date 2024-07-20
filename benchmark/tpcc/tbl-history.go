@@ -5,7 +5,7 @@ import (
 )
 
 func GetHistory(txn *vmvcc.Txn, hid uint64) (*History, bool) {
-	x := &History { H_ID : hid }
+	x := &History{H_ID: hid}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
 	return x, found
@@ -17,15 +17,15 @@ func InsertHistory(
 	cid uint32, cdid uint8, cwid uint8, did uint8, wid uint8,
 	date uint32, hamount float32, hdata string,
 ) {
-	x := &History {
-		H_ID     : hid,
-		H_C_ID   : cid,
-		H_C_D_ID : cdid,
-		H_C_W_ID : cwid,
-		H_D_ID   : did,
-		H_W_ID   : wid,
-		H_DATE   : date,
-		H_AMOUNT : hamount,
+	x := &History{
+		H_ID:     hid,
+		H_C_ID:   cid,
+		H_C_D_ID: cdid,
+		H_C_W_ID: cwid,
+		H_D_ID:   did,
+		H_W_ID:   wid,
+		H_DATE:   date,
+		H_AMOUNT: hamount,
 	}
 	copy(x.H_DATA[:], hdata)
 	gkey := x.gkey()

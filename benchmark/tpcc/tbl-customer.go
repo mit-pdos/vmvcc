@@ -20,10 +20,10 @@ func GetCustomer(
 	txn *vmvcc.Txn,
 	cid uint32, did uint8, wid uint8,
 ) (*Customer, bool) {
-	x := &Customer {
-		C_ID   : cid,
-		C_D_ID : did,
-		C_W_ID : wid,
+	x := &Customer{
+		C_ID:   cid,
+		C_D_ID: did,
+		C_W_ID: wid,
 	}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -41,21 +41,21 @@ func InsertCustomer(
 	credit [2]byte, creditlim, discount, balance, payment float32,
 	pcnt, dcnt uint16, data string,
 ) {
-	x := &Customer {
-		C_ID          : cid,
-		C_D_ID        : did,
-		C_W_ID        : wid,
-		C_MIDDLE      : middle,
-		C_STATE       : state,
-		C_ZIP         : zip,
-		C_PHONE       : phone,
-		C_SINCE       : since,
-		C_CREDIT      : credit,
-		C_CREDIT_LIM  : creditlim,
-		C_DISCOUNT    : discount,
-		C_BALANCE     : balance,
-		C_YTD_PAYMENT : payment,
-		C_PAYMENT_CNT : pcnt,
+	x := &Customer{
+		C_ID:           cid,
+		C_D_ID:         did,
+		C_W_ID:         wid,
+		C_MIDDLE:       middle,
+		C_STATE:        state,
+		C_ZIP:          zip,
+		C_PHONE:        phone,
+		C_SINCE:        since,
+		C_CREDIT:       credit,
+		C_CREDIT_LIM:   creditlim,
+		C_DISCOUNT:     discount,
+		C_BALANCE:      balance,
+		C_YTD_PAYMENT:  payment,
+		C_PAYMENT_CNT:  pcnt,
 		C_DELIVERY_CNT: dcnt,
 	}
 	copy(x.C_FIRST[:], first)
@@ -100,8 +100,8 @@ func (x *Customer) IncreaseBalance(txn *vmvcc.Txn, total float32) {
  */
 func (x *Customer) gkey() uint64 {
 	var gkey uint64 = uint64(x.C_ID)
-	gkey = gkey << 8 + uint64(x.C_D_ID)
-	gkey = gkey << 8 + uint64(x.C_W_ID)
+	gkey = gkey<<8 + uint64(x.C_D_ID)
+	gkey = gkey<<8 + uint64(x.C_W_ID)
 	gkey += TBLID_CUSTOMER
 	return gkey
 }

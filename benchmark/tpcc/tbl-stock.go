@@ -5,9 +5,9 @@ import (
 )
 
 func GetStock(txn *vmvcc.Txn, iid uint32, wid uint8) (*Stock, bool) {
-	x := &Stock {
-		S_I_ID : iid,
-		S_W_ID : wid,
+	x := &Stock{
+		S_I_ID: iid,
+		S_W_ID: wid,
 	}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -20,13 +20,13 @@ func InsertStock(
 	quantity uint16, ytd uint32,
 	ordercnt, remotecnt uint16, data string,
 ) {
-	x := &Stock {
-		S_I_ID       : iid,
-		S_W_ID       : wid,
-		S_QUANTITY   : quantity,
-		S_YTD        : ytd,
-		S_ORDER_CNT  : ordercnt,
-		S_REMOTE_CNT : remotecnt,
+	x := &Stock{
+		S_I_ID:       iid,
+		S_W_ID:       wid,
+		S_QUANTITY:   quantity,
+		S_YTD:        ytd,
+		S_ORDER_CNT:  ordercnt,
+		S_REMOTE_CNT: remotecnt,
 	}
 	copy(x.S_DATA[:], data)
 	gkey := x.gkey()
@@ -37,9 +37,9 @@ func (x *Stock) Update(
 	txn *vmvcc.Txn,
 	quantity uint16, ytd uint32, ordercnt uint16, remotecnt uint16,
 ) {
-	x.S_QUANTITY   = quantity
-	x.S_YTD        = ytd
-	x.S_ORDER_CNT  = ordercnt
+	x.S_QUANTITY = quantity
+	x.S_YTD = ytd
+	x.S_ORDER_CNT = ordercnt
 	x.S_REMOTE_CNT = remotecnt
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
@@ -51,7 +51,7 @@ func (x *Stock) Update(
  */
 func (x *Stock) gkey() uint64 {
 	var gkey uint64 = uint64(x.S_I_ID)
-	gkey = gkey << 8 + uint64(x.S_W_ID)
+	gkey = gkey<<8 + uint64(x.S_W_ID)
 	gkey += TBLID_STOCK
 	return gkey
 }

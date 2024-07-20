@@ -1,12 +1,12 @@
 package main
 
 import (
-	"testing"
-	"fmt"
 	"bytes"
 	"encoding/binary"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"github.com/mit-pdos/vmvcc/vmvcc"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 /**
@@ -26,23 +26,23 @@ func TestTableId(t *testing.T) {
 }
 
 func TestGkey(t *testing.T) {
-	warehouse := Warehouse { W_ID : 1 }
+	warehouse := Warehouse{W_ID: 1}
 	fmt.Printf("%.15x\n", warehouse.gkey())
-	district := District { D_ID : 1, D_W_ID : 1 }
+	district := District{D_ID: 1, D_W_ID: 1}
 	fmt.Printf("%x\n", district.gkey())
-	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
+	customer := Customer{C_ID: 1, C_D_ID: 1, C_W_ID: 1}
 	fmt.Printf("%x\n", customer.gkey())
-	history := History { H_ID : 1 }
+	history := History{H_ID: 1}
 	fmt.Printf("%x\n", history.gkey())
-	neworder := NewOrder { NO_O_ID : 1, NO_D_ID : 1, NO_W_ID : 1 }
+	neworder := NewOrder{NO_O_ID: 1, NO_D_ID: 1, NO_W_ID: 1}
 	fmt.Printf("%x\n", neworder.gkey())
-	order := Order { O_ID : 1, O_D_ID : 1, O_W_ID : 1 }
+	order := Order{O_ID: 1, O_D_ID: 1, O_W_ID: 1}
 	fmt.Printf("%x\n", order.gkey())
-	orderline := OrderLine { OL_O_ID : 1, OL_D_ID : 1, OL_W_ID : 1, OL_NUMBER : 1 }
+	orderline := OrderLine{OL_O_ID: 1, OL_D_ID: 1, OL_W_ID: 1, OL_NUMBER: 1}
 	fmt.Printf("%x\n", orderline.gkey())
-	item := Item { I_ID : 1 }
+	item := Item{I_ID: 1}
 	fmt.Printf("%x\n", item.gkey())
-	stock := Stock { S_I_ID : 1, S_W_ID : 1 }
+	stock := Stock{S_I_ID: 1, S_W_ID: 1}
 	fmt.Printf("%x\n", stock.gkey())
 }
 
@@ -54,32 +54,32 @@ func encodeSlow(x any) uint64 {
 
 func TestRecordSize(t *testing.T) {
 	assert := assert.New(t)
-	warehouse := Warehouse { W_ID : 1 }
+	warehouse := Warehouse{W_ID: 1}
 	assert.Equal(encodeSlow(warehouse), X_W_LEN)
-	district := District { D_ID : 1, D_W_ID : 1 }
+	district := District{D_ID: 1, D_W_ID: 1}
 	assert.Equal(encodeSlow(district), X_D_LEN)
-	customer := Customer { C_ID : 1, C_D_ID: 1, C_W_ID: 1 }
+	customer := Customer{C_ID: 1, C_D_ID: 1, C_W_ID: 1}
 	assert.Equal(encodeSlow(customer), X_C_LEN)
-	history := History { H_ID : 1 }
+	history := History{H_ID: 1}
 	assert.Equal(encodeSlow(history), X_H_LEN)
-	neworder := NewOrder { NO_O_ID : 1, NO_D_ID : 1, NO_W_ID : 1 }
+	neworder := NewOrder{NO_O_ID: 1, NO_D_ID: 1, NO_W_ID: 1}
 	assert.Equal(encodeSlow(neworder), X_NO_LEN)
-	order := Order { O_ID : 1, O_D_ID : 1, O_W_ID : 1 }
+	order := Order{O_ID: 1, O_D_ID: 1, O_W_ID: 1}
 	assert.Equal(encodeSlow(order), X_O_LEN)
-	orderline := OrderLine { OL_O_ID : 1, OL_D_ID : 1, OL_W_ID : 1, OL_NUMBER : 1 }
+	orderline := OrderLine{OL_O_ID: 1, OL_D_ID: 1, OL_W_ID: 1, OL_NUMBER: 1}
 	assert.Equal(encodeSlow(orderline), X_OL_LEN)
-	item := Item { I_ID : 1 }
+	item := Item{I_ID: 1}
 	assert.Equal(encodeSlow(item), X_I_LEN)
-	stock := Stock { S_I_ID : 1, S_W_ID : 1 }
+	stock := Stock{S_I_ID: 1, S_W_ID: 1}
 	assert.Equal(encodeSlow(stock), X_S_LEN)
 }
 
 func TestEncodeDecodeCustomer(t *testing.T) {
 	assert := assert.New(t)
-	c := &Customer {
-		C_ID : 14,
-		C_W_ID : 223,
-		C_LAST : [16]byte{4, 9},
+	c := &Customer{
+		C_ID:   14,
+		C_W_ID: 223,
+		C_LAST: [16]byte{4, 9},
 	}
 	s := c.encode()
 	d := new(Customer)
@@ -89,12 +89,11 @@ func TestEncodeDecodeCustomer(t *testing.T) {
 
 func TestIndexEncodeDecode(t *testing.T) {
 	assert := assert.New(t)
-	gkeys := []uint64{ 4, 7, 2, 1, 81 }
+	gkeys := []uint64{4, 7, 2, 1, 81}
 	fmt.Printf("len(encodeidx(gkeys)) = %d\n", len(encodeidx(gkeys)))
 	fmt.Printf("%v\n", decodeidx(encodeidx(gkeys)))
 	assert.Equal(gkeys, decodeidx(encodeidx(gkeys)))
 }
-
 
 /**
  * Test for table operations.
@@ -265,7 +264,6 @@ func TestTableCustomer(t *testing.T) {
 	assert.Equal(true, ok)
 }
 
-
 /**
  * Tests for TPC-C database loader.
  */
@@ -291,7 +289,7 @@ func TestLoader(t *testing.T) {
 		txno,
 		nItems, nWarehouses,
 		nLocalDistricts, nLocalCustomers,
-		nInitLocalNewOrders, 
+		nInitLocalNewOrders,
 	)
 
 	/* Testing items. */
@@ -306,15 +304,15 @@ func TestLoader(t *testing.T) {
 		assert.Equal(uint32(1), item.I_ID)
 		assert.Equal(float32(14.7), item.I_PRICE)
 
-		item, found = GetItem(txni, nItems / 2)
+		item, found = GetItem(txni, nItems/2)
 		assert.Equal(true, found)
-		assert.Equal(nItems / 2, item.I_ID)
+		assert.Equal(nItems/2, item.I_ID)
 
 		item, found = GetItem(txni, nItems)
 		assert.Equal(true, found)
 		assert.Equal(nItems, item.I_ID)
 
-		item, found = GetItem(txni, nItems + 1)
+		item, found = GetItem(txni, nItems+1)
 		assert.Equal(false, found)
 
 		/* TODO: Testing whether ~10% of items contain "ORIGINAL" in I_DATA. */
@@ -327,7 +325,7 @@ func TestLoader(t *testing.T) {
 	body = func(txni *vmvcc.Txn) bool {
 		var warehouse *Warehouse
 		var found bool
-		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
+		for wid := uint8(0); wid <= nWarehouses+1; wid++ {
 			warehouse, found = GetWarehouse(txni, wid)
 			if wid < 1 || wid > nWarehouses {
 				assert.Equal(false, found)
@@ -345,8 +343,8 @@ func TestLoader(t *testing.T) {
 	body = func(txni *vmvcc.Txn) bool {
 		var district *District
 		var found bool
-		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
+		for wid := uint8(0); wid <= nWarehouses+1; wid++ {
+			for did := uint8(0); did <= nLocalDistricts+1; did++ {
 				district, found = GetDistrict(txni, did, wid)
 				if wid < 1 || wid > nWarehouses || did < 1 || did > nLocalDistricts {
 					assert.Equal(false, found)
@@ -370,9 +368,9 @@ func TestLoader(t *testing.T) {
 
 		var customer *Customer
 		var found bool
-		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
-				for cid := uint32(0); cid <= nLocalCustomers + 1; cid++ {
+		for wid := uint8(0); wid <= nWarehouses+1; wid++ {
+			for did := uint8(0); did <= nLocalDistricts+1; did++ {
+				for cid := uint32(0); cid <= nLocalCustomers+1; cid++ {
 					customer, found = GetCustomer(txni, cid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
 						did < 1 || did > nLocalDistricts ||
@@ -384,7 +382,7 @@ func TestLoader(t *testing.T) {
 						assert.Equal(did, customer.C_D_ID)
 						assert.Equal(wid, customer.C_W_ID)
 						cntTotalCustomers++
-						if customer.C_CREDIT == [2]byte{ 'B', 'C' } {
+						if customer.C_CREDIT == [2]byte{'B', 'C'} {
 							cntBCCustomers++
 						}
 					}
@@ -405,7 +403,7 @@ func TestLoader(t *testing.T) {
 		var history *History
 		var found bool
 		var nHistory uint64 = uint64(nWarehouses) * uint64(nLocalDistricts) * uint64(nLocalCustomers)
-		for hid := uint64(0); hid <= nHistory + 1; hid++ {
+		for hid := uint64(0); hid <= nHistory+1; hid++ {
 			history, found = GetHistory(txni, hid)
 			if hid < 1 || hid > nHistory {
 				assert.Equal(false, found)
@@ -435,9 +433,9 @@ func TestLoader(t *testing.T) {
 		var neworder *NewOrder
 		var orderline *OrderLine
 		var found bool
-		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for did := uint8(0); did <= nLocalDistricts + 1; did++ {
-				for oid := uint32(0); oid <= nInitLocalOrders + 1; oid++ {
+		for wid := uint8(0); wid <= nWarehouses+1; wid++ {
+			for did := uint8(0); did <= nLocalDistricts+1; did++ {
+				for oid := uint32(0); oid <= nInitLocalOrders+1; oid++ {
 					/* Order. */
 					order, found = GetOrder(txni, oid, did, wid)
 					if wid < 1 || wid > nWarehouses ||
@@ -472,7 +470,7 @@ func TestLoader(t *testing.T) {
 
 					/* Orderline. */
 					olcnt := order.O_OL_CNT
-					for olnum := uint8(0); olnum <= olcnt + 1; olnum++ {
+					for olnum := uint8(0); olnum <= olcnt+1; olnum++ {
 						orderline, found = GetOrderLine(txni, oid, did, wid, olnum)
 						if wid < 1 || wid > nWarehouses ||
 							did < 1 || did > nLocalDistricts ||
@@ -514,8 +512,8 @@ func TestLoader(t *testing.T) {
 	body = func(txni *vmvcc.Txn) bool {
 		var stock *Stock
 		var found bool
-		for wid := uint8(0); wid <= nWarehouses + 1; wid++ {
-			for iid := uint32(0); iid <= nItems + 1; iid++ {
+		for wid := uint8(0); wid <= nWarehouses+1; wid++ {
+			for iid := uint32(0); iid <= nItems+1; iid++ {
 				stock, found = GetStock(txni, iid, wid)
 				if wid < 1 || wid > nWarehouses || iid < 1 || iid > nItems {
 					assert.Equal(false, found)
@@ -534,7 +532,6 @@ func TestLoader(t *testing.T) {
 	assert.Equal(true, ok)
 }
 
-
 /**
  * Tests for TPC-C "business" transactions.
  */
@@ -544,11 +541,11 @@ func TestPayment(t *testing.T) {
 	txno := mgr.New()
 
 	// TODO: randomly generating below according to TPC-C spec
-	cid  := uint32(1)
+	cid := uint32(1)
 	cdid := uint8(2)
 	cwid := uint8(3)
-	did  := uint8(4)
-	wid  := uint8(5)
+	did := uint8(4)
+	wid := uint8(5)
 	hamount := float32(10.0)
 
 	/* Insert a Customer record. */
@@ -569,12 +566,12 @@ func TestPayment(t *testing.T) {
 
 	/* Run Payment transaction twice. */
 	p := &PaymentInput{
-		W_ID : wid,
-		D_ID : did,
-		H_AMOUNT : hamount,
-		C_W_ID : cwid,
-		C_D_ID : cdid,
-		C_ID: cid,
+		W_ID:     wid,
+		D_ID:     did,
+		H_AMOUNT: hamount,
+		C_W_ID:   cwid,
+		C_D_ID:   cdid,
+		C_ID:     cid,
 	}
 	ok = TxnPayment(txno, p)
 	assert.Equal(true, ok)

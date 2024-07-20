@@ -1,12 +1,12 @@
 package vmvcc
 
 import (
+	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/mit-pdos/vmvcc/config"
 	"github.com/mit-pdos/vmvcc/index"
-	"github.com/mit-pdos/vmvcc/wrbuf"
-	"github.com/mit-pdos/vmvcc/txnsite"
 	"github.com/mit-pdos/vmvcc/tid"
-	"github.com/mit-pdos/vmvcc/cfmutex"
+	"github.com/mit-pdos/vmvcc/txnsite"
+	"github.com/mit-pdos/vmvcc/wrbuf"
 	"github.com/tchajed/goose/machine"
 )
 
@@ -14,18 +14,18 @@ type DB struct {
 	// Mutex protecting @sid.
 	latch *cfmutex.CFMutex
 	// Next site ID to assign.
-	sid   uint64
+	sid uint64
 	// All transaction sites.
 	sites []*txnsite.TxnSite
 	// Index.
-	idx   *index.Index
+	idx *index.Index
 	// Global prophecy variable (for verification purpose).
 	proph machine.ProphId
 }
 
 func MkDB() *DB {
 	proph := machine.NewProph()
-	db := &DB { proph : proph }
+	db := &DB{proph: proph}
 	db.latch = new(cfmutex.CFMutex)
 	db.sites = make([]*txnsite.TxnSite, config.N_TXN_SITES)
 
@@ -43,10 +43,10 @@ func MkDB() *DB {
 func (db *DB) NewTxn() *Txn {
 	db.latch.Lock()
 
-	txn := &Txn { proph : db.proph }
-	txn.site  = db.sites[db.sid]
+	txn := &Txn{proph: db.proph}
+	txn.site = db.sites[db.sid]
 	txn.wrbuf = wrbuf.MkWrBuf()
-	txn.idx   = db.idx
+	txn.idx = db.idx
 
 	db.sid = db.sid + 1
 	if db.sid >= config.N_TXN_SITES {
@@ -92,4 +92,3 @@ func (db *DB) Run(body func(txn *Txn) bool) bool {
 	txn := db.NewTxn()
 	return txn.Run(body)
 }
-

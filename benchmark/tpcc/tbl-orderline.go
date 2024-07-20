@@ -8,9 +8,9 @@ func GetOrderLineX(
 	txn *vmvcc.Txn, x *OrderLine,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 ) bool {
-	x.OL_O_ID   = oid
-	x.OL_D_ID   = did
-	x.OL_W_ID   = wid
+	x.OL_O_ID = oid
+	x.OL_D_ID = did
+	x.OL_W_ID = wid
 	x.OL_NUMBER = olnum
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -21,11 +21,11 @@ func GetOrderLine(
 	txn *vmvcc.Txn,
 	oid uint32, did uint8, wid uint8, olnum uint8,
 ) (*OrderLine, bool) {
-	x := &OrderLine {
-		OL_O_ID   : oid,
-		OL_D_ID   : did,
-		OL_W_ID   : wid,
-		OL_NUMBER : olnum,
+	x := &OrderLine{
+		OL_O_ID:   oid,
+		OL_D_ID:   did,
+		OL_W_ID:   wid,
+		OL_NUMBER: olnum,
 	}
 	gkey := x.gkey()
 	found := readtbl(txn, gkey, x)
@@ -41,16 +41,16 @@ func InsertOrderLine(
 	iid uint32, iwid uint8, deliveryd uint32, quantity uint8,
 	amount float32,
 ) {
-	x := &OrderLine {
-		OL_O_ID        : oid,
-		OL_D_ID        : did,
-		OL_W_ID        : wid,
-		OL_NUMBER      : olnum,
-		OL_I_ID        : iid,
-		OL_SUPPLY_W_ID : iwid,
-		OL_DELIVERY_D  : deliveryd,
-		OL_QUANTITY    : quantity,
-		OL_AMOUNT      : amount,
+	x := &OrderLine{
+		OL_O_ID:        oid,
+		OL_D_ID:        did,
+		OL_W_ID:        wid,
+		OL_NUMBER:      olnum,
+		OL_I_ID:        iid,
+		OL_SUPPLY_W_ID: iwid,
+		OL_DELIVERY_D:  deliveryd,
+		OL_QUANTITY:    quantity,
+		OL_AMOUNT:      amount,
 	}
 	gkey := x.gkey()
 	writetbl(txn, gkey, x)
@@ -68,9 +68,9 @@ func (x *OrderLine) UpdateDeliveryDate(txn *vmvcc.Txn, deliveryd uint32) {
  */
 func (x *OrderLine) gkey() uint64 {
 	var gkey uint64 = uint64(x.OL_O_ID)
-	gkey = gkey << 8 + uint64(x.OL_D_ID)
-	gkey = gkey << 8 + uint64(x.OL_W_ID)
-	gkey = gkey << 8 + uint64(x.OL_NUMBER)
+	gkey = gkey<<8 + uint64(x.OL_D_ID)
+	gkey = gkey<<8 + uint64(x.OL_W_ID)
+	gkey = gkey<<8 + uint64(x.OL_NUMBER)
 	gkey += TBLID_ORDERLINE
 	return gkey
 }

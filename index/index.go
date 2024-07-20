@@ -1,9 +1,9 @@
 package index
 
 import (
-	"sync"
 	"github.com/mit-pdos/vmvcc/config"
 	"github.com/mit-pdos/vmvcc/tuple"
+	"sync"
 )
 
 type IndexBucket struct {
@@ -28,7 +28,7 @@ func MkIndex() *Index {
 }
 
 func getBucket(key uint64) uint64 {
-	return (key >> 52 + key) % config.N_IDX_BUCKET
+	return (key>>52 + key) % config.N_IDX_BUCKET
 	// return key % config.N_IDX_BUCKET
 }
 

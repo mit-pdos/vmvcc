@@ -1,8 +1,8 @@
 package main
 
 import (
-	"unsafe"
 	"github.com/mit-pdos/vmvcc/vmvcc"
+	"unsafe"
 )
 
 func readidx(txn *vmvcc.Txn, gkey uint64) ([]uint64, bool) {
@@ -24,9 +24,9 @@ func writeidx(txn *vmvcc.Txn, gkey uint64, ents []uint64) {
  */
 func encodeidx(gkeys []uint64) string {
 	n := uint64(len(gkeys))
-	buf := make([]byte, n * 8 + 8)
+	buf := make([]byte, n*8+8)
 	encodeU64(buf, n, 0)
-	copy(buf[8 :], unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n * 8))
+	copy(buf[8:], unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n*8))
 	return string(buf)
 }
 
@@ -37,6 +37,6 @@ func decodeidx(opaque string) []uint64 {
 	var n uint64
 	decodeU64(&n, opaque, 0)
 	gkeys := make([]uint64, n)
-	copy(unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n * 8), opaque[8 :])
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(&gkeys[0])), n*8), opaque[8:])
 	return gkeys
 }

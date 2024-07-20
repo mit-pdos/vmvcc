@@ -89,20 +89,20 @@ func neworder(
 		}
 
 		/* Retrieve item values to be used later. */
-		iname  := items[i].I_NAME
+		iname := items[i].I_NAME
 		iprice := items[i].I_PRICE
-		idata  := items[i].I_DATA
+		idata := items[i].I_DATA
 
 		/* Retrieve current stock values. */
-		squantity  := stock.S_QUANTITY
-		sytd       := stock.S_YTD
-		sordercnt  := stock.S_ORDER_CNT
+		squantity := stock.S_QUANTITY
+		sytd := stock.S_YTD
+		sordercnt := stock.S_ORDER_CNT
 		sremotecnt := stock.S_REMOTE_CNT
-		sdata      := stock.S_DATA
+		sdata := stock.S_DATA
 
 		/* Compute new stock values. */
 		olquantity := iqtys[i]
-		if squantity < uint16(olquantity + 10) {
+		if squantity < uint16(olquantity+10) {
 			squantity += 91
 		}
 		squantity -= uint16(olquantity)
@@ -132,12 +132,12 @@ func neworder(
 		)
 
 		/* TODO: Collect other return values. */
-		iinfo := ItemInfo {
-			I_NAME        : iname,
-			S_QUANTITY    : squantity,
-			BRAND_GENERIC : brandgeneric,
-			I_PRICE       : iprice,
-			OL_AMOUNT     : olamount,
+		iinfo := ItemInfo{
+			I_NAME:        iname,
+			S_QUANTITY:    squantity,
+			BRAND_GENERIC: brandgeneric,
+			I_PRICE:       iprice,
+			OL_AMOUNT:     olamount,
 		}
 		*iinfos = append(*iinfos, iinfo)
 	}
@@ -157,11 +157,11 @@ func TxnNewOrder(txno *vmvcc.Txn, p *NewOrderInput) (*Customer, *NewOrderResult,
 	cid := p.C_ID
 	oentryd := p.O_ENTRY_D
 	iids := p.I_IDS
-	iwids:= p.I_W_IDS
+	iwids := p.I_W_IDS
 	iqtys := p.I_QTYS
 	body := func(txni *vmvcc.Txn) bool {
 		return neworder(
-			txni, wid, did, cid, oentryd, iids, iwids, iqtys, 
+			txni, wid, did, cid, oentryd, iids, iwids, iqtys,
 			customer, res, &iinfos,
 		)
 	}

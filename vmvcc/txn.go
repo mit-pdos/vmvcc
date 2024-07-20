@@ -2,21 +2,21 @@ package vmvcc
 
 import (
 	"github.com/mit-pdos/vmvcc/index"
-	"github.com/mit-pdos/vmvcc/wrbuf"
-	"github.com/mit-pdos/vmvcc/txnsite"
 	"github.com/mit-pdos/vmvcc/trusted_proph"
+	"github.com/mit-pdos/vmvcc/txnsite"
+	"github.com/mit-pdos/vmvcc/wrbuf"
 	"github.com/tchajed/goose/machine"
 )
 
 type Txn struct {
 	// Transaction ID.
-	tid   uint64
+	tid uint64
 	// Transaction site this transaction uses.
-	site  *txnsite.TxnSite
+	site *txnsite.TxnSite
 	// Write buffer.
 	wrbuf *wrbuf.WrBuf
 	// Pointer to the index.
-	idx   *index.Index
+	idx *index.Index
 	// Global prophecy variable (for verification purpose).
 	proph machine.ProphId
 }

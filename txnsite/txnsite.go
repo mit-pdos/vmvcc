@@ -1,16 +1,16 @@
 package txnsite
 
 import (
-	"github.com/mit-pdos/vmvcc/tid"
 	"github.com/mit-pdos/vmvcc/cfmutex"
+	"github.com/mit-pdos/vmvcc/tid"
 	"github.com/tchajed/goose/machine"
 )
 
 type TxnSite struct {
-	latch   *cfmutex.CFMutex
-	sid     uint64
+	latch *cfmutex.CFMutex
+	sid   uint64
 	// ID of this transaction site
-	tids    []uint64
+	tids []uint64
 	// Active transaction IDs.
 	padding [4]uint64
 	// TODO: should only need 3, change it once performance is tested.
@@ -19,8 +19,8 @@ type TxnSite struct {
 func MkTxnSite(sid uint64) *TxnSite {
 	site := new(TxnSite)
 	site.latch = new(cfmutex.CFMutex)
-	site.tids  = make([]uint64, 0, 8)
-	site.sid   = sid
+	site.tids = make([]uint64, 0, 8)
+	site.sid = sid
 
 	return site
 }
@@ -52,8 +52,8 @@ func findTID(tid uint64, tids []uint64) uint64 {
 
 func swapWithEnd(xs []uint64, i uint64) {
 	// Require (1) @xs not empty, (2) @i < len(@xs).
-	tmp := xs[len(xs) - 1]
-	xs[len(xs) - 1] = xs[i]
+	tmp := xs[len(xs)-1]
+	xs[len(xs)-1] = xs[i]
 	xs[i] = tmp
 }
 
@@ -65,7 +65,7 @@ func (site *TxnSite) Deactivate(tid uint64) {
 	// Remove @tid from the set of active transactions.
 	idx := findTID(tid, site.tids)
 	swapWithEnd(site.tids, idx)
-	site.tids = site.tids[:len(site.tids) - 1]
+	site.tids = site.tids[:len(site.tids)-1]
 
 	site.latch.Unlock()
 }

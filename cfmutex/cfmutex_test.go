@@ -2,9 +2,9 @@ package cfmutex
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"unsafe"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCacheAligned(t *testing.T) {
@@ -14,4 +14,3 @@ func TestCacheAligned(t *testing.T) {
 	fmt.Printf("size = %d.\n", size)
 	assert.Equal(uintptr(64), size)
 }
-

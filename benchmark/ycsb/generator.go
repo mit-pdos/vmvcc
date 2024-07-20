@@ -42,13 +42,13 @@ func NewGenerator(
 		zipfian = generator.NewZipfianWithItems(int64(rKeys), theta)
 	}
 
-	gen := &Generator {
-		rd : rd,
-		nKeys : nKeys,
-		rKeys : rKeys,
-		rdRatio : rdRatio,
-		zipfian : zipfian,
-		dist : dist,
+	gen := &Generator{
+		rd:      rd,
+		nKeys:   nKeys,
+		rKeys:   rKeys,
+		rdRatio: rdRatio,
+		zipfian: zipfian,
+		dist:    dist,
 	}
 
 	return gen

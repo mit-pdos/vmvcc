@@ -3,8 +3,8 @@ package main
 import (
 	// "fmt"
 	// "time"
-	"math/rand"
 	"github.com/mit-pdos/vmvcc/vmvcc"
+	"math/rand"
 )
 
 /**
@@ -38,7 +38,7 @@ func LoadOneTPCCWarehouse(
 	rd := rand.New(rand.NewSource(int64(wid)))
 
 	/* Compute the start of history id of each pair of warehouse and district */
-	hid := uint64(wid - 1) * uint64(nLocalDistricts) * uint64(nLocalCustomers) + 1
+	hid := uint64(wid-1)*uint64(nLocalDistricts)*uint64(nLocalCustomers) + 1
 
 	/* Load warehouse. */
 	body := func(txni *vmvcc.Txn) bool {
@@ -52,7 +52,7 @@ func LoadOneTPCCWarehouse(
 
 		/* Load district in each warehouse. */
 		body = func(txni *vmvcc.Txn) bool {
-			loadDistrict(txni, did, wid, nInitLocalNewOrders + 1)
+			loadDistrict(txni, did, wid, nInitLocalNewOrders+1)
 			return true
 		}
 		panicf(txno.Run(body))
@@ -63,11 +63,11 @@ func LoadOneTPCCWarehouse(
 		for cid := uint32(1); cid <= nLocalCustomers; cid++ {
 			body = func(txni *vmvcc.Txn) bool {
 				/* Load customer in each pair of warehouse and district. */
-				bc := rd.Uint32() % 10 < 1
+				bc := rd.Uint32()%10 < 1
 				loadCustomer(txni, cid, did, wid, bc)
 				loadHistory(txni, hid, cid, did, wid)
 				hid++
-				cids[cid - 1] = cid
+				cids[cid-1] = cid
 				return true
 			}
 			panicf(txno.Run(body))
@@ -82,9 +82,9 @@ func LoadOneTPCCWarehouse(
 		for oid := uint32(1); oid <= nLocalCustomers; oid++ {
 			body = func(txni *vmvcc.Txn) bool {
 				r := uint32(OL_MAX_CNT + 1 - OL_MIN_CNT)
-				nOrderLines := uint8(rd.Uint32() % r + uint32(OL_MIN_CNT))
+				nOrderLines := uint8(rd.Uint32()%r + uint32(OL_MIN_CNT))
 				isNewOrder := false
-				if oid > nLocalCustomers - nInitLocalNewOrders {
+				if oid > nLocalCustomers-nInitLocalNewOrders {
 					/* Load new order for the last `nInitLocalNewOrders`. */
 					loadNewOrder(txni, oid, did, wid)
 					isNewOrder = true
@@ -93,7 +93,7 @@ func LoadOneTPCCWarehouse(
 				/* TODO: get current time */
 				var entryd uint32 = 0
 				loadOrder(
-					txni, oid, did, wid, cids[oid - 1], entryd,
+					txni, oid, did, wid, cids[oid-1], entryd,
 					nOrderLines, isNewOrder,
 				)
 
@@ -124,7 +124,6 @@ func LoadOneTPCCWarehouse(
 		panicf(txno.Run(body))
 	}
 }
-
 
 /**
  * Sequential loader, could be very slow. Exists for demo/testing.
@@ -157,7 +156,7 @@ func loadWarehouse(txn *vmvcc.Txn, wid uint8) {
 	InsertWarehouse(
 		txn, wid,
 		"name", "street1", "street2", "city",
-		[2]byte{ 'M', 'A' }, [9]byte{ '0', '2', '1', '3', '9' },
+		[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
 		6.25, 80.0,
 	)
 }
@@ -166,7 +165,7 @@ func loadDistrict(txn *vmvcc.Txn, did uint8, wid uint8, nextoid uint32) {
 	InsertDistrict(
 		txn, did, wid,
 		"name", "street1", "street2", "city",
-		[2]byte{ 'M', 'A' }, [9]byte{ '0', '2', '1', '3', '9' },
+		[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
 		6.25, 80.0, nextoid, 1,
 	)
 }
@@ -174,16 +173,16 @@ func loadDistrict(txn *vmvcc.Txn, did uint8, wid uint8, nextoid uint32) {
 func loadCustomer(txn *vmvcc.Txn, cid uint32, did uint8, wid uint8, bc bool) {
 	var credit [2]byte
 	if bc {
-		credit = [2]byte{ 'B', 'C' }
+		credit = [2]byte{'B', 'C'}
 	} else {
-		credit = [2]byte{ 'G', 'C' }
+		credit = [2]byte{'G', 'C'}
 	}
 	InsertCustomer(
 		txn,
 		cid, did, wid,
 		"first", [2]byte{'O', 'S'}, "last", "street1", "street2", "city",
-		[2]byte{ 'M', 'A' }, [9]byte{ '0', '2', '1', '3', '9' },
-		[16]byte{ '0', '1' }, 1994, credit, 12.3, 43.1, 60.0, 80.0,
+		[2]byte{'M', 'A'}, [9]byte{'0', '2', '1', '3', '9'},
+		[16]byte{'0', '1'}, 1994, credit, 12.3, 43.1, 60.0, 80.0,
 		3, 9, "data",
 	)
 }
@@ -195,7 +194,7 @@ func loadOrder(
 	InsertOrder(
 		txn,
 		oid, did, wid,
-		cid, entryd, 4 /* TODO: O_CARRIER_D */,
+		cid, entryd, 4, /* TODO: O_CARRIER_D */
 		olcnt, true,
 	)
 }
@@ -221,7 +220,7 @@ func loadOrderLine(
 	var deliveryd uint32 = entryd
 	var olamount float32 = 0.0
 	if isnew {
-		olamount = float32(rd.Uint32() % 999999 + 1) / 100
+		olamount = float32(rd.Uint32()%999999+1) / 100
 		deliveryd = OL_DELIVERY_D_NULL
 	}
 
@@ -243,7 +242,7 @@ func loadHistory(txn *vmvcc.Txn, hid uint64, cid uint32, did uint8, wid uint8) {
 }
 
 func loadStock(txn *vmvcc.Txn, iid uint32, wid uint8, original bool) {
-	var quantity uint16 = 20 // TODO
+	var quantity uint16 = 20      // TODO
 	var data string = "stockdata" // TODO: based on original
 	InsertStock(
 		txn,

@@ -1,10 +1,9 @@
 package tuple
 
 import (
-	"sync"
 	"github.com/mit-pdos/vmvcc/common"
+	"sync"
 )
-
 
 // @ts
 // Starting timestamp of this version, and also ending timestamp of the next
@@ -45,7 +44,7 @@ func findVersion(tid uint64, vers []Version) Version {
 	length := uint64(len(vers))
 	var idx uint64 = 0
 	for idx < length {
-		ver = vers[length - idx - 1]
+		ver = vers[length-idx-1]
 		if tid > ver.ts {
 			break
 		}
@@ -86,9 +85,9 @@ func (tuple *Tuple) WriteOpen() {
 func (tuple *Tuple) appendVersion(tid uint64, val string) {
 	// Create a new version and add it to the version chain.
 	verNew := Version{
-		ts  : tid,
-		del : false,
-		val : val,
+		ts:  tid,
+		del: false,
+		val: val,
 	}
 	tuple.vers = append(tuple.vers, verNew)
 
@@ -111,8 +110,8 @@ func (tuple *Tuple) AppendVersion(tid uint64, val string) {
 func (tuple *Tuple) killVersion(tid uint64) bool {
 	// Create a tombstone and add it to the version chain.
 	verNew := Version{
-		ts : tid,
-		del : true,
+		ts:  tid,
+		del: true,
 	}
 	tuple.vers = append(tuple.vers, verNew)
 
@@ -160,7 +159,6 @@ func (tuple *Tuple) Free() {
 func (tuple *Tuple) ReadWait(tid uint64) {
 	tuple.latch.Lock()
 
-	
 	// The only case where a writer would block a reader is when the reader is
 	// trying to read the latest version (i.e., @tid > @tuple.ts) AND the latest
 	// version may change in the future (i.e., @tuple.owned = true).
@@ -204,7 +202,7 @@ func (tuple *Tuple) removeVersions(tid uint64) {
 		}
 		idx--
 	}
-	
+
 	// Ensure @idx points to the first usable version.
 	tuple.vers = tuple.vers[idx:]
 }

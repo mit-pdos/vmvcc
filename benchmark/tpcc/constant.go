@@ -7,6 +7,6 @@ package main
 
 const H_INIT_AMOUNT float32 = 10.0
 const OL_INIT_QUANTITY uint8 = 5
-const OL_MAX_QUANTITY  uint8 = 10
+const OL_MAX_QUANTITY uint8 = 10
 const OL_MIN_CNT uint8 = 5
 const OL_MAX_CNT uint8 = 15

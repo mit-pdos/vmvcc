@@ -42,14 +42,14 @@ func NewGenerator(
 		accu += x
 	}
 	rd := rand.New(rand.NewSource(int64(wid)))
-	gen := &Generator {
-		rd  : rd,
-		wvec : wvec,
-		wid : wid,
-		nItems : nItems,
-		nWarehouses : nWarehouses,
-		nLocalDistricts : nLocalDistricts,
-		nLocalCustomers : nLocalCustomers,
+	gen := &Generator{
+		rd:              rd,
+		wvec:            wvec,
+		wid:             wid,
+		nItems:          nItems,
+		nWarehouses:     nWarehouses,
+		nLocalDistricts: nLocalDistricts,
+		nLocalCustomers: nLocalCustomers,
 	}
 
 	return gen
@@ -87,14 +87,14 @@ func (g *Generator) GetNewOrderInput() *NewOrderInput {
 		}
 	}
 
-	p := &NewOrderInput {
-		W_ID : g.wid,
-		D_ID : g.did(),
-		C_ID : g.cid(),
-		O_ENTRY_D : getTime(),
-		I_IDS : iids,
-		I_W_IDS : iwids,
-		I_QTYS : iqtys,
+	p := &NewOrderInput{
+		W_ID:      g.wid,
+		D_ID:      g.did(),
+		C_ID:      g.cid(),
+		O_ENTRY_D: getTime(),
+		I_IDS:     iids,
+		I_W_IDS:   iwids,
+		I_QTYS:    iqtys,
 	}
 	return p
 }
@@ -111,41 +111,41 @@ func (g *Generator) GetPaymentInput() *PaymentInput {
 		cdid = did
 	}
 
-	p := &PaymentInput {
-		W_ID : g.wid,
-		D_ID : did,
-		H_AMOUNT : 2.5 /* TODO */,
-		C_W_ID : cwid,
-		C_D_ID : cdid,
-		C_ID : g.cid(),
-		H_DATE : getTime(),
+	p := &PaymentInput{
+		W_ID:     g.wid,
+		D_ID:     did,
+		H_AMOUNT: 2.5, /* TODO */
+		C_W_ID:   cwid,
+		C_D_ID:   cdid,
+		C_ID:     g.cid(),
+		H_DATE:   getTime(),
 	}
 	return p
 }
 
 func (g *Generator) GetOrderStatusInput() *OrderStatusInput {
-	p := &OrderStatusInput {
-		W_ID : g.wid,
-		D_ID : g.did(),
-		C_ID : g.cid(),
+	p := &OrderStatusInput{
+		W_ID: g.wid,
+		D_ID: g.did(),
+		C_ID: g.cid(),
 	}
 	return p
 }
 
 func (g *Generator) GetDeliveryInput() *DeliveryInput {
-	p := &DeliveryInput {
-		W_ID : g.wid,
-		O_CARRIER_ID : uint8(pickBetween(g.rd, 1, 10)),
-		OL_DELIVERY_D : getTime(),
+	p := &DeliveryInput{
+		W_ID:          g.wid,
+		O_CARRIER_ID:  uint8(pickBetween(g.rd, 1, 10)),
+		OL_DELIVERY_D: getTime(),
 	}
 	return p
 }
 
 func (g *Generator) GetStockLevelInput() *StockLevelInput {
-	p := &StockLevelInput {
-		W_ID : g.wid,
-		D_ID : g.did(),
-		THRESHOLD : uint16(pickBetween(g.rd, 10, 20)),
+	p := &StockLevelInput{
+		W_ID:      g.wid,
+		D_ID:      g.did(),
+		THRESHOLD: uint16(pickBetween(g.rd, 10, 20)),
 	}
 	return p
 }

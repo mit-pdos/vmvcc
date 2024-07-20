@@ -1,17 +1,17 @@
 package main
 
 import (
-	"time"
-	"fmt"
-	"runtime/pprof"
-	"flag"
-	"os"
-	"log"
-	"sync"
-	"strings"
-	"strconv"
 	"errors"
+	"flag"
+	"fmt"
 	"github.com/mit-pdos/vmvcc/vmvcc"
+	"log"
+	"os"
+	"runtime/pprof"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 var done bool
@@ -108,8 +108,8 @@ func worker(
 		}
 		nTotalTxns[x]++
 	}
-	chCommitted <-nCommittedTxns
-	chTotal <-nTotalTxns
+	chCommitted <- nCommittedTxns
+	chTotal <- nTotalTxns
 }
 
 func main() {
@@ -145,7 +145,7 @@ func main() {
 	 * StockLevel  (4%)
 	 */
 	if len(w) != 5 {
-		w = []uint64{ 45, 43, 4, 4, 4 }
+		w = []uint64{45, 43, 4, 4, 4}
 	}
 	dprintf(debug, "Workload distribution (NO, P, OS, D, SL) = %v", w)
 	dprintf(debug, "")
@@ -240,27 +240,27 @@ func main() {
 	)
 	dprintf(
 		debug, "\tNewOrder (C / T) = %.2f%% (%d / %d).\n",
-		float64(nCommittedTxns[0]) / float64(nTotalTxns[0]) * 100.0,
+		float64(nCommittedTxns[0])/float64(nTotalTxns[0])*100.0,
 		nCommittedTxns[0], nTotalTxns[0],
 	)
 	dprintf(
 		debug, "\tPayment (C / T) = %.2f%% (%d / %d).\n",
-		float64(nCommittedTxns[1]) / float64(nTotalTxns[1]) * 100.0,
+		float64(nCommittedTxns[1])/float64(nTotalTxns[1])*100.0,
 		nCommittedTxns[1], nTotalTxns[1],
 	)
 	dprintf(
 		debug, "\tOrderStatus (C / T) = %.2f%% (%d / %d).\n",
-		float64(nCommittedTxns[2]) / float64(nTotalTxns[2]) * 100.0,
+		float64(nCommittedTxns[2])/float64(nTotalTxns[2])*100.0,
 		nCommittedTxns[2], nTotalTxns[2],
 	)
 	dprintf(
 		debug, "\tDelivery (C / T) = %.2f%% (%d / %d).\n",
-		float64(nCommittedTxns[3]) / float64(nTotalTxns[3]) * 100.0,
+		float64(nCommittedTxns[3])/float64(nTotalTxns[3])*100.0,
 		nCommittedTxns[3], nTotalTxns[3],
 	)
 	dprintf(
 		debug, "\tStockLevel (C / T) = %.2f%% (%d / %d).\n",
-		float64(nCommittedTxns[4]) / float64(nTotalTxns[4]) * 100.0,
+		float64(nCommittedTxns[4])/float64(nTotalTxns[4])*100.0,
 		nCommittedTxns[4], nTotalTxns[4],
 	)
 	dprintf(debug, "Throughput = %.3f (K txns/s).\n", tp)

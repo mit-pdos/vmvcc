@@ -30,7 +30,7 @@ func delivery(
 	}
 
 	/* Append to result. */
-	noid := DeliveryNewOrderResult { NO_D_ID : did, NO_O_ID : oid }
+	noid := DeliveryNewOrderResult{NO_D_ID: did, NO_O_ID: oid}
 	res.NO_RES = append(res.NO_RES, noid)
 
 	/* Get the customer id of this order. */
@@ -70,7 +70,7 @@ func TxnDelivery(txno *vmvcc.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
 	wid := p.W_ID
 	ocarrierid := p.O_CARRIER_ID
 	oldeliveryd := p.OL_DELIVERY_D
-	for did := uint8(1); did <= 10; did ++ {
+	for did := uint8(1); did <= 10; did++ {
 		res := new(DeliveryResult)
 		body := func(txni *vmvcc.Txn) bool {
 			return delivery(txni, wid, did, ocarrierid, oldeliveryd, res)
@@ -78,7 +78,7 @@ func TxnDelivery(txno *vmvcc.Txn, p *DeliveryInput) ([]*DeliveryResult, bool) {
 		/* Restart this transaction if fails. */
 		for !txno.Run(body) {
 		}
-		ress[did - 1] = res
+		ress[did-1] = res
 	}
 	return ress, true
 }

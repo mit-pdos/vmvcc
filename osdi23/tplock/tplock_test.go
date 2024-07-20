@@ -2,10 +2,10 @@ package vmvcc
 
 import (
 	"fmt"
-	"sync"
-	"math/rand"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
+	"sync"
+	"testing"
 )
 
 func TestReadRead(t *testing.T) {
@@ -116,7 +116,7 @@ func worker(i int, txno *Txn) {
 	body := func(txni *Txn) bool {
 		for i := 0; i < 5; i++ {
 			key := rd.Uint64() % 16
-			if rd.Uint64() % 2 == 0 {
+			if rd.Uint64()%2 == 0 {
 				txni.Read(key)
 			} else {
 				txni.Write(key, "hello")

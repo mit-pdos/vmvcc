@@ -1,11 +1,10 @@
 package main
 
 import (
-	"testing"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
-
 
 func TestZipfian(t *testing.T) {
 	assert := assert.New(t)

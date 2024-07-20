@@ -27,7 +27,7 @@ func increment(txn *txn.Txn, p *uint64) bool {
 	if v == 18446744073709551615 {
 		return false
 	}
-	txn.Write(0, v + 1)
+	txn.Write(0, v+1)
 
 	return true
 }
@@ -47,7 +47,7 @@ func decrement(txn *txn.Txn, p *uint64) bool {
 	if v == 0 {
 		return false
 	}
-	txn.Write(0, v - 1)
+	txn.Write(0, v-1)
 	return true
 }
 
@@ -102,4 +102,3 @@ func CallDecrement(mgr *txn.TxnMgr) {
 	txn := mgr.New()
 	Decrement(txn)
 }
-

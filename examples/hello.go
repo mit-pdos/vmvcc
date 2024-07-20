@@ -24,5 +24,5 @@ func CallHello() {
 	db.ActivateGC()
 
 	txn := db.NewTxn()
-    Hello(txn)
+	Hello(txn)
 }

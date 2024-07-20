@@ -2,11 +2,10 @@ package vmvcc
 
 import (
 	//"time"
-	"sync"
 	"github.com/mit-pdos/vmvcc/config"
+	"sync"
 	// "github.com/mit-pdos/vmvcc/cfmutex"
 )
-
 
 /**
  * Tuple.
@@ -148,10 +147,10 @@ func (wrbuf *WrBuf) sortEntsByKey() {
 	for i < uint64(len(ents)) {
 		var j uint64 = i
 		for j > 0 {
-			if ents[j - 1].key <= ents[j].key {
+			if ents[j-1].key <= ents[j].key {
 				break
 			}
-			swap(ents, j - 1, j)
+			swap(ents, j-1, j)
 			j--
 		}
 		i++
@@ -174,11 +173,11 @@ func (wrbuf *WrBuf) Lookup(key uint64) (string, bool, bool) {
 }
 
 func (wrbuf *WrBuf) Add(key uint64, val string, wr bool, tpl *Tuple) {
-	ent := WrEnt {
-		key : key,
-		val : val,
-		wr  : wr,
-		tpl : tpl,
+	ent := WrEnt{
+		key: key,
+		val: val,
+		wr:  wr,
+		tpl: tpl,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -188,14 +187,14 @@ func (wrbuf *WrBuf) Write(key uint64, val string) {
 	if found {
 		ent := &wrbuf.ents[pos]
 		ent.val = val
-		ent.wr  = true
+		ent.wr = true
 		return
 	}
 
-	ent := WrEnt {
-		key : key,
-		val : val,
-		wr  : true,
+	ent := WrEnt{
+		key: key,
+		val: val,
+		wr:  true,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -208,9 +207,9 @@ func (wrbuf *WrBuf) Delete(key uint64) {
 		return
 	}
 
-	ent := WrEnt {
-		key : key,
-		wr  : false,
+	ent := WrEnt{
+		key: key,
+		wr:  false,
 	}
 	wrbuf.ents = append(wrbuf.ents, ent)
 }
@@ -222,9 +221,9 @@ func (wrbuf *WrBuf) Remove(key uint64) {
 	}
 
 	ent := wrbuf.ents[pos]
-	wrbuf.ents[pos] = wrbuf.ents[len(wrbuf.ents) - 1]
-	wrbuf.ents[len(wrbuf.ents) - 1] = ent
-	wrbuf.ents = wrbuf.ents[: len(wrbuf.ents) - 1]
+	wrbuf.ents[pos] = wrbuf.ents[len(wrbuf.ents)-1]
+	wrbuf.ents[len(wrbuf.ents)-1] = ent
+	wrbuf.ents = wrbuf.ents[:len(wrbuf.ents)-1]
 }
 
 func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset *WrBuf) bool {
@@ -245,11 +244,11 @@ func (wrbuf *WrBuf) OpenTuples(idx *Index, rdset *WrBuf) bool {
 		/* Escalate the read lock to write lock. */
 		rdset.Remove(ent.key)
 		// A more efficient way is updating field `tpl`, but not supported by Goose.
-		ents[pos] = WrEnt {
-			key : ent.key,
-			val : ent.val,
-			wr  : ent.wr,
-			tpl : tpl,
+		ents[pos] = WrEnt{
+			key: ent.key,
+			val: ent.val,
+			wr:  ent.wr,
+			tpl: tpl,
 		}
 		pos++
 	}
@@ -292,9 +291,8 @@ func (wrbuf *WrBuf) ReleaseTuples() {
 }
 
 func (wrbuf *WrBuf) Clear() {
-	wrbuf.ents = wrbuf.ents[ : 0]
+	wrbuf.ents = wrbuf.ents[:0]
 }
-
 
 /**
  * Index.
@@ -321,7 +319,7 @@ func MkIndex() *Index {
 }
 
 func getBucket(key uint64) uint64 {
-	return (key >> 52 + key) % config.N_IDX_BUCKET
+	return (key>>52 + key) % config.N_IDX_BUCKET
 	// return key % config.N_IDX_BUCKET
 }
 
@@ -351,7 +349,6 @@ func (idx *Index) GetTuple(key uint64) *Tuple {
 	bucket.latch.Unlock()
 	return tupleNew
 }
-
 
 /**
  * Transaction.
@@ -388,7 +385,6 @@ func (db *DB) NewTxn() *Txn {
 func (db *DB) ActivateGC() {
 	/* Do nothing. Just for compatibility. */
 }
-
 
 func (txn *Txn) Write(key uint64, val string) {
 	wrbuf := txn.wrbuf

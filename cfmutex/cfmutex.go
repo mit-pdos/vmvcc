@@ -16,4 +16,3 @@ func (cfmutex *CFMutex) Lock() {
 func (cfmutex *CFMutex) Unlock() {
 	cfmutex.mutex.Unlock()
 }
-
