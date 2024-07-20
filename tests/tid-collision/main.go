@@ -6,7 +6,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/txn"
 	"strconv"
 	"sync"
@@ -34,7 +34,7 @@ func doIncr(txn *txn.Txn) bool {
 		}
 	}
 
-	randKey := machine.RandomUint64() % nkeys
+	randKey := primitive.RandomUint64() % nkeys
 	txn.Write(randKey, strconv.FormatUint(m+1, 10))
 	return true
 }

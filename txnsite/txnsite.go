@@ -1,7 +1,7 @@
 package txnsite
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/mit-pdos/vmvcc/tid"
 )
@@ -32,7 +32,7 @@ func (site *TxnSite) Activate() uint64 {
 	var t uint64
 	t = tid.GenTID(site.sid)
 	// Assume TID never overflow.
-	machine.Assume(t < 18446744073709551615)
+	primitive.Assume(t < 18446744073709551615)
 
 	site.tids = append(site.tids, t)
 
@@ -77,7 +77,7 @@ func (site *TxnSite) GetSafeTS() uint64 {
 
 	var tidnew uint64
 	tidnew = tid.GenTID(site.sid)
-	machine.Assume(tidnew < 18446744073709551615)
+	primitive.Assume(tidnew < 18446744073709551615)
 
 	var tidmin uint64 = tidnew
 	for _, tid := range site.tids {

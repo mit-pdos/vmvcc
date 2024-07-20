@@ -1,14 +1,14 @@
 package trusted_proph
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/wrbuf"
 )
 
-type ProphId = machine.ProphId
+type ProphId = primitive.ProphId
 
 func NewProph() ProphId {
-	return machine.NewProph()
+	return primitive.NewProph()
 }
 
 func ResolveRead(p ProphId, tid uint64, key uint64)           {}

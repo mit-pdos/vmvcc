@@ -3,15 +3,15 @@
 package strnum
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 )
 
 func StringToU64(s string) uint64 {
-	return machine.UInt64Get([]byte(s))
+	return primitive.UInt64Get([]byte(s))
 }
 
 func U64ToString(n uint64) string {
 	buf := make([]byte, 8)
-	machine.UInt64Put(buf, n)
+	primitive.UInt64Put(buf, n)
 	return string(buf)
 }

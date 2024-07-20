@@ -2,7 +2,7 @@
 package examples
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/txn"
 )
 
@@ -96,7 +96,7 @@ func CallIncrementFetch(mgr *txn.TxnMgr) {
 		return
 	}
 	n2 := Fetch(txn)
-	machine.Assert(n1 < n2)
+	primitive.Assert(n1 < n2)
 }
 
 func CallDecrement(mgr *txn.TxnMgr) {

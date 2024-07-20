@@ -65,7 +65,7 @@ index 91e325d..9be4727 100644
 +	*site.gtidref++
 +	site.gtidlk.Unlock()
  	// Assume TID never overflow.
- 	machine.Assume(t < 18446744073709551615)
+ 	primitive.Assume(t < 18446744073709551615)
  
 @@ -76,7 +86,13 @@ func (site *TxnSite) GetSafeTS() uint64 {
  	site.latch.Lock()
@@ -79,7 +79,7 @@ index 91e325d..9be4727 100644
 +	*site.gtidref++
 +	site.gtidlk.Unlock()
 +
- 	machine.Assume(tidnew < 18446744073709551615)
+ 	primitive.Assume(tidnew < 18446744073709551615)
  
  	var tidmin uint64 = tidnew
 diff --git a/vmvcc/db.go b/vmvcc/db.go

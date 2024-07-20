@@ -1,7 +1,7 @@
 package vmvcc
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/index"
 	"github.com/mit-pdos/vmvcc/trusted_proph"
 	"github.com/mit-pdos/vmvcc/txnsite"
@@ -18,7 +18,7 @@ type Txn struct {
 	// Pointer to the index.
 	idx *index.Index
 	// Global prophecy variable (for verification purpose).
-	proph machine.ProphId
+	proph primitive.ProphId
 }
 
 func (txn *Txn) Write(key uint64, val string) {

@@ -1,7 +1,7 @@
 package vmvcc
 
 import (
-	"github.com/goose-lang/goose/machine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/vmvcc/cfmutex"
 	"github.com/mit-pdos/vmvcc/config"
 	"github.com/mit-pdos/vmvcc/index"
@@ -20,11 +20,11 @@ type DB struct {
 	// Index.
 	idx *index.Index
 	// Global prophecy variable (for verification purpose).
-	proph machine.ProphId
+	proph primitive.ProphId
 }
 
 func MkDB() *DB {
-	proph := machine.NewProph()
+	proph := primitive.NewProph()
 	db := &DB{proph: proph}
 	db.latch = new(cfmutex.CFMutex)
 	db.sites = make([]*txnsite.TxnSite, config.N_TXN_SITES)
@@ -83,7 +83,7 @@ func (db *DB) ActivateGC() {
 	go func() {
 		for {
 			db.gc()
-			machine.Sleep(1 * 1000000)
+			primitive.Sleep(1 * 1000000)
 		}
 	}()
 }
