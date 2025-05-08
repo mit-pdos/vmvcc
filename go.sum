@@ -7,6 +7,8 @@ github.com/goose-lang/std v0.4.1 h1:ezoEYbvePtF2TD8vuUUTt5lO893CA6QTgoBX896F8BU=
 github.com/goose-lang/std v0.4.1/go.mod h1:bnKHDHwU0lHf99eMI5PVM77UweRyu6qgM/h43qGBRto=
 github.com/goose-lang/std v0.6.0 h1:zEJZbRZXIa1mYtdHSeJepA8v2h+Nt4cNgDLEkVQyRHY=
 github.com/goose-lang/std v0.6.0/go.mod h1:bnKHDHwU0lHf99eMI5PVM77UweRyu6qgM/h43qGBRto=
+github.com/goose-lang/std v0.6.1 h1:fShymy3KEyVkf6Q26Z24W4aBXQD+Qu6XIORuqAdTwK0=
+github.com/goose-lang/std v0.6.1/go.mod h1:bnKHDHwU0lHf99eMI5PVM77UweRyu6qgM/h43qGBRto=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/magiconair/properties v1.8.7 h1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=
@@ -44,6 +46,8 @@ github.com/tchajed/marshal v0.6.2 h1:DSrylV2Sc47G4RJG2KSOp7HrA76Hd5Bj2WVGtXB/bCw
 github.com/tchajed/marshal v0.6.2/go.mod h1:nY/NmbQidx2CdBY4Y8NdUTnDXgWmhQ6Hg1es+PnxBx8=
 github.com/tchajed/marshal v0.6.4 h1:l5oQ4rnxBZT1hYg6wCtiVLU+VpxVMHqAO7X4UvyiPdU=
 github.com/tchajed/marshal v0.6.4/go.mod h1:5ZBThIEbCesU7WNnefmLzMqC06/S7am6VqHknoLara0=
+github.com/tchajed/marshal v0.6.5 h1:efeXVH7fbUhRtAkAeOn/g8Y9h6+3X+jricoheBodfPQ=
+github.com/tchajed/marshal v0.6.5/go.mod h1:d1XBpilY4WRs1EU9Q2QNOgOpSsBaWH/l4eU1sCR7hqk=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.11.0 h1:ZvwS0R+56ePWxUNi+Atn9dWONBPp/AUETXlHW0DxSjE=
 go.uber.org/atomic v1.11.0/go.mod h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0=
